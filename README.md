@@ -10,7 +10,7 @@
 
 **Uma plataforma digital segura e acolhedora para pessoas trans em processo de transição de gênero**
 
-[Sobre](#sobre) • [Funcionalidades](#funcionalidades) • [Arquitetura](#arquitetura) • [Instalação](#instalação)
+[Sobre](#-sobre) • [Funcionalidades](#-funcionalidades) • [Arquitetura](#️-arquitetura) • [Instalação](#-instalação)
 </div>
 
 ---
