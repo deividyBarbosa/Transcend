@@ -7,47 +7,50 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import DismissKeyboard from '../src/components/DismissKeyboard';
 
 export default function CadastroScreen() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      {/* Botão de voltar */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.backIcon}>←</Text>
-      </TouchableOpacity>
-
-      {/* Título */}
-      <Text style={styles.title}>Cadastrar-se</Text>
-
-      {/* Ilustração */}
-      <Image
-        source={require('../assets/people.png')}
-        style={styles.illustration}
-        resizeMode="contain"
-      />
-
-      {/* Botões de seleção */}
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push('/cadastro-trans')}
+    <DismissKeyboard>
+      <View style={styles.container}>
+        {/* Botão de voltar */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          <Text style={styles.buttonText}>PESSOA TRANS</Text>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push('/cadastro-psicologo')}
-        >
-          <Text style={styles.buttonText}>PSICÓLOGO</Text>
-        </TouchableOpacity>
+        {/* Título */}
+        <Text style={styles.title}>Cadastrar-se</Text>
+
+        {/* Ilustração */}
+        <Image
+          source={require('../assets/people.png')}
+          style={styles.illustration}
+          resizeMode="contain"
+        />
+
+        {/* Botões de seleção */}
+        <View style={styles.buttonsContainer}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push('/cadastro-trans')}
+          >
+            <Text style={styles.buttonText}>PESSOA TRANS</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push('/cadastro-psicologo')}
+          >
+            <Text style={styles.buttonText}>PSICÓLOGO</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </DismissKeyboard>  
   );
 }
 

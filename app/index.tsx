@@ -6,12 +6,11 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { fazerLogin } from '../src/services/auth';
+import DismissKeyboard from '../src/components/DismissKeyboard';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -30,7 +29,7 @@ export default function LoginScreen() {
       const resultado = await fazerLogin(email, senha);
       
       if (resultado.sucesso) {
-        router.push('/inicio');
+        router.replace('/inicio');
       } else {
         Alert.alert('Erro', resultado.erro || 'Credenciais inválidas');
       }
@@ -42,10 +41,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <DismissKeyboard>
+      <View style={styles.container}>
       {/* Logo/Imagem da borboleta - largura total */}
       <Image
         source={require('../assets/butterfly.png')}
@@ -54,55 +51,57 @@ export default function LoginScreen() {
       />
 
       {/* Conteúdo com padding */}
-      <View style={styles.content}>
-        {/* Texto de boas-vindas */}
-        <Text style={styles.title}>Bem-vindo de volta</Text>
+      
+        <View style={styles.content}>
+          {/* Texto de boas-vindas */}
+          <Text style={styles.title}>Bem-vindo de volta</Text>
 
-        {/* Campo de Email */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#999"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          {/* Campo de Email */}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-        {/* Campo de Senha */}
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          placeholderTextColor="#999"
-          value={senha}
-          onChangeText={setSenha}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+          {/* Campo de Senha */}
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            placeholderTextColor="#999"
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry
+            autoCapitalize="none"
+          />
 
-        {/* Link Esqueceu a senha */}
-        <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
-          <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
-        </TouchableOpacity>
+          {/* Link Esqueceu a senha */}
+          <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
+            <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+          </TouchableOpacity>
 
-        {/* Botão Entrar */}
-        <TouchableOpacity
-          style={[styles.button, carregando && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={carregando}
-        >
-          <Text style={styles.buttonText}>
-            {carregando ? 'ENTRANDO...' : 'ENTRAR'}
-          </Text>
-        </TouchableOpacity>
+          {/* Botão Entrar */}
+          <TouchableOpacity
+            style={[styles.button, carregando && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={carregando}
+          >
+            <Text style={styles.buttonText}>
+              {carregando ? 'ENTRANDO...' : 'ENTRAR'}
+            </Text>
+          </TouchableOpacity>
 
-        {/* Link para cadastro */}
-        <TouchableOpacity onPress={() => router.push('/cadastro')}>
-          <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          {/* Link para cadastro */}
+          <TouchableOpacity onPress={() => router.push('/cadastro')}>
+            <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
+          </TouchableOpacity>
+        </View>
+        </View>
+      </DismissKeyboard>
   );
 }
 

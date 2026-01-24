@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import DismissKeyboard from '../src/components/DismissKeyboard';
 
 export default function CadastroPsicologoScreen() {
   const router = useRouter();
@@ -97,111 +98,113 @@ export default function CadastroPsicologoScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Botão de voltar */}
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.backIcon}>←</Text>
-      </TouchableOpacity>
-
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Título */}
-        <Text style={styles.title}>Cadastro Psicólogo</Text>
-
-        {/* Nome completo */}
-        <Text style={styles.label}>Nome completo</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu nome"
-          placeholderTextColor="#999"
-          value={nomeCompleto}
-          onChangeText={setNomeCompleto}
-          autoCapitalize="words"
-        />
-
-        {/* Número do CRP */}
-        <Text style={styles.label}>Número do CRP</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="01/XXXXX"
-          placeholderTextColor="#999"
-          value={numeroCRP}
-          onChangeText={setNumeroCRP}
-          keyboardType="numbers-and-punctuation"
-        />
-
-        {/* E-mail */}
-        <Text style={styles.label}>E-mail</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu email"
-          placeholderTextColor="#999"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-
-        {/* Senha */}
-        <Text style={styles.label}>Senha</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Senha de 8 a 16 dígitos"
-          placeholderTextColor="#999"
-          value={senha}
-          onChangeText={setSenha}
-          secureTextEntry
-          autoCapitalize="none"
-        />
-
-        {/* Confirmar senha */}
-        <Text style={styles.label}>Confirmar senha</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Confirme sua senha"
-          placeholderTextColor="#999"
-          value={confirmarSenha}
-          onChangeText={setConfirmarSenha}
-          secureTextEntry
-          autoCapitalize="none"
-        />
-
-        {/* Envio de documentos */}
-        <View style={styles.uploadSection}>
-          <Text style={styles.uploadTitle}>Envio de documentos</Text>
-          <View style={styles.uploadBox}>
-            <Text style={styles.uploadLabel}>Comprovação de CRP</Text>
-            <Text style={styles.uploadSubtitle}>PDF, max 5 MB</Text>
-            <TouchableOpacity 
-              style={styles.uploadButton}
-              onPress={handleUpload}
-            >
-              <Text style={styles.uploadButtonText}>
-                {documentoAnexado ? 'Documento anexado ✓' : 'Upload'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Botão Cadastrar */}
-        <TouchableOpacity
-          style={[styles.submitButton, carregando && styles.submitButtonDisabled]}
-          onPress={handleCadastrar}
-          disabled={carregando}
+    <DismissKeyboard>
+      <View style={styles.container}>
+        {/* Botão de voltar */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          <Text style={styles.submitButtonText}>
-            {carregando ? 'CADASTRANDO...' : 'Cadastrar'}
-          </Text>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </View>
+
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Título */}
+          <Text style={styles.title}>Cadastro Psicólogo</Text>
+
+          {/* Nome completo */}
+          <Text style={styles.label}>Nome completo</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Digite seu nome"
+            placeholderTextColor="#999"
+            value={nomeCompleto}
+            onChangeText={setNomeCompleto}
+            autoCapitalize="words"
+          />
+
+          {/* Número do CRP */}
+          <Text style={styles.label}>Número do CRP</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="01/XXXXX"
+            placeholderTextColor="#999"
+            value={numeroCRP}
+            onChangeText={setNumeroCRP}
+            keyboardType="numbers-and-punctuation"
+          />
+
+          {/* E-mail */}
+          <Text style={styles.label}>E-mail</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Digite seu email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          {/* Senha */}
+          <Text style={styles.label}>Senha</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Senha de 8 a 16 dígitos"
+            placeholderTextColor="#999"
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          {/* Confirmar senha */}
+          <Text style={styles.label}>Confirmar senha</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Confirme sua senha"
+            placeholderTextColor="#999"
+            value={confirmarSenha}
+            onChangeText={setConfirmarSenha}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          {/* Envio de documentos */}
+          <View style={styles.uploadSection}>
+            <Text style={styles.uploadTitle}>Envio de documentos</Text>
+            <View style={styles.uploadBox}>
+              <Text style={styles.uploadLabel}>Comprovação de CRP</Text>
+              <Text style={styles.uploadSubtitle}>PDF, max 5 MB</Text>
+              <TouchableOpacity 
+                style={styles.uploadButton}
+                onPress={handleUpload}
+              >
+                <Text style={styles.uploadButtonText}>
+                  {documentoAnexado ? 'Documento anexado ✓' : 'Upload'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Botão Cadastrar */}
+          <TouchableOpacity
+            style={[styles.submitButton, carregando && styles.submitButtonDisabled]}
+            onPress={handleCadastrar}
+            disabled={carregando}
+          >
+            <Text style={styles.submitButtonText}>
+              {carregando ? 'CADASTRANDO...' : 'Cadastrar'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </DismissKeyboard>  
   );
 }
 
