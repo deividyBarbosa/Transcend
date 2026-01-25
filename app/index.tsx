@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { fazerLogin } from '../src/services/auth';
+import { fazerLogin, recuperarSenha } from '../src/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -82,7 +82,18 @@ export default function LoginScreen() {
         />
 
         {/* Link Esqueceu a senha */}
-        <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
+        <TouchableOpacity onPress={async () => {
+          if (!email) {
+            Alert.alert('Atenção', 'Digite seu email no campo acima para recuperar a senha');
+            return;
+          }
+          const resultado = await recuperarSenha(email);
+          if (resultado.sucesso) {
+            Alert.alert('Sucesso', 'Email de recuperação enviado! Verifique sua caixa de entrada.');
+          } else {
+            Alert.alert('Erro', resultado.erro || 'Erro ao enviar email de recuperação');
+          }
+        }}>
           <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
         </TouchableOpacity>
 
