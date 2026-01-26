@@ -1,3 +1,5 @@
+/* faz nada nao isso aqui.. ignorarem por agora*/
+
 import React from 'react';
 import {
   View,

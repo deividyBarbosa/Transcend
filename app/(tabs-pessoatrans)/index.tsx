@@ -1,3 +1,5 @@
+// to-do: todos os dados aqui são fakes :( e que a linha chegue até o canto da tela
+
 import React from 'react';
 import {
   View,
@@ -9,9 +11,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { useRouter } from 'expo-router';
+
 
 export default function InicioScreen() {
   const nome = 'Alex';
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -32,11 +37,19 @@ export default function InicioScreen() {
 
         {/* Plano Hormonal */}
         <Text style={styles.sectionTitle}>Plano Hormonal</Text>
-        <TouchableOpacity style={styles.viewLink}>
-          <Text style={styles.link}>Visualizar</Text>
-          <Ionicons name="eye-outline" size={18} color={colors.primary} />
-        </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => router.push('/plano-hormonal')}
+          style={styles.viewButton}
+        >
+          <Text style={styles.viewLink}>Visualizar</Text>
+          <Ionicons
+            name="eye-outline"
+            size={15}
+            color={colors.primary}
+            style={{ marginTop: 1 }}
+          />
+        </TouchableOpacity>
 
         <View style={styles.card}>
           <Ionicons name="medkit-outline" size={22} color={colors.primary} />
@@ -95,7 +108,7 @@ export default function InicioScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionText}>Contatos de Médicos próximos</Text>
+          <Text style={styles.actionText}>Contatos Médicos</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -144,6 +157,12 @@ settingsButton: {
     marginTop: 20,
     marginBottom: 8,
     color: colors.text,
+  },
+  viewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
   },
   link: {
     fontFamily: fonts.medium,

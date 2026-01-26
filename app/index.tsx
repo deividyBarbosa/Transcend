@@ -1,3 +1,5 @@
+// to-do: colocar a linha até o canto da tela
+
 import React, { useState } from 'react';
 import {
   View,
@@ -29,7 +31,7 @@ export default function LoginScreen() {
       const resultado = await fazerLogin(email, senha);
       
       if (resultado.sucesso) {
-        router.replace('/inicio');
+        router.push('/(tabs-pessoatrans)');
       } else {
         Alert.alert('Erro', resultado.erro || 'Credenciais inválidas');
       }
