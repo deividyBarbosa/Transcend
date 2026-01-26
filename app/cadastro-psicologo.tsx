@@ -208,136 +208,137 @@ export default function CadastroPsicologoScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Botão de voltar */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Text style={styles.backIcon}>←</Text>
-      </TouchableOpacity>
+    <DismissKeyboard>
+      <View style={styles.container}>
+        {/* Botão de voltar */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Título */}
-        <Text style={styles.title}>Cadastro Psicólogo</Text>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Título */}
+          <Text style={styles.title}>Cadastro Psicólogo</Text>
 
-        {/* Nome completo */}
-        <Text style={styles.label}>Nome completo *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu nome"
-          placeholderTextColor="#999"
-          value={nomeCompleto}
-          onChangeText={setNomeCompleto}
-          autoCapitalize="words"
-        />
-
-        {/* CPF */}
-        <Text style={styles.label}>CPF *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="000.000.000-00"
-          placeholderTextColor="#999"
-          value={cpf}
-          onChangeText={(texto) => setCpf(formatarCPF(texto))}
-          keyboardType="numeric"
-          maxLength={14}
-        />
-
-        {/* Data de nascimento */}
-        <Text style={styles.label}>Data de nascimento *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="DD/MM/AAAA"
-          placeholderTextColor="#999"
-          value={dataNascimento}
-          onChangeText={(texto) => setDataNascimento(formatarData(texto))}
-          keyboardType="numeric"
-          maxLength={10}
-        />
-
-          {/* Número do CRP */}
-          <Text style={styles.label}>Número do CRP</Text>
+          {/* Nome completo */}
+          <Text style={styles.label}>Nome completo *</Text>
           <TextInput
             style={styles.input}
-            placeholder="01/XXXXX"
+            placeholder="Digite seu nome"
             placeholderTextColor="#999"
-            value={numeroCRP}
-            onChangeText={setNumeroCRP}
-            keyboardType="numbers-and-punctuation"
+            value={nomeCompleto}
+            onChangeText={setNomeCompleto}
+            autoCapitalize="words"
           />
 
-        {/* E-mail */}
-        <Text style={styles.label}>E-mail *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Digite seu email"
-          placeholderTextColor="#999"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+          {/* CPF */}
+          <Text style={styles.label}>CPF *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="000.000.000-00"
+            placeholderTextColor="#999"
+            value={cpf}
+            onChangeText={(texto) => setCpf(formatarCPF(texto))}
+            keyboardType="numeric"
+            maxLength={14}
+          />
 
-        {/* Senha */}
-        <Text style={styles.label}>Senha *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Senha de 8 a 16 caracteres"
-          placeholderTextColor="#999"
-          value={senha}
-          onChangeText={setSenha}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+          {/* Data de nascimento */}
+          <Text style={styles.label}>Data de nascimento *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="DD/MM/AAAA"
+            placeholderTextColor="#999"
+            value={dataNascimento}
+            onChangeText={(texto) => setDataNascimento(formatarData(texto))}
+            keyboardType="numeric"
+            maxLength={10}
+          />
 
-        {/* Confirmar senha */}
-        <Text style={styles.label}>Confirmar senha *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Confirme sua senha"
-          placeholderTextColor="#999"
-          value={confirmarSenha}
-          onChangeText={setConfirmarSenha}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+            {/* Número do CRP */}
+            <Text style={styles.label}>Número do CRP</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="01/XXXXX"
+              placeholderTextColor="#999"
+              value={numeroCRP}
+              onChangeText={setNumeroCRP}
+              keyboardType="numbers-and-punctuation"
+            />
 
-        {/* Envio de documentos */}
-        <View style={styles.uploadSection}>
-          <Text style={styles.uploadTitle}>Envio de documentos</Text>
-          <View style={styles.uploadBox}>
-            <Text style={styles.uploadLabel}>Comprovação de CRP *</Text>
-            <Text style={styles.uploadSubtitle}>PDF, max 5 MB</Text>
+          {/* E-mail */}
+          <Text style={styles.label}>E-mail *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Digite seu email"
+            placeholderTextColor="#999"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          {/* Senha */}
+          <Text style={styles.label}>Senha *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Senha de 8 a 16 caracteres"
+            placeholderTextColor="#999"
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          {/* Confirmar senha */}
+          <Text style={styles.label}>Confirmar senha *</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Confirme sua senha"
+            placeholderTextColor="#999"
+            value={confirmarSenha}
+            onChangeText={setConfirmarSenha}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          {/* Envio de documentos */}
+          <View style={styles.uploadSection}>
+            <Text style={styles.uploadTitle}>Envio de documentos</Text>
+            <View style={styles.uploadBox}>
+              <Text style={styles.uploadLabel}>Comprovação de CRP *</Text>
+              <Text style={styles.uploadSubtitle}>PDF, max 5 MB</Text>
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={handleUpload}
+              >
+                <Text style={styles.uploadButtonText}>
+                  {documento ? 'Documento anexado' : 'Upload'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+            {/* Botão Cadastrar */}
             <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={handleUpload}
+              style={[styles.submitButton, carregando && styles.submitButtonDisabled]}
+              onPress={handleCadastrar}
+              disabled={carregando}
             >
-              <Text style={styles.uploadButtonText}>
-                {documento ? 'Documento anexado' : 'Upload'}
+              <Text style={styles.submitButtonText}>
+                {carregando ? 'CADASTRANDO...' : 'Cadastrar'}
               </Text>
             </TouchableOpacity>
-          </View>
-        </View>
-
-          {/* Botão Cadastrar */}
-          <TouchableOpacity
-            style={[styles.submitButton, carregando && styles.submitButtonDisabled]}
-            onPress={handleCadastrar}
-            disabled={carregando}
-          >
-            <Text style={styles.submitButtonText}>
-              {carregando ? 'CADASTRANDO...' : 'Cadastrar'}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+          </ScrollView>
       </View>
-    </DismissKeyboard>  
+    </DismissKeyboard>
   );
 }
 
