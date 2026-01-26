@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { fazerLogin } from '../src/services/auth';
+import { fazerLogin, recuperarSenha } from '../src/services/auth';
 import DismissKeyboard from '../src/components/DismissKeyboard';
 
 export default function LoginScreen() {
@@ -79,10 +79,21 @@ export default function LoginScreen() {
             autoCapitalize="none"
           />
 
-          {/* Link Esqueceu a senha */}
-          <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
-            <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
-          </TouchableOpacity>
+        {/* Link Esqueceu a senha */}
+        <TouchableOpacity onPress={async () => {
+          if (!email) {
+            Alert.alert('Atenção', 'Digite seu email no campo acima para recuperar a senha');
+            return;
+          }
+          const resultado = await recuperarSenha(email);
+          if (resultado.sucesso) {
+            Alert.alert('Sucesso', 'Email de recuperação enviado! Verifique sua caixa de entrada.');
+          } else {
+            Alert.alert('Erro', resultado.erro || 'Erro ao enviar email de recuperação');
+          }
+        }}>
+          <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+        </TouchableOpacity>
 
           {/* Botão Entrar */}
           <TouchableOpacity
