@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams, router } from 'expo-router';
-import DismissKeyboard from '../src/components/DismissKeyboard';
-import Header from '../src/components/Header';
-import Input from '../src/components/Input';
-import Button from '../src/components/Button';
-import { colors } from '../src/theme/colors';
-import { fonts } from '../src/theme/fonts';
-import SelectModal from '../src/components/SelectModal';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Header from '@/components/Header';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
+import { colors } from '@/theme/colors';
+import { fonts } from '@/theme/fonts';
+import SelectModal from '@/components/SelectModal';
 
 const UNIDADES = ['mg', 'mcg', 'mL', 'comprimido(s)', 'cápsula(s)', 'gotas', 'adesivo(s)'];
 const FREQUENCIAS = ['dia', 'semana', 'mês', 'semestre', 'ano'];

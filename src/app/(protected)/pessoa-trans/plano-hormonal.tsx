@@ -14,11 +14,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-import Header from '../src/components/Header';
-import Input from '../src/components/Input';
-import Button from '../src/components/Button';
-import MedicationCard from '../src/components/MedicationCard';
-import DismissKeyboard from '../src/components/DismissKeyboard';
+import Header from '@/components/Header';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
+import MedicationCard from '@/components/MedicationCard';
+import DismissKeyboard from '@/components/DismissKeyboard';
 
 export default function PlanoHormonalScreen() {
   const router = useRouter();

@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
-import Button from '../../src/components/Button';
+import Button from '@/components/Button';
 import { Alert } from 'react-native';
 
 

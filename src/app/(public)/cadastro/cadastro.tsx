@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import DismissKeyboard from '../src/components/DismissKeyboard';
-import Header from '../src/components/Header';
-import Button from '../src/components/Button';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Header from '@/components/Header';
+import Button from '@/components/Button';
 
 export default function CadastroScreen() {
   const router = useRouter();
