@@ -4,177 +4,135 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Transcend** is a React Native + Expo mobile app providing a safe support platform for trans people during gender transition, offering hormone tracking, transition journaling, psychological support, and community features.
+**Transcend** is a React Native + Expo mobile app providing a safe support platform for trans people during gender transition. Features include hormone tracking, transition journaling, psychological support, and community. Primary language is **Brazilian Portuguese (pt-BR)** — all UI text, variable names in screens, and user-facing strings are in Portuguese.
 
 ## Development Commands
 
 ```bash
-# Start development server
-npm start
-
-# Run on specific platforms
-npm run android
-npm run ios
-npm run web
+npm start           # Start Expo dev server
+npm run android     # Run on Android
+npm run ios         # Run on iOS
+npm run web         # Run on web
 ```
 
-**Note:** This project is in early development. Testing, linting, and build scripts are not yet configured.
+Requires Node.js >= 20.0.0. No testing, linting, or build scripts are configured yet.
 
 ## Environment Setup
 
-Required environment variables in `.env`:
-- `EXPO_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `EXPO_PUBLIC_SUPABASE_KEY` - Supabase anon/public key
-
-Copy `.env.example` to `.env` and configure with Supabase credentials.
+Copy `.env.example` to `.env` and set:
+- `EXPO_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `EXPO_PUBLIC_SUPABASE_KEY` — Supabase anon/public key
 
 ## Architecture
 
-### Technology Stack
+### Tech Stack
 
-- **Frontend:** React Native with Expo (new architecture enabled)
-- **Language:** TypeScript (strict mode)
-- **Backend:** Supabase (PostgreSQL, Auth, Storage, Realtime)
-- **State Management:** Context API + React Hooks (planned)
-- **Navigation:** React Navigation (planned)
-- **Push Notifications:** Expo Notifications (planned)
+- **React Native 0.81** with **Expo 54** (new architecture enabled)
+- **TypeScript 5.9** (strict mode)
+- **Expo Router 6** (file-based routing)
+- **Supabase** (PostgreSQL, Auth, Storage, Realtime)
+- **React 19**
 
-### Client-Server Architecture
+### Path Alias
 
-The app follows a clean separation between client (React Native) and server (Supabase):
+`@/*` maps to `src/*` (configured in `tsconfig.json`). Use `@/services/auth` instead of `../../src/services/auth`.
 
-**Frontend responsibilities:**
-- UI/UX rendering
-- Local state management
-- Form validation
-- Offline-first data caching (planned)
+### Code Organization
 
-**Backend (Supabase) responsibilities:**
-- Authentication (JWT, OAuth providers)
-- Database operations (PostgreSQL with Row Level Security)
-- File storage (images, documents)
-- Real-time updates (chat, notifications)
-- Serverless functions (Edge Functions for complex logic)
-
-### Supabase Client Configuration
-
-The Supabase client is initialized in `utils/supabase.ts` with:
-- AsyncStorage for session persistence
-- Auto token refresh enabled
-- URL detection disabled (mobile-specific)
-
-### Security & Data Protection
-
-**Row Level Security (RLS):** All database tables must implement RLS policies ensuring:
-- Users access only their own data
-- Psychologists access only shared/consented data
-- Moderators have scoped community access
-- All sensitive operations are logged
-
-**Compliance:**
-- LGPD-compliant (Brazilian data protection law)
-- Encryption: AES-256 at rest, TLS 1.3 in transit
-- 2FA support (TOTP/SMS)
-- Biometric authentication (Touch ID/Face ID)
-- Audit logging for sensitive operations
-
-## Planned Core Features
-
-### 1. Hormone Therapy Tracking
-- Hormone plan registration (prescribed by professionals)
-- Application tracking and history
-- Automated notifications and delay alerts
-- Full therapy timeline
-
-### 2. Transition Journal
-- Daily emotion and symptom tracking
-- Photo documentation of physical changes
-- Important milestone marking
-- Session history (scheduled and completed)
-- Selective sharing with psychologists (with consent)
-
-### 3. Psychological Support
-- Online session scheduling
-- Private psychologist notes
-- Emotional history access (consent-based)
-- Session notifications
-- Emotional evolution reports
-
-### 4. Community
-- Themed, moderated communities
-- Posts and comments (with anonymity option)
-- Like and report system
-- Active moderation against inappropriate content
-- Community-based filtering
-
-## Database Schema Principles
-
-When creating or modifying database tables:
-
-1. **Always implement RLS policies** - Never create tables without appropriate RLS
-2. **Use UUIDs for primary keys** - Follow PostgreSQL best practices
-3. **Add audit fields** - `created_at`, `updated_at`, `created_by` for sensitive tables
-4. **Foreign key constraints** - Maintain referential integrity
-5. **Indexes on foreign keys** - Optimize queries
-6. **Use appropriate data types** - JSONB for flexible data, proper date/time types
-
-## Code Organization
-
-Current structure (early stage):
 ```
-/app          - Future app screens and routes
-/utils        - Shared utilities (Supabase client)
-/assets       - Images, fonts, icons
-App.tsx       - Root component
-index.ts      - Expo entry point
+app/                          # Expo Router screens (file-based routing)
+  index.tsx                   # Login screen (app entry)
+  cadastro.tsx                # Registration type selection
+  cadastro-trans.tsx          # Trans person registration
+  cadastro-psicologo.tsx      # Psychologist registration
+  cadastro-analise.tsx        # Registration pending analysis
+  plano-hormonal.tsx          # Hormone plan detail
+  (tabs-pessoatrans)/         # Authenticated tab navigator
+    _layout.tsx               # Tab layout (4 tabs: Início, Diário, Comunidade, Perfil)
+    index.tsx                 # Home/Dashboard
+    diario.tsx                # Transition journal with calendar
+    perfil.tsx                # Profile (stub)
+    comunidade/               # Community stack navigator
+      _layout.tsx             # Stack layout
+      index.tsx               # Community feed
+      [id].tsx                # Post detail (stub)
+      novo-post.tsx           # Create post (stub)
+
+src/
+  components/                 # Reusable UI components
+  database/schema.ts          # TypeScript database schema (14+ tables)
+  mocks/                      # Mock data for development
+  services/auth.ts            # Auth service (login, register, session management)
+  theme/                      # Design tokens (colors.ts, fonts.ts)
+  types/auth.ts               # Auth types (TipoUsuario, Genero, Perfil, etc.)
+
+utils/supabase.ts             # Supabase client singleton (AsyncStorage, auto-refresh)
 ```
 
-Expected future structure:
-```
-/app
-  /(tabs)     - Tab navigation routes
-  /auth       - Authentication screens
-  /profile    - User profile
-  /journal    - Transition journal
-  /therapy    - Hormone therapy tracking
-  /community  - Community features
-/components   - Reusable UI components
-/contexts     - React Context providers
-/hooks        - Custom React hooks
-/services     - API/Supabase service layer
-/types        - TypeScript type definitions
-/utils        - Utilities and helpers
-```
+### Navigation Flow
 
-## Key Implementation Patterns
+**Unauthenticated:** `/ (login)` → `/cadastro` → `/cadastro-trans` | `/cadastro-psicologo` → `/cadastro-analise`
 
-### Supabase Data Fetching
-Always use the centralized Supabase client from `utils/supabase.ts`. Handle auth state and errors consistently.
+**Authenticated:** `/(tabs-pessoatrans)/` with 4 tabs — Home, Diário, Comunidade, Perfil
 
-### State Management
-Use Context API for global state (auth, user profile, theme). Keep component-local state minimal.
+### Supabase Integration
 
-### Type Safety
-TypeScript strict mode is enabled. Always type Supabase responses and avoid `any`.
+- Client initialized in `utils/supabase.ts` with AsyncStorage for session persistence and URL detection disabled (mobile-specific)
+- Auth service in `src/services/auth.ts` provides: `fazerLogin`, `cadastrarTrans`, `cadastrarPsicologo`, `fazerLogout`, `recuperarSenha`, `atualizarSenha`, `obterSessao`, `obterUsuarioAtual`, `escutarMudancasAuth`, `atualizarPerfil`, `uploadFotoPerfil`
+- Portuguese error messages are mapped from Supabase error codes in the auth service
 
-### Sensitive Data
-Never store sensitive data (API keys, tokens, personal health data) in code or commits. Use environment variables and Supabase's built-in security.
+### Database Schema
 
-## Navigation Structure (Planned)
+Defined in `src/database/schema.ts`. Key tables: `perfis`, `psicologos`, `planos_hormonais`, `aplicacoes_hormonais`, `diario_entradas`, `diario_fotos`, `sessoes_psicologicas`, `comunidades`, `postagens`, `comentarios`, `denuncias`, `audit_log`. All tables require RLS policies with UUID primary keys and audit fields (`created_at`, `updated_at`).
 
-- Unauthenticated: Login → Register → Password Recovery
-- Authenticated (Tabs):
-  - Home/Dashboard
-  - Hormone Therapy
-  - Transition Journal
-  - Psychological Support
-  - Community
-  - Profile/Settings
+### Theme
 
-## Important Notes
+Colors in `src/theme/colors.ts` (background: `#F2E8EB`, primary: `#D65C73`). Fonts in `src/theme/fonts.ts` (Inter family). Import from `@/theme/colors` and `@/theme/fonts`.
 
-- **Privacy-first design:** All features must respect user consent and data minimization
-- **Accessibility:** Follow WCAG guidelines for inclusive design
-- **Portuguese language:** Primary language is Brazilian Portuguese (pt-BR)
-- **Offline support:** Plan for offline-first architecture where feasible
-- **Performance:** Optimize for low-end devices and poor network conditions
+## Git Workflow
+
+See `BRANCHING.md` for full details. Branch from `develop`, merge via PR. Patterns: `feature/<name>`, `bugfix/<name>`, `hotfix/<version>-<description>`. Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, etc.).
+
+## Current Development Status
+
+**Working:** Auth flows (login, register), tab navigation, hormone plan display, journal with calendar (local state), community feed (mock data), Supabase client setup, database schema types.
+
+**Stubs/incomplete:** Profile screen, create post, post detail, auth state persistence across app restarts, real database operations (most screens use local state or mock data).
+
+## Key Patterns
+
+- All Supabase access goes through `utils/supabase.ts` singleton
+- Auth operations go through `src/services/auth.ts` — do not call Supabase auth directly from screens
+- User types: `pessoa_trans`, `psicologo`, `moderador`, `admin` (enum `TipoUsuario`)
+- Gender options: `mulher_trans`, `homem_trans`, `nao_binario`, `outro` (enum `Genero`)
+- Privacy-first: respect user consent, LGPD compliance, RLS on all tables
+- DismissKeyboard wrapper component in `src/components/` for form screens
+
+## Documentation
+
+### Core Framework
+- [React Native](https://reactnative.dev/docs/getting-started)
+- [Expo](https://docs.expo.dev/)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
+- [TypeScript](https://www.typescriptlang.org/docs/)
+
+### Backend
+- [Supabase](https://supabase.com/docs)
+- [Supabase Auth](https://supabase.com/docs/guides/auth)
+- [Supabase JavaScript Client](https://supabase.com/docs/reference/javascript/introduction)
+- [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
+- [Supabase Storage](https://supabase.com/docs/guides/storage)
+
+### UI & Navigation
+- [React Navigation](https://reactnavigation.org/docs/getting-started)
+- [React Native Calendars](https://github.com/wix/react-native-calendars)
+- [React Native Safe Area Context](https://github.com/th3rdwave/react-native-safe-area-context)
+- [React Native Screens](https://github.com/software-mansion/react-native-screens)
+
+### Utilities
+- [AsyncStorage](https://react-native-async-storage.github.io/async-storage/)
+- [Expo Document Picker](https://docs.expo.dev/versions/latest/sdk/document-picker/)
+- [Expo Constants](https://docs.expo.dev/versions/latest/sdk/constants/)
+- [Expo Linking](https://docs.expo.dev/versions/latest/sdk/linking/)
+- [Expo Status Bar](https://docs.expo.dev/versions/latest/sdk/status-bar/)
+- [React Native Picker](https://github.com/react-native-picker/picker)
