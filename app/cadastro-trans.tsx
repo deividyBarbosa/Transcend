@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Keyboard,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import DismissKeyboard from '../src/components/DismissKeyboard';
+import Input from '../src/components/Input';
+import Button from '../src/components/Button';
+import Header from '../src/components/Header';
+import SelectButton from '../src/components/SelectButton';
 
 export default function CadastroTransScreen() {
   const router = useRouter();
@@ -22,7 +16,7 @@ export default function CadastroTransScreen() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
 
-  const validarEmail = (email: string) => {
+  const validarEmail = (email: string) => { 
     return email.includes('@');
   };
 
@@ -73,138 +67,91 @@ export default function CadastroTransScreen() {
   return (
       <DismissKeyboard>
         <View style={styles.container}>
-          {/* Botão de voltar */}
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
 
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Título */}
-            <Text style={styles.title}>Cadastro</Text>
+          <Header title="Cadastro" showBackButton />
+            
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
 
             {/* Nome social */}
-            <Text style={styles.label}>Nome social</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nome que te representa"
-              placeholderTextColor="#999"
-              value={nomeSocial}
-              onChangeText={setNomeSocial}
-              autoCapitalize="words"
-            />
+              <Input
+                label="Nome social"
+                placeholder="Nome que te representa"
+                value={nomeSocial}
+                onChangeText={setNomeSocial}
+                autoCapitalize="words"
+              />
 
-            {/* Gênero */}
-            <Text style={styles.label}>Gênero</Text>
-            <View style={styles.genderContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.genderButton,
-                  genero === 'mulher_trans' && styles.genderButtonSelected,
-                ]}
-                onPress={() => setGenero('mulher_trans')}
-              >
-                <Text
-                  style={[
-                    styles.genderButtonText,
-                    genero === 'mulher_trans' && styles.genderButtonTextSelected,
-                  ]}
-                >
-                  Mulher trans
-                </Text>
-              </TouchableOpacity>
+            {/*  Gênero */}
 
-              <TouchableOpacity
-                style={[
-                  styles.genderButton,
-                  genero === 'homem_trans' && styles.genderButtonSelected,
-                ]}
-                onPress={() => setGenero('homem_trans')}
-              >
-                <Text
-                  style={[
-                    styles.genderButtonText,
-                    genero === 'homem_trans' && styles.genderButtonTextSelected,
-                  ]}
-                >
-                  Homem trans
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.genderButton,
-                  genero === 'nao_binaria' && styles.genderButtonSelected,
-                ]}
-                onPress={() => setGenero('nao_binaria')}
-              >
-                <Text
-                  style={[
-                    styles.genderButtonText,
-                    genero === 'nao_binaria' && styles.genderButtonTextSelected,
-                  ]}
-                >
-                  Pessoa não-binária
-                </Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.label}>Gênero</Text>
+              <View style={styles.genderContainer}>
+                <SelectButton
+                  label="Mulher trans"
+                  selected={genero === 'mulher_trans'}
+                  onPress={() => setGenero('mulher_trans')}
+                />
+                <SelectButton
+                  label="Homem trans"
+                  selected={genero === 'homem_trans'}
+                  onPress={() => setGenero('homem_trans')}
+                />
+                <SelectButton
+                  label="Pessoa não-binária"
+                  selected={genero === 'nao_binaria'}
+                  onPress={() => setGenero('nao_binaria')}
+                />
+              </View>
 
             {/* E-mail */}
-            <Text style={styles.label}>E-mail</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Digite seu email"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+
+              <Input
+                label="E-mail"
+                placeholder="Digite seu email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+
 
             {/* Senha */}
-            <Text style={styles.label}>Senha</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Senha de 8 a 16 dígitos"
-              placeholderTextColor="#999"
-              value={senha}
-              onChangeText={setSenha}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            
+              <Input
+                label="Senha"
+                placeholder="Senha de 8 a 16 dígitos"
+                value={senha}
+                onChangeText={setSenha}
+                secureTextEntry
+                autoCapitalize="none"
+              />
 
             {/* Confirmar senha */}
-            <Text style={styles.label}>Confirmar senha</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirme sua senha"
-              placeholderTextColor="#999"
-              value={confirmarSenha}
-              onChangeText={setConfirmarSenha}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+
+              <Input
+                label="Confirmar senha"
+                placeholder="Confirme sua senha"
+                value={confirmarSenha}
+                onChangeText={setConfirmarSenha}
+                secureTextEntry
+                autoCapitalize="none"
+              />
 
             {/* Botão Cadastrar */}
-            <TouchableOpacity
-              style={[styles.submitButton, carregando && styles.submitButtonDisabled]}
-              onPress={handleCadastrar}
-              disabled={carregando}
-            >
-              <Text style={styles.submitButtonText}>
-                {carregando ? 'CADASTRANDO...' : 'Cadastrar'}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </DismissKeyboard>  
+            
+              <Button 
+                title="Cadastrar" 
+                onPress={handleCadastrar}
+                loading={carregando}
+              />
+              
+        </ScrollView>
+      </View>
+    </DismissKeyboard>  
   );
 }
 
@@ -212,21 +159,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2E8EB',
-    paddingTop: 60,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: '#333',
   },
   scrollView: {
     flex: 1,
@@ -236,14 +168,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 28,
-    fontFamily: 'Inter',
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
   label: {
     fontSize: 16,
     fontFamily: 'Inter',
@@ -251,44 +175,9 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-    fontSize: 16,
-    fontFamily: 'Inter',
-    color: '#333',
-  },
   genderContainer: {
     width: '100%',
     marginBottom: 20,
-    gap: 10,
-  },
-  genderButton: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  genderButtonSelected: {
-    backgroundColor: '#D65C73',
-    borderColor: '#D65C73',
-  },
-  genderButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter',
-    color: '#333',
-  },
-  genderButtonTextSelected: {
-    color: '#FFF',
-    fontWeight: '600',
   },
   submitButton: {
     width: '100%',

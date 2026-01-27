@@ -1,18 +1,12 @@
 // to-do: colocar a linha até o canto da tela
 
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  Alert,
-} from 'react-native';
+import {View, Text, TouchableOpacity, StyleSheet, Image, Alert, ScrollView} from 'react-native';
 import { useRouter } from 'expo-router';
 import { fazerLogin } from '../src/services/auth';
 import DismissKeyboard from '../src/components/DismissKeyboard';
+import Input from '../src/components/Input';
+import Button from '../src/components/Button';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -42,69 +36,63 @@ export default function LoginScreen() {
     }
   };
 
-  return (
-    <DismissKeyboard>
-      <View style={styles.container}>
-      {/* Logo/Imagem da borboleta - largura total */}
+return (
+  <DismissKeyboard>
+    <View style={styles.container}>
+      <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+      >
+      {/* Borboleta */}
       <Image
         source={require('../assets/butterfly.png')}
         style={styles.logo}
         resizeMode="contain"
       />
 
-      {/* Conteúdo com padding */}
-      
-        <View style={styles.content}>
-          {/* Texto de boas-vindas */}
-          <Text style={styles.title}>Bem-vindo de volta</Text>
+      <View style={styles.content}>
+        {/* Texto de boas-vindas */}
+        <Text style={styles.title}>Bem-vindo de volta</Text>
 
-          {/* Campo de Email */}
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        {/* Campos */}
+        <Input
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
-          {/* Campo de Senha */}
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            placeholderTextColor="#999"
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry
-            autoCapitalize="none"
-          />
+        <Input
+          placeholder="Senha"
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry
+          autoCapitalize="none"
+        />
 
-          {/* Link Esqueceu a senha */}
-          <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
-            <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
-          </TouchableOpacity>
+        {/* Link Esqueceu a senha */}
+        <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
+          <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+        </TouchableOpacity>
 
-          {/* Botão Entrar */}
-          <TouchableOpacity
-            style={[styles.button, carregando && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={carregando}
-          >
-            <Text style={styles.buttonText}>
-              {carregando ? 'ENTRANDO...' : 'ENTRAR'}
-            </Text>
-          </TouchableOpacity>
+        {/* Botão Entrar */}
+        <Button 
+          title="ENTRAR" 
+          onPress={handleLogin}
+          loading={carregando}
+        />
 
-          {/* Link para cadastro */}
-          <TouchableOpacity onPress={() => router.push('/cadastro')}>
-            <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
-          </TouchableOpacity>
-        </View>
-        </View>
-      </DismissKeyboard>
-  );
+        {/* Link para cadastro */}
+        <TouchableOpacity onPress={() => router.push('/cadastro')}>
+          <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
+        </TouchableOpacity>
+       </View>
+      </ScrollView>
+    </View>
+  </DismissKeyboard>
+);
 }
 
 const styles = StyleSheet.create({
@@ -115,13 +103,18 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: 250,
-    marginTop: 60,
+    marginTop: 70,
   },
   content: {
-    flex: 1,
+    // flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,
+    paddingBottom: 40
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   title: {
     fontSize: 24,
@@ -131,17 +124,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     textAlign: 'center',
   },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-    fontFamily: 'Inter',
-    color: '#333',
-  },
   forgotPassword: {
     fontSize: 14,
     fontFamily: 'Inter',
@@ -149,27 +131,10 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     alignSelf: 'flex-start',
   },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#D65C73',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontFamily: 'Inter',
-    fontWeight: '600',
-  },
   signupText: {
     fontSize: 14,
     fontFamily: 'Inter',
     color: '#666',
+    marginTop: 15,
   },
 });
