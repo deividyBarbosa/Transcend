@@ -194,7 +194,7 @@ export default function CadastroPsicologoScreen() {
         );
       }
 
-      router.push('/cadastro-analise');
+      router.push('/cadastro/psicologo/step2');
     } catch (erro) {
       console.error('Erro no cadastro:', erro);
       Alert.alert('Erro', 'Ocorreu um erro ao realizar o cadastro');

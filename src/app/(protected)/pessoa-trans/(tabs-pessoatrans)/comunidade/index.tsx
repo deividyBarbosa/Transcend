@@ -34,7 +34,7 @@ export default function Comunidade() {
   function renderPost({ item }: { item: Post }) {
     return (
       <Pressable
-        onPress={() => router.push(`/comunidade/${item.id}`)}
+        onPress={() => router.push(`/pessoa-trans/comunidade/${item.id}`)}
         style={{
           backgroundColor: colors.white,
           padding: 16,
@@ -107,7 +107,7 @@ export default function Comunidade() {
 
       {/* Botão flutuante */}
       <Pressable
-        onPress={() => router.push('/comunidade/novo-post')}
+        onPress={() => router.push('/pessoa-trans/comunidade/novo-post')}
         style={{
           position: 'absolute',
           right: 20,

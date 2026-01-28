@@ -71,8 +71,8 @@ export default function PlanoHormonalScreen() {
                 icon="medical-outline"
                 title={item.nome}
                 subtitle={item.dose}
-                onEdit={() => router.push({  // ← onEdit, não pathname direto
-                  pathname: '/editar-medicamento',
+                onEdit={() => router.push({
+                  pathname: '/pessoa-trans/editar-medicamento',
                   params: {
                     id: item.id,
                     nome: item.nome,
@@ -86,7 +86,7 @@ export default function PlanoHormonalScreen() {
           <MedicationCard
             variant="add"
             title="Adicionar medicamento"
-            onPress={() => router.push('/editar-medicamento')}
+            onPress={() => router.push('/pessoa-trans/editar-medicamento')}
           />
 
           {/* Histórico */}

@@ -25,7 +25,7 @@ export default function LoginScreen() {
       const resultado = await fazerLogin(email, senha);
       
       if (resultado.sucesso) {
-        router.push('/(tabs-pessoatrans)');
+        router.replace('/pessoa-trans');
       } else {
         Alert.alert('Erro', resultado.erro || 'Credenciais inválidas');
       }
@@ -45,7 +45,7 @@ return (
       >
       {/* Borboleta */}
       <Image
-        source={require('../assets/butterfly.png')}
+        source={require('@/assets/butterfly.png')}
         style={styles.logo}
         resizeMode="contain"
       />

@@ -35,7 +35,7 @@ export default function InicioScreen() {
         <Text style={styles.sectionTitle}>Plano Hormonal</Text>
 
         <TouchableOpacity
-          onPress={() => router.push('/plano-hormonal')}
+          onPress={() => router.push('/pessoa-trans/plano-hormonal')}
           style={styles.viewButton}
         >
           <Text style={styles.viewLink}>Visualizar</Text>

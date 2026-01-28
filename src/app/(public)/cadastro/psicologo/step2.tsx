@@ -34,7 +34,7 @@ export default function CadastroAnaliseScreen() {
 
       {/* Ilustração */}
       <Image
-        source={require('../assets/paperwork.png')}
+        source={require('@/assets/paperwork.png')}
         style={styles.illustration}
         resizeMode="contain"
       />

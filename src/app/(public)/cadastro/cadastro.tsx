@@ -16,7 +16,7 @@ export default function CadastroScreen() {
 
         {/* Ilustração */}
         <Image
-          source={require('../assets/people.png')}
+          source={require('@/assets/people.png')}
           style={styles.illustration}
           resizeMode="contain"
         />
@@ -25,11 +25,11 @@ export default function CadastroScreen() {
         <View style={styles.buttonsContainer}>
           <Button
             title="PESSOA TRANS"
-            onPress={() => router.push('/cadastro-trans')}
+            onPress={() => router.push('/cadastro/pessoa-trans/cadastro-trans')}
           />
           <Button
             title="PSICÓLOGO"
-            onPress={() => router.push('/cadastro-psicologo')}
+            onPress={() => router.push('/cadastro/psicologo/step1')}
           />
         </View>
       </View>
