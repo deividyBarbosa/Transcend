@@ -13,7 +13,7 @@ export default function DismissKeyboard({ children }: { children: React.ReactNod
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
       >
         {children}
       </KeyboardAvoidingView>

@@ -3,8 +3,8 @@
 import { View, Text, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { colors } from '../../../src/theme/colors';
-import { mockComunidade, Post } from '../../../src/mocks/mockComunidade';
+import { colors } from '@/theme/colors';
+import { mockComunidade, Post } from '@/mocks/mockComunidade';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Comunidade() {

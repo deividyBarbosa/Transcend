@@ -1,4 +1,4 @@
-/* faz nada nao isso aqui.. ignorarem por agora*/
+/* faz nada nao isso aqui.. ignorem */
 
 import React from 'react';
 import {

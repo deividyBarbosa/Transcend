@@ -1,18 +1,15 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  Alert,
-} from 'react-native';
-import DismissKeyboard from '../../src/components/DismissKeyboard';
-import { KeyboardAvoidingView, Platform } from 'react-native';
-import { colors } from '../../src/theme/colors';
-import { fonts } from '../../src/theme/fonts';
+// todo: resumo semanal é uma farsa, upload de foto também, botao de configuraçoes tbm
+// vou voltar aqui ainda porque ta muuito grande e acho que dá pra diminuir
 
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import { colors } from '@/theme/colors';
+import { fonts } from '@/theme/fonts';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import CheckBox from '@/components/CheckBox';
+import Calendar from '@/components/Calendar';
 
 interface DiaryEntry {
   date: string;
@@ -25,9 +22,10 @@ interface DiaryEntry {
 
 const MOODS = ['Feliz', 'Neutro', 'Triste', 'Ansioso', 'Irritado'];
 const SYMPTOMS = ['Cansaço', 'Dores de cabeça', 'Insônia', 'Mudanças de apetite'];
-const scrollViewRef = useRef<ScrollView>(null);
+
 
 export default function DiarioScreen() {
+  const scrollViewRef = useRef<ScrollView>(null);
   const formScrollRef = useRef<ScrollView>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -53,14 +51,6 @@ export default function DiarioScreen() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [otherSymptoms, setOtherSymptoms] = useState('');
   const [emotionalDiary, setEmotionalDiary] = useState('');
-
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    return { firstDay, daysInMonth };
-  };
 
   const formatDate = (year: number, month: number, day: number) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -142,61 +132,6 @@ export default function DiarioScreen() {
     return { hormoneApplications, moodStability };
   };
 
-  const renderCalendar = () => {
-    const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
-    const days = [];
-    const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<View key={`empty-${i}`} style={styles.dayCell} />);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = formatDate(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-      const isToday = dateStr === formatDate(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-      const hasEntryMark = hasEntry(dateStr);
-
-      days.push(
-        <TouchableOpacity
-          key={day}
-          style={styles.dayCell}
-          onPress={() => handleDayPress(day)}
-        >
-          <View style={[styles.dayNumber, isToday && styles.todayCircle]}>
-            <Text style={[styles.dayText, isToday && styles.todayText]}>{day}</Text>
-          </View>
-          {hasEntryMark && <View style={styles.entryMark} />}
-        </TouchableOpacity>
-      );
-    }
-
-    return (
-      <View style={styles.calendarContainer}>
-        <View style={styles.monthHeader}>
-          <TouchableOpacity onPress={handlePreviousMonth}>
-            <Text style={styles.monthArrow}>{'<'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.monthText}>
-            {currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-          </Text>
-          <TouchableOpacity onPress={handleNextMonth}>
-            <Text style={styles.monthArrow}>{'>'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.weekDaysRow}>
-          {weekDays.map((day, index) => (
-            <View key={index} style={styles.weekDayCell}>
-              <Text style={styles.weekDayText}>{day}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.daysGrid}>{days}</View>
-      </View>
-    );
-  };
-
   const renderMainView = () => {
     const stats = calculateWeeklyStats();
 
@@ -209,13 +144,17 @@ export default function DiarioScreen() {
           </TouchableOpacity>
         </View>
 
-        {renderCalendar()}
+        <Calendar
+          currentMonth={currentMonth}
+          onPreviousMonth={handlePreviousMonth}
+          onNextMonth={handleNextMonth}
+          onDayPress={handleDayPress}
+          markedDates={Object.keys(entries)}
+        /> 
 
         <View style={styles.checkInSection}>
           <Text style={styles.sectionTitle}>Check-in de Hoje</Text>
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegisterToday}>
-            <Text style={styles.registerButtonText}>Registrar diário</Text>
-          </TouchableOpacity>
+            <Button title="Registrar diário" onPress={handleRegisterToday} />
         </View>
 
         <View style={styles.summarySection}>
@@ -277,21 +216,15 @@ export default function DiarioScreen() {
           <View style={styles.formSection}>
             <Text style={styles.formLabel}>Sintomas</Text>
             {SYMPTOMS.map(symptom => (
-              <TouchableOpacity
+              <CheckBox
                 key={symptom}
-                style={styles.checkboxRow}
+                label={symptom}
+                checked={selectedSymptoms.includes(symptom)}
                 onPress={() => toggleSymptom(symptom)}
-              >
-                <View style={[styles.checkbox, selectedSymptoms.includes(symptom) && styles.checkboxChecked]}>
-                  {selectedSymptoms.includes(symptom) && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>{symptom}</Text>
-              </TouchableOpacity>
+              />
             ))}
-            <TextInput
-              style={styles.otherInput}
+            <Input
               placeholder="Outros"
-              placeholderTextColor={colors.muted}
               value={otherSymptoms}
               onChangeText={setOtherSymptoms}
             />
@@ -326,10 +259,7 @@ export default function DiarioScreen() {
             />
             <Text style={styles.charCount}>{emotionalDiary.length}/2000</Text>
           </View>
-
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Salvar</Text>
-          </TouchableOpacity>
+          <Button title="Salvar" onPress={handleSave} />
         </ScrollView>
       </DismissKeyboard>
     );
@@ -366,79 +296,6 @@ const styles = StyleSheet.create({
   settingsIcon: {
     fontSize: 24,
   },
-  calendarContainer: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  monthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  monthText: {
-    fontSize: 16,
-    fontFamily: fonts.semibold,
-    color: colors.text,
-    textTransform: 'capitalize',
-  },
-  monthArrow: {
-    fontSize: 20,
-    color: colors.text,
-    paddingHorizontal: 12,
-  },
-  weekDaysRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  weekDayCell: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  weekDayText: {
-    fontSize: 12,
-    fontFamily: fonts.medium,
-    color: colors.muted,
-  },
-  daysGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayCell: {
-    width: '14.28%',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 4,
-  },
-  dayNumber: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayText: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.text,
-  },
-  todayCircle: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-  },
-  todayText: {
-    color: colors.white,
-    fontFamily: fonts.semibold,
-  },
-  entryMark: {
-    width: 4,
-    height: 4,
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-    marginTop: 2,
-  },
   checkInSection: {
     marginBottom: 20,
   },
@@ -447,17 +304,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 12,
-  },
-  registerButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fonts.semibold,
   },
   summarySection: {
     marginBottom: 40,
@@ -541,44 +387,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: fonts.semibold,
   },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.muted,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  checkmark: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fonts.bold,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.text,
-  },
-  otherInput: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.text,
-    marginTop: 8,
-  },
   uploadButton: {
     backgroundColor: colors.white,
     borderRadius: 8,
@@ -608,17 +416,5 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'right',
     marginTop: 4,
-  },
-  saveButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 25,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  saveButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fonts.semibold,
   },
 });

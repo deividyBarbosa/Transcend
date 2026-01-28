@@ -8,7 +8,7 @@ export default function PostDetalhe() {
 
   return (
     <View style={{ padding: 16 }}>
-      <Text>Post {id}</Text>
+      <Text>Bla bla bla bla bla bla {id}</Text>
       <Text>Comentários aqui</Text>
     </View>
   );

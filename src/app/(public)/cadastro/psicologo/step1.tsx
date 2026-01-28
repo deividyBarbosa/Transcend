@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert} from 'react-native';
 import { useRouter } from 'expo-router';
-import DismissKeyboard from '../src/components/DismissKeyboard';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Header from '@/components/Header';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 import * as DocumentPicker from 'expo-document-picker';
-import { cadastrarPsicologo } from '../src/services/auth';
-import { supabase } from '../utils/supabase';
+import { cadastrarPsicologo } from '@/services/auth';
+import { supabase } from '@/utils/supabase';
 
 export default function CadastroPsicologoScreen() {
   const router = useRouter();
@@ -27,6 +22,7 @@ export default function CadastroPsicologoScreen() {
   const [carregando, setCarregando] = useState(false);
 
   const validarCRP = (crp: string) => {
+    // Validação básica do CRP
     const crpRegex = /^\d{2}\/\d{5}$/;
     return crpRegex.test(crp);
   };
@@ -210,74 +206,41 @@ export default function CadastroPsicologoScreen() {
   return (
     <DismissKeyboard>
       <View style={styles.container}>
-        {/* Botão de voltar */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+
+        <Header title="Cadastro Psicólogo" showBackButton />
 
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Título */}
+
+        {/* Título */}
+
           <Text style={styles.title}>Cadastro Psicólogo</Text>
 
-          {/* Nome completo */}
-          <Text style={styles.label}>Nome completo *</Text>
-          <TextInput
-            style={styles.input}
+        {/* Inputs */}
+ 
+          <Input
+            label="Nome completo"
             placeholder="Digite seu nome"
-            placeholderTextColor="#999"
             value={nomeCompleto}
             onChangeText={setNomeCompleto}
             autoCapitalize="words"
           />
 
-          {/* CPF */}
-          <Text style={styles.label}>CPF *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="000.000.000-00"
-            placeholderTextColor="#999"
-            value={cpf}
-            onChangeText={(texto) => setCpf(formatarCPF(texto))}
-            keyboardType="numeric"
-            maxLength={14}
+
+          <Input
+            label="Número do CRP"
+            placeholder="01/XXXXX"
+            value={numeroCRP}
+            onChangeText={setNumeroCRP}
+            keyboardType="numbers-and-punctuation"
           />
 
-          {/* Data de nascimento */}
-          <Text style={styles.label}>Data de nascimento *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="DD/MM/AAAA"
-            placeholderTextColor="#999"
-            value={dataNascimento}
-            onChangeText={(texto) => setDataNascimento(formatarData(texto))}
-            keyboardType="numeric"
-            maxLength={10}
-          />
-
-            {/* Número do CRP */}
-            <Text style={styles.label}>Número do CRP</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="01/XXXXX"
-              placeholderTextColor="#999"
-              value={numeroCRP}
-              onChangeText={setNumeroCRP}
-              keyboardType="numbers-and-punctuation"
-            />
-
-          {/* E-mail */}
-          <Text style={styles.label}>E-mail *</Text>
-          <TextInput
-            style={styles.input}
+          <Input
+            label="E-mail"
             placeholder="Digite seu email"
-            placeholderTextColor="#999"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -285,24 +248,18 @@ export default function CadastroPsicologoScreen() {
             autoCorrect={false}
           />
 
-          {/* Senha */}
-          <Text style={styles.label}>Senha *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Senha de 8 a 16 caracteres"
-            placeholderTextColor="#999"
+          <Input
+            label="Senha"
+            placeholder="Senha de 8 a 16 dígitos"
             value={senha}
             onChangeText={setSenha}
             secureTextEntry
             autoCapitalize="none"
           />
 
-          {/* Confirmar senha */}
-          <Text style={styles.label}>Confirmar senha *</Text>
-          <TextInput
-            style={styles.input}
+          <Input
+            label="Confirmar senha"
             placeholder="Confirme sua senha"
-            placeholderTextColor="#999"
             value={confirmarSenha}
             onChangeText={setConfirmarSenha}
             secureTextEntry
@@ -326,17 +283,13 @@ export default function CadastroPsicologoScreen() {
             </View>
           </View>
 
-            {/* Botão Cadastrar */}
-            <TouchableOpacity
-              style={[styles.submitButton, carregando && styles.submitButtonDisabled]}
+          {/* Botão Cadastrar */}
+            <Button 
+              title="Cadastrar" 
               onPress={handleCadastrar}
-              disabled={carregando}
-            >
-              <Text style={styles.submitButtonText}>
-                {carregando ? 'CADASTRANDO...' : 'Cadastrar'}
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+              loading={carregando}
+            />
+        </ScrollView>
       </View>
     </DismissKeyboard>
   );
@@ -346,21 +299,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2E8EB',
-    paddingTop: 60,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: '#333',
   },
   scrollView: {
     flex: 1,
@@ -383,17 +321,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
     marginBottom: 8,
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-    fontSize: 16,
-    fontFamily: 'Inter',
-    color: '#333',
   },
   uploadSection: {
     marginTop: 10,
@@ -439,23 +366,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter',
     fontWeight: '600',
-  },
-  submitButton: {
-    width: '100%',
-    height: 55,
-    backgroundColor: '#D65C73',
-    borderRadius: 27.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontFamily: 'Inter',
-    fontWeight: '600',
-  },
+  }
 });

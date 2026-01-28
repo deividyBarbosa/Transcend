@@ -14,7 +14,7 @@ export type Post = {
   likes: number;
   comments: Comment[];
   createdAt: string;
-  likedByUserByUser: boolean;
+  likedByUser: boolean;
 };
 
 export const mockComunidade: Post[] = [

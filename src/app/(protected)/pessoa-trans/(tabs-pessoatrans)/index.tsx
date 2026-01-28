@@ -1,17 +1,13 @@
-// to-do: todos os dados aqui são fakes :( e que a linha chegue até o canto da tela
+// to-do: todos os dados aqui são fakes :(
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
+import Button from '@/components/Button';
+import { Alert } from 'react-native';
 
 
 export default function InicioScreen() {
@@ -100,16 +96,20 @@ export default function InicioScreen() {
           </View>
         </View>
 
-        {/* Ações */}
+        {/* Agendar psi e contatos medicos */}
         <Text style={styles.sectionTitle}>Ações</Text>
 
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionText}>Agendar Psicólogo</Text>
-        </TouchableOpacity>
+        <Button 
+          title="Agendar Psicólogo" 
+          onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')} 
+        />
 
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionText}>Contatos Médicos</Text>
-        </TouchableOpacity>
+        <View style={{ marginTop: 5 }} />
+
+        <Button 
+          title="Contatos Médicos" 
+          onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')} 
+        />
       </ScrollView>
     </View>
   );
@@ -200,17 +200,6 @@ settingsButton: {
     fontFamily: fonts.semibold,
     color: colors.white,
     fontSize: 13,
-  },
-  actionButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  actionText: {
-    fontFamily: fonts.semibold,
-    color: colors.white,
   },
   viewLink: {
   flexDirection: 'row',
