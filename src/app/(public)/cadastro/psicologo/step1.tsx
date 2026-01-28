@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert} from 'react-native';
 import { useRouter } from 'expo-router';
-import DismissKeyboard from '../src/components/DismissKeyboard';
-import Header from '../src/components/Header';
-import Input from '../src/components/Input';
-import Button from '../src/components/Button';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Header from '@/components/Header';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function CadastroPsicologoScreen() {
   const router = useRouter();

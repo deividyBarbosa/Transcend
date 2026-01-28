@@ -3,13 +3,13 @@
 
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
-import DismissKeyboard from '../../src/components/DismissKeyboard';
-import { colors } from '../../src/theme/colors';
-import { fonts } from '../../src/theme/fonts';
-import Button from '../../src/components/Button';
-import Input from '../../src/components/Input';
-import CheckBox from '../../src/components/CheckBox';
-import Calendar from '../../src/components/Calendar';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import { colors } from '@/theme/colors';
+import { fonts } from '@/theme/fonts';
+import Button from '@/components/Button';
+import Input from '@/components/Input';
+import CheckBox from '@/components/CheckBox';
+import Calendar from '@/components/Calendar';
 
 interface DiaryEntry {
   date: string;
