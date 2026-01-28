@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import DismissKeyboard from '../src/components/DismissKeyboard';
-import Input from '../src/components/Input';
-import Button from '../src/components/Button';
-import Header from '../src/components/Header';
-import SelectButton from '../src/components/SelectButton';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
+import Header from '@/components/Header';
+import SelectButton from '@/components/SelectButton';
 
 export default function CadastroTransScreen() {
   const router = useRouter();

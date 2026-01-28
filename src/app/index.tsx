@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Image, Alert, ScrollView} from 'react-native';
 import { useRouter } from 'expo-router';
-import { fazerLogin } from '../src/services/auth';
-import DismissKeyboard from '../src/components/DismissKeyboard';
-import Input from '../src/components/Input';
-import Button from '../src/components/Button';
+import { fazerLogin } from '@/services/auth';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
 
 export default function LoginScreen() {
   const router = useRouter();
