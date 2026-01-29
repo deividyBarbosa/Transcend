@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import SelectModal from '@/components/SelectModal';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const UNIDADES = ['mg', 'mcg', 'mL', 'comprimido(s)', 'cápsula(s)', 'gotas', 'adesivo(s)'];
 const FREQUENCIAS = ['dia', 'semana', 'mês', 'semestre', 'ano'];
@@ -83,90 +84,92 @@ export default function EditarHormonioScreen() {
   };
 
   return (
-    <DismissKeyboard>
-      <View style={styles.container}>
-        <Header
-          title={isEditing ? 'Editar Medicamento' : 'Adicionar Medicamento'}
-          showBackButton
-        />
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Nome do medicamento */}
-          <Input
-            label="Nome do medicamento"
-            placeholder="Ex: Testosterona"
-            value={nome}
-            onChangeText={setNome}
-            autoCapitalize="words"
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F2E8EB' }} edges={['top', 'bottom']}>
+      <DismissKeyboard>
+        <View style={styles.container}>
+          <Header
+            title={isEditing ? 'Editar Medicamento' : 'Adicionar Medicamento'}
+            showBackButton
           />
 
-          {/* Quantidade */}
-          <Input
-            label="Quantidade"
-            placeholder="Ex: 20"
-            value={quantidade}
-            onChangeText={setQuantidade}
-            keyboardType="decimal-pad"
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {/* Nome do medicamento */}
+            <Input
+              label="Nome do medicamento"
+              placeholder="Ex: Testosterona"
+              value={nome}
+              onChangeText={setNome}
+              autoCapitalize="words"
+            />
+
+            {/* Quantidade */}
+            <Input
+              label="Quantidade"
+              placeholder="Ex: 20"
+              value={quantidade}
+              onChangeText={setQuantidade}
+              keyboardType="decimal-pad"
+            />
+
+          {/* Unidade */}
+          <Text style={styles.label}>Unidade</Text>
+          <TouchableOpacity
+          style={styles.selectInput}
+          onPress={() => setShowUnidadeModal(true)}
+          >
+          <Text style={unidade ? styles.selectText : styles.selectPlaceholder}>
+              {unidade || 'Selecionar'}
+          </Text>
+          </TouchableOpacity>
+
+          <SelectModal
+          visible={showUnidadeModal}
+          title="Selecionar Unidade"
+          options={UNIDADES}
+          selectedValue={unidade}
+          onSelect={setUnidade}
+          onClose={() => setShowUnidadeModal(false)}
           />
 
-        {/* Unidade */}
-        <Text style={styles.label}>Unidade</Text>
-        <TouchableOpacity
-        style={styles.selectInput}
-        onPress={() => setShowUnidadeModal(true)}
-        >
-        <Text style={unidade ? styles.selectText : styles.selectPlaceholder}>
-            {unidade || 'Selecionar'}
-        </Text>
-        </TouchableOpacity>
+          {/* Frequência */}
+          <Text style={styles.label}>Frequência</Text>
+          <TouchableOpacity
+          style={styles.selectInput}
+          onPress={() => setShowFrequenciaModal(true)}
+          >
+          <Text style={frequencia ? styles.selectText : styles.selectPlaceholder}>
+              {frequencia || 'Selecionar'}
+          </Text>
+          </TouchableOpacity>
 
-        <SelectModal
-        visible={showUnidadeModal}
-        title="Selecionar Unidade"
-        options={UNIDADES}
-        selectedValue={unidade}
-        onSelect={setUnidade}
-        onClose={() => setShowUnidadeModal(false)}
-        />
+          <SelectModal
+          visible={showFrequenciaModal}
+          title="Selecionar Frequência"
+          options={FREQUENCIAS}
+          selectedValue={frequencia}
+          onSelect={setFrequencia}
+          onClose={() => setShowFrequenciaModal(false)}
+          />
 
-        {/* Frequência */}
-        <Text style={styles.label}>Frequência</Text>
-        <TouchableOpacity
-        style={styles.selectInput}
-        onPress={() => setShowFrequenciaModal(true)}
-        >
-        <Text style={frequencia ? styles.selectText : styles.selectPlaceholder}>
-            {frequencia || 'Selecionar'}
-        </Text>
-        </TouchableOpacity>
+            {/* Botões */}
+            <Button title="Salvar" onPress={handleSalvar} />
 
-        <SelectModal
-        visible={showFrequenciaModal}
-        title="Selecionar Frequência"
-        options={FREQUENCIAS}
-        selectedValue={frequencia}
-        onSelect={setFrequencia}
-        onClose={() => setShowFrequenciaModal(false)}
-        />
-
-          {/* Botões */}
-          <Button title="Salvar" onPress={handleSalvar} />
-
-          {isEditing && (
-            <View style={{ marginTop: 15 }}> 
-                <Button
-                title="Remover medicamento"
-                onPress={handleRemover}
-                variant="outline"
-                />
-            </View>
-          )}
-        </ScrollView>
-      </View>
-    </DismissKeyboard>
+            {isEditing && (
+              <View style={{ marginTop: 15 }}> 
+                  <Button
+                  title="Remover medicamento"
+                  onPress={handleRemover}
+                  variant="outline"
+                  />
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </DismissKeyboard>
+    </SafeAreaView>  
   );
 }
 

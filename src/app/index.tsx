@@ -85,7 +85,7 @@ return (
         />
 
         {/* Link para cadastro */}
-        <TouchableOpacity onPress={() => router.push('/cadastro')}>
+        <TouchableOpacity onPress={() => router.push('/(public)/cadastro/cadastro')}>
           <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
         </TouchableOpacity>
        </View>

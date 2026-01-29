@@ -1,16 +1,7 @@
-/* faz nada nao isso aqui.. ignorem */
-
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  Linking,
-  Alert,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CadastroAnaliseScreen() {
   const router = useRouter();
@@ -28,45 +19,47 @@ export default function CadastroAnaliseScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Título */}
-      <Text style={styles.title}>Cadastro em Análise</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F2E8EB' }} edges={['top', 'bottom']}>
+      <View style={styles.container}>
+        {/* Título */}
+        <Text style={styles.title}>Cadastro em Análise</Text>
 
-      {/* Ilustração */}
-      <Image
-        source={require('@/assets/paperwork.png')}
-        style={styles.illustration}
-        resizeMode="contain"
-      />
+        {/* Ilustração */}
+        <Image
+          source={require('@/assets/paperwork.png')}
+          style={styles.illustration}
+          resizeMode="contain"
+        />
 
-      {/* Mensagem */}
-      <View style={styles.messageContainer}>
-        <Text style={styles.messageTitle}>
-          Estamos analisando seu{'\n'}cadastro!
-        </Text>
-        <Text style={styles.messageText}>
-          Aguarde a validação do seu perfil. Você{'\n'}
-          receberá uma notificação assim que estiver{'\n'}
-          tudo pronto.
-        </Text>
+        {/* Mensagem */}
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageTitle}>
+            Estamos analisando seu{'\n'}cadastro!
+          </Text>
+          <Text style={styles.messageText}>
+            Aguarde a validação do seu perfil. Você{'\n'}
+            receberá uma notificação assim que estiver{'\n'}
+            tudo pronto.
+          </Text>
+        </View>
+
+        {/* Botão Obter Suporte */}
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleObterSuporte}
+        >
+          <Text style={styles.buttonText}>Obter suporte</Text>
+        </TouchableOpacity>
+
+        {/* Link para voltar ao login */}
+        <TouchableOpacity
+          style={styles.backToLogin}
+          onPress={() => router.push('/')}
+        >
+          <Text style={styles.backToLoginText}>Voltar ao login</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Botão Obter Suporte */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleObterSuporte}
-      >
-        <Text style={styles.buttonText}>Obter suporte</Text>
-      </TouchableOpacity>
-
-      {/* Link para voltar ao login */}
-      <TouchableOpacity
-        style={styles.backToLogin}
-        onPress={() => router.push('/')}
-      >
-        <Text style={styles.backToLoginText}>Voltar ao login</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
