@@ -1,7 +1,7 @@
 // todo: resumo semanal é uma farsa, upload de foto também, botao de configuraçoes tbm
 // vou voltar aqui ainda porque ta muuito grande e acho que dá pra diminuir
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import { colors } from '@/theme/colors';
@@ -10,18 +10,44 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import CheckBox from '@/components/CheckBox';
 import Calendar from '@/components/Calendar';
-
-interface DiaryEntry {
-  date: string;
-  moods: string[];
-  symptoms: string[];
-  otherSymptoms: string;
-  photo?: string;
-  emotionalDiary: string;
-}
+import { supabase } from '@/utils/supabase';
+import {
+  criarEntrada,
+  buscarEntradasPorMes,
+  atualizarEntrada,
+} from '@/services/diario';
+import type { EntradaDiario, NivelHumor } from '@/types/diario';
 
 const MOODS = ['Feliz', 'Neutro', 'Triste', 'Ansioso', 'Irritado'];
 const SYMPTOMS = ['Cansaço', 'Dores de cabeça', 'Insônia', 'Mudanças de apetite'];
+
+// Mapeia os humores da UI para o enum do banco
+const MOOD_TO_HUMOR: Record<string, NivelHumor> = {
+  'Feliz': 'feliz',
+  'Neutro': 'neutro',
+  'Triste': 'triste',
+  'Ansioso': 'ansioso',
+  'Irritado': 'irritado',
+};
+
+const HUMOR_TO_MOOD: Record<NivelHumor, string> = {
+  'feliz': 'Feliz',
+  'neutro': 'Neutro',
+  'triste': 'Triste',
+  'ansioso': 'Ansioso',
+  'irritado': 'Irritado',
+};
+
+/**
+ * Extrai moods e symptoms de volta a partir das tags salvas no banco
+ */
+const extrairDasTags = (tags: string[] | null) => {
+  if (!tags) return { moods: [], symptoms: [], otherSymptoms: '' };
+  const moods = tags.filter(t => MOODS.includes(t));
+  const symptoms = tags.filter(t => SYMPTOMS.includes(t));
+  const outros = tags.filter(t => !MOODS.includes(t) && !SYMPTOMS.includes(t));
+  return { moods, symptoms, otherSymptoms: outros.join(', ') };
+};
 
 
 export default function DiarioScreen() {
@@ -29,22 +55,9 @@ export default function DiarioScreen() {
   const formScrollRef = useRef<ScrollView>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [entries, setEntries] = useState<Record<string, DiaryEntry>>({
-    '2025-10-05': {
-      date: '2025-10-05',
-      moods: ['Feliz', 'Ansioso'],
-      symptoms: ['Cansaço'],
-      otherSymptoms: '',
-      emotionalDiary: 'Hoje foi um dia produtivo!',
-    },
-    '2025-10-03': {
-      date: '2025-10-03',
-      moods: ['Neutro'],
-      symptoms: ['Dores de cabeça', 'Insônia'],
-      otherSymptoms: '',
-      emotionalDiary: 'Tive dificuldades para dormir.',
-    },
-  });
+  const [entries, setEntries] = useState<Record<string, EntradaDiario>>({});
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
 
   // Estado do formulário
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
@@ -56,9 +69,37 @@ export default function DiarioScreen() {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
-  const hasEntry = (date: string) => {
-    return !!entries[date];
-  };
+  // Buscar usuário autenticado
+  useEffect(() => {
+    const buscarUsuario = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUsuarioId(data.user.id);
+      }
+    };
+    buscarUsuario();
+  }, []);
+
+  // Carregar entradas do mês quando muda o mês ou o usuário é carregado
+  const carregarEntradas = useCallback(async () => {
+    if (!usuarioId) return;
+
+    const ano = currentMonth.getFullYear();
+    const mes = currentMonth.getMonth() + 1;
+    const resultado = await buscarEntradasPorMes(usuarioId, ano, mes);
+
+    if (resultado.sucesso && resultado.dados) {
+      const mapa: Record<string, EntradaDiario> = {};
+      for (const entrada of resultado.dados) {
+        mapa[entrada.data_entrada] = entrada;
+      }
+      setEntries(mapa);
+    }
+  }, [usuarioId, currentMonth]);
+
+  useEffect(() => {
+    carregarEntradas();
+  }, [carregarEntradas]);
 
   const handlePreviousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
@@ -71,13 +112,14 @@ export default function DiarioScreen() {
   const handleDayPress = (day: number) => {
     const dateStr = formatDate(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     setSelectedDate(dateStr);
-    
+
     const entry = entries[dateStr];
     if (entry) {
-      setSelectedMoods(entry.moods);
-      setSelectedSymptoms(entry.symptoms);
-      setOtherSymptoms(entry.otherSymptoms);
-      setEmotionalDiary(entry.emotionalDiary);
+      const { moods, symptoms, otherSymptoms: outros } = extrairDasTags(entry.tags);
+      setSelectedMoods(moods.length > 0 ? moods : entry.humor ? [HUMOR_TO_MOOD[entry.humor]] : []);
+      setSelectedSymptoms(symptoms);
+      setOtherSymptoms(outros);
+      setEmotionalDiary(entry.conteudo);
     } else {
       setSelectedMoods([]);
       setSelectedSymptoms([]);
@@ -93,7 +135,7 @@ export default function DiarioScreen() {
   };
 
   const toggleMood = (mood: string) => {
-    setSelectedMoods(prev => 
+    setSelectedMoods(prev =>
       prev.includes(mood) ? prev.filter(m => m !== mood) : [...prev, mood]
     );
   };
@@ -104,25 +146,62 @@ export default function DiarioScreen() {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedMoods.length === 0) {
       Alert.alert('Atenção', 'Selecione pelo menos um humor');
       return;
     }
 
-    if (!selectedDate) return;
+    if (!selectedDate || !usuarioId) return;
 
-    const newEntry: DiaryEntry = {
-      date: selectedDate,
-      moods: selectedMoods,
-      symptoms: selectedSymptoms,
-      otherSymptoms,
-      emotionalDiary,
-    };
+    setCarregando(true);
 
-    setEntries(prev => ({ ...prev, [selectedDate]: newEntry }));
-    Alert.alert('Sucesso', 'Registro salvo!');
-    setSelectedDate(null);
+    // Montar tags a partir de moods + symptoms + otherSymptoms
+    const tags = [
+      ...selectedMoods,
+      ...selectedSymptoms,
+      ...(otherSymptoms.trim() ? [otherSymptoms.trim()] : []),
+    ];
+
+    // Mapear humor principal (primeiro mood selecionado)
+    const humorPrincipal = MOOD_TO_HUMOR[selectedMoods[0]] || 'neutro';
+
+    const entradaExistente = entries[selectedDate];
+
+    try {
+      let resultado;
+
+      if (entradaExistente) {
+        // Atualizar entrada existente
+        resultado = await atualizarEntrada(entradaExistente.id, usuarioId, {
+          conteudo: emotionalDiary || ' ',
+          humor: humorPrincipal,
+          tags,
+        });
+      } else {
+        // Criar nova entrada
+        resultado = await criarEntrada({
+          usuario_id: usuarioId,
+          data_entrada: selectedDate,
+          conteudo: emotionalDiary || ' ',
+          humor: humorPrincipal,
+          tags,
+        });
+      }
+
+      if (resultado.sucesso && resultado.dados) {
+        setEntries(prev => ({ ...prev, [selectedDate]: resultado.dados! }));
+        Alert.alert('Sucesso', 'Registro salvo!');
+        setSelectedDate(null);
+      } else {
+        Alert.alert('Erro', resultado.erro || 'Erro ao salvar registro');
+      }
+    } catch (erro) {
+      console.error('Erro ao salvar:', erro);
+      Alert.alert('Erro', 'Ocorreu um erro ao salvar o registro');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const calculateWeeklyStats = () => {
@@ -259,7 +338,7 @@ export default function DiarioScreen() {
             />
             <Text style={styles.charCount}>{emotionalDiary.length}/2000</Text>
           </View>
-          <Button title="Salvar" onPress={handleSave} />
+          <Button title="Salvar" onPress={handleSave} loading={carregando} />
         </ScrollView>
       </DismissKeyboard>
     );

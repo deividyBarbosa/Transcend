@@ -6,7 +6,7 @@ export type TipoUsuario = 'pessoa_trans' | 'psicologo' | 'moderador' | 'admin';
 export type Genero = 'mulher_trans' | 'homem_trans' | 'nao_binario' | 'outro';
 export type ViaAdministracao = 'injetavel' | 'gel' | 'adesivo' | 'oral' | 'sublingual';
 export type TipoHormonio = 'estradiol' | 'testosterona' | 'progesterona' | 'bloqueador';
-export type NivelHumor = 'muito_ruim' | 'ruim' | 'neutro' | 'bom' | 'muito_bom';
+export type NivelHumor = 'feliz' | 'triste' | 'neutro' | 'ansioso' | 'irritado';
 export type StatusSessao = 'agendada' | 'confirmada' | 'realizada' | 'cancelada' | 'remarcada';
 export type TipoNotificacao = 'lembrete_hormonio' | 'sessao_psicologo' | 'comunidade' | 'sistema' | 'conquista';
 
