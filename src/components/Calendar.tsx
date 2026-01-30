@@ -9,6 +9,7 @@ interface CalendarProps {
   onNextMonth: () => void;
   onDayPress: (day: number) => void;
   markedDates?: string[];
+  selectedDay?: number;
 }
 
 export default function Calendar({
@@ -17,6 +18,7 @@ export default function Calendar({
   onNextMonth,
   onDayPress,
   markedDates = [],
+  selectedDay,  
 }: CalendarProps) {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -55,8 +57,17 @@ export default function Calendar({
           style={styles.dayCell}
           onPress={() => onDayPress(day)}
         >
-          <View style={[styles.dayNumber, isToday && styles.todayCircle]}>
-            <Text style={[styles.dayText, isToday && styles.todayText]}>{day}</Text>
+          <View style={[
+            styles.dayNumber, 
+            isToday && styles.todayCircle,
+            selectedDay === day && styles.selectedCircle  // ← ADICIONE ESTA LINHA
+          ]}>
+            <Text style={[
+              styles.dayText, 
+              (isToday || selectedDay === day) && styles.todayText  // ← AJUSTE ESTA LINHA
+            ]}>
+              {day}
+            </Text>
           </View>
           {hasEntry && <View style={styles.entryMark} />}
         </TouchableOpacity>
@@ -168,5 +179,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 2,
     marginTop: 2,
+  },
+  selectedCircle: { 
+    backgroundColor: colors.primary,
+    borderRadius: 16,
   },
 });

@@ -1,4 +1,4 @@
-// to-do: todos os dados aqui são fakes :(
+// to-do: integrar com back, 'ativar lembrete', botao de configurações
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
@@ -101,14 +101,14 @@ export default function InicioScreen() {
 
         <Button 
           title="Agendar Psicólogo" 
-          onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')} 
+          onPress={() => router.push('/pessoa-trans/agendar-psicologo')} 
         />
 
         <View style={{ marginTop: 5 }} />
 
         <Button 
           title="Contatos Médicos" 
-          onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')} 
+          onPress={() => router.push('/pessoa-trans/contatos-medicos')} 
         />
       </ScrollView>
     </View>
@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+    paddingTop: 8,
     paddingBottom: 40,
   },
 header: {

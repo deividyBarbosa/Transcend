@@ -2,23 +2,16 @@
 // to-do: gráfico de evolução, registrar aplicações
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  ScrollView
-} from 'react-native';
+import {View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import Header from '@/components/Header';
-import Input from '@/components/Input';
 import Button from '@/components/Button';
 import MedicationCard from '@/components/MedicationCard';
 import DismissKeyboard from '@/components/DismissKeyboard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PlanoHormonalScreen() {
   const router = useRouter();
@@ -46,82 +39,84 @@ export default function PlanoHormonalScreen() {
     return { quantidade: '', unidade: '', frequencia: '' };
   };
     return (
-    <DismissKeyboard>
-      <View style={styles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F2E8EB' }} edges={['top', 'bottom']}>
+      <DismissKeyboard>
+        <View style={styles.container}>
 
-        <Header 
-          title="Meu Plano Hormonal" 
-          showBackButton 
-        />
-
-      <ScrollView 
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-      >
-
-        {/* Plano Atual */}
-
-          <Text style={styles.sectionTitle}>Plano Atual</Text>
-
-          {planoAtual.map(item => {
-            const parsed = parseDose(item.dose);  // ← Faltou isso
-            return (
-              <MedicationCard
-                key={item.id}
-                icon="medical-outline"
-                title={item.nome}
-                subtitle={item.dose}
-                onEdit={() => router.push({
-                  pathname: '/pessoa-trans/editar-medicamento',
-                  params: {
-                    id: item.id,
-                    nome: item.nome,
-                    ...parsed
-                  }
-                })}
-              />
-            );
-          })}
-
-          <MedicationCard
-            variant="add"
-            title="Adicionar medicamento"
-            onPress={() => router.push('/pessoa-trans/editar-medicamento')}
+          <Header 
+            title="Meu Plano Hormonal" 
+            showBackButton 
           />
 
-          {/* Histórico */}
+        <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 40 }}
+        >
 
-            <Text style={styles.sectionTitle}>Histórico de Doses</Text>
+          {/* Plano Atual */}
 
-            {historicoDoses.map(item => (
-              <MedicationCard
-                key={item.id}
-                icon="calendar-outline"
-                title={item.data}
-                subtitle={item.dose}
-              />
-            ))}
+            <Text style={styles.sectionTitle}>Plano Atual</Text>
 
-          {/* Evolução */}
-          <Text style={styles.sectionTitle}>Evolução</Text>
+            {planoAtual.map(item => {
+              const parsed = parseDose(item.dose);  // ← Faltou isso
+              return (
+                <MedicationCard
+                  key={item.id}
+                  icon="medical-outline"
+                  title={item.nome}
+                  subtitle={item.dose}
+                  onEdit={() => router.push({
+                    pathname: '/pessoa-trans/editar-medicamento',
+                    params: {
+                      id: item.id,
+                      nome: item.nome,
+                      ...parsed
+                    }
+                  })}
+                />
+              );
+            })}
 
-          <View style={styles.evolutionCard}>
-            <Text style={styles.level}>550 ng/dL</Text>
-            <Text style={styles.evolutionText}>Últimos 6 meses +15%</Text>
-            
-            {/* gráfico  que nao funciona :) */}
-            <View style={styles.graphPlaceholder}>
-              <Text style={styles.graphText}>📊 Gráfico em desenvolvimento</Text>
-            </View>
-            
-            <Button 
-              title="Registrar aplicação"
-              onPress={() => Alert.alert('Registrar', 'Funcionalidade em desenvolvimento')}
+            <MedicationCard
+              variant="add"
+              title="Adicionar medicamento"
+              onPress={() => router.push('/pessoa-trans/editar-medicamento')}
             />
-          </View>
-        </ScrollView>
-      </View>
-    </DismissKeyboard>
+
+            {/* Histórico */}
+
+              <Text style={styles.sectionTitle}>Histórico de Doses</Text>
+
+              {historicoDoses.map(item => (
+                <MedicationCard
+                  key={item.id}
+                  icon="calendar-outline"
+                  title={item.data}
+                  subtitle={item.dose}
+                />
+              ))}
+
+            {/* Evolução */}
+            <Text style={styles.sectionTitle}>Evolução</Text>
+
+            <View style={styles.evolutionCard}>
+              <Text style={styles.level}>550 ng/dL</Text>
+              <Text style={styles.evolutionText}>Últimos 6 meses +15%</Text>
+              
+              {/* gráfico  que nao funciona :) */}
+              <View style={styles.graphPlaceholder}>
+                <Text style={styles.graphText}>📊 Gráfico em desenvolvimento</Text>
+              </View>
+              
+              <Button 
+                title="Registrar aplicação"
+                onPress={() => Alert.alert('Registrar', 'Funcionalidade em desenvolvimento')}
+              />
+            </View>
+          </ScrollView>
+        </View>
+      </DismissKeyboard>
+    </SafeAreaView>
   );
 }
 

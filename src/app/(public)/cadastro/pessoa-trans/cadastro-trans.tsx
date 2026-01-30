@@ -6,6 +6,7 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import Header from '@/components/Header';
 import SelectButton from '@/components/SelectButton';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CadastroTransScreen() {
   const router = useRouter();
@@ -65,6 +66,7 @@ export default function CadastroTransScreen() {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F2E8EB' }} edges={['top', 'bottom']}>
       <DismissKeyboard>
         <View style={styles.container}>
 
@@ -149,9 +151,10 @@ export default function CadastroTransScreen() {
                 loading={carregando}
               />
               
-        </ScrollView>
-      </View>
-    </DismissKeyboard>  
+          </ScrollView>
+        </View>
+      </DismissKeyboard>  
+    </SafeAreaView>
   );
 }
 

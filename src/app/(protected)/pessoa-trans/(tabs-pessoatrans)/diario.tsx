@@ -1,5 +1,4 @@
-// todo: resumo semanal é uma farsa, upload de foto também, botao de configuraçoes tbm
-// vou voltar aqui ainda porque ta muuito grande e acho que dá pra diminuir
+// to-do: resumo semanal funcional, upload de foto, botao de configuraçoes, 'visualizar historico de sessoes', melhorar a aparencia geral do registro de diario
 
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
@@ -285,7 +284,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 20,
     marginBottom: 20,
   },
   title: {
@@ -338,7 +337,7 @@ const styles = StyleSheet.create({
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 20,
     marginBottom: 20,
   },
   backIcon: {
