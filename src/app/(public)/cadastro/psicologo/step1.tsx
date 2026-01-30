@@ -215,11 +215,7 @@ export default function CadastroPsicologoScreen() {
           showsVerticalScrollIndicator={false}
         >
 
-        {/* Título */}
 
-          <Text style={styles.title}>Cadastro Psicólogo</Text>
-
-        {/* Inputs */}
  
           <Input
             label="Nome completo"

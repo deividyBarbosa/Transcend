@@ -85,7 +85,7 @@ return (
         />
         <Button
           title="teste psicologo"
-          onPress={() => router.push('/home-psicologo')}
+          onPress={() => router.push('/(public)/(tabs-psicologo)/home-psicologo')}
         />
 
         {/* Link para cadastro */}
