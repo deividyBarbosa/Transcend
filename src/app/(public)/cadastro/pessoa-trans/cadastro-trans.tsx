@@ -6,6 +6,8 @@ import Input from '@/components/Input';
 import Button from '@/components/Button';
 import Header from '@/components/Header';
 import SelectButton from '@/components/SelectButton';
+import { cadastrarTrans } from '@/services/auth';
+import type { Genero } from '@/types/auth';
 
 export default function CadastroTransScreen() {
   const router = useRouter();
@@ -47,21 +49,35 @@ export default function CadastroTransScreen() {
     }
 
     setCarregando(true);
-    
-    // Simula envio para o backend
-    setTimeout(() => {
+
+    try {
+      const resultado = await cadastrarTrans({
+        nome_social: nomeSocial,
+        email,
+        senha,
+        genero: genero as Genero,
+      });
+
+      if (resultado.sucesso) {
+        Alert.alert(
+          'Cadastro realizado!',
+          'Sua conta foi criada com sucesso. Faça login para continuar.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.push('/'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Erro', resultado.erro || 'Erro ao realizar cadastro');
+      }
+    } catch (erro) {
+      console.error('Erro no cadastro:', erro);
+      Alert.alert('Erro', 'Ocorreu um erro ao realizar o cadastro');
+    } finally {
       setCarregando(false);
-      Alert.alert(
-        'Cadastro realizado!',
-        'Sua conta foi criada com sucesso. Faça login para continuar.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.push('/'),
-          },
-        ]
-      );
-    }, 1500);
+    }
   };
 
   return (
