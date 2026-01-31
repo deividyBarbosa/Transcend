@@ -31,13 +31,19 @@ interface Perfil {
 
 const MOCK_PERFIL: Perfil = {
   id: "1",
-  nome: "Dr. Mariana Silva",
-  foto: require("../../../assets/avatar-woman.png"),
+  nome: "Dra. Valéria Almeida",
+  foto: require("../../../assets/val-almeida.png"),
   crp: "CRP 06/123456",
   titulo: "PSICÓLOGA CLÍNICA",
   descricao:
-    "Psicóloga com foco em Terapia Cognitivo-Comportamental, dedicada a ajudar adultos a superarem desafios emocionais e buscarem o autoconhecimento em um ambiente acolhedor e seguro.",
-  especialidades: ["Ansiedade", "Depressão", "TCC", "Luto", "Autoconhecimento"],
+    "Psicóloga com atuação clínica voltada ao acompanhamento de pessoas trans, travestis e não binárias em diferentes etapas da transição de gênero. Trabalho focada no acolhimento, fortalecimento da identidade, manejo de ansiedade, depressão e estresse social, além de suporte psicológico durante processos de transição social, familiar, médica e jurídica. Atendimento pautado na escuta ética, respeito à diversidade e promoção da saúde mental em contextos de vulnerabilidade e afirmação de gênero.",
+  especialidades: [
+    "Pessoas trans e não binárias",
+    "Saúde mental LGBTQIAPN+",
+    "Transição de gênero",
+    "Processos de afirmação de gênero",
+    "Autoconhecimento",
+  ],
   estatisticas: {
     pacientes: 120, //todo: tratar pra aparecer mensagem caso nao tenha ou nao tenha informado em editar perfil
     avaliacao: 4.9,
@@ -171,7 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
