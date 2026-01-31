@@ -5,7 +5,6 @@ import {
   Text,
   FlatList,
   ActivityIndicator,
-  TextInput,
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -13,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { colors } from "@/theme/colors";
 import { PacienteChatCard } from "@/components/psicologo/PacienteChatCard";
+import { SearchInput } from "@/components/Input/SearchInput";
 
 interface Chat {
   id: string;
@@ -120,11 +120,6 @@ export default function HistoricoChat() {
   const fetchChats = useCallback(async () => {
     setIsLoading(true);
     try {
-      // TODO: Substituir por chamada real da API
-      // const response = await api.get('/chats');
-      // setChats(response.data);
-      // setFilteredChats(response.data);
-
       await new Promise((resolve) => setTimeout(resolve, 1000));
       setChats(MOCK_CHATS);
       setFilteredChats(MOCK_CHATS);
@@ -155,7 +150,6 @@ export default function HistoricoChat() {
   const handleChatPress = useCallback(
     (chatId: string, pacienteId: string) => {
       setActiveChatId(chatId);
-
       router.push(`/paciente-chat/${pacienteId}`);
     },
     [router],
@@ -223,29 +217,14 @@ export default function HistoricoChat() {
           <View style={styles.backButton} />
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#D1667A99"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar paciente..."
-            placeholderTextColor="#9CA3AF"
+        <View style={styles.searchWrapper}>
+          <SearchInput
             value={searchText}
             onChangeText={handleSearch}
+            placeholder="Buscar paciente..."
           />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch("")}>
-              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
         </View>
 
-        {/* Stats */}
         <View style={styles.statsContainer}>
           <Text style={styles.statsText}>
             {filteredChats.length} conversa(s)
@@ -261,7 +240,6 @@ export default function HistoricoChat() {
         </View>
       </View>
 
-      {/* Chat List */}
       <FlatList
         data={filteredChats}
         renderItem={renderChatCard}
@@ -279,7 +257,7 @@ export default function HistoricoChat() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background
+    backgroundColor: colors.background,
   },
   header: {
     paddingHorizontal: 24,
@@ -311,28 +289,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#3D2B2E",
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+  searchWrapper: {
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: "#3D2B2E",
-    fontWeight: "400",
   },
   statsContainer: {
     flexDirection: "row",
