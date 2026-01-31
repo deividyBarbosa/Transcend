@@ -11,7 +11,6 @@ import { useRouter } from "expo-router";
 import { colors } from "@/theme/colors";
 import { PacienteCard } from "@/components/psicologo/PacienteCard";
 
-// Tipos
 interface Paciente {
   id: string;
   name: string;
@@ -28,14 +27,14 @@ const MOCK_PACIENTES: Paciente[] = [
     photo: require("../../../assets/avatar-man.png"),
   },
   {
-    id: "2",
+    id: "2", 
     name: "Ana Mary",
     age: 16,
     photo: require("../../../assets/avatar-woman.png"),
   },
 ];
 
-export default function PsicologoHome() {
+export default function Pacientes() {
   const router = useRouter();
   const [pacientes, setPacientes] = useState<Paciente[]>(MOCK_PACIENTES);
   const [isLoading, setIsLoading] = useState(false);

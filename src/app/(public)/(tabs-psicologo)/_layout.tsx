@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Text } from "react-native";
 import { colors } from "@/theme/colors";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Entypo } from "@expo/vector-icons";
 
 export default function TabLayout() {
   return (
@@ -44,11 +44,11 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="comunidade"
+        name="historico-chat"
         options={{
-          title: "Comunidade",
+          title: "Chat",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+            <Entypo name="chat" size={size} color={color} />
           ),
         }}
       />
