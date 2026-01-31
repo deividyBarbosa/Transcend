@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { colors } from "@/theme/colors";
 import { ProfilePhoto } from "@/components/psicologo/ProfilePicture";
+import { ProfileStats } from "@/components/psicologo/ProfileStats";
 
 interface Perfil {
   id: string;
@@ -30,19 +31,13 @@ interface Perfil {
 
 const MOCK_PERFIL: Perfil = {
   id: "1",
-  nome: "Dra. Mariana Silva",
+  nome: "Dr. Mariana Silva",
   foto: require("../../../assets/avatar-woman.png"),
   crp: "CRP 06/123456",
   titulo: "PSICÓLOGA CLÍNICA",
   descricao:
-    "Psicóloga com atuação clínica voltada ao acompanhamento de pessoas trans, travestis e não binárias em diferentes etapas da transição de gênero. Trabalho focado no acolhimento, fortalecimento da identidade, manejo de ansiedade, depressão e estresse social, além de suporte psicológico durante processos de transição social, familiar, médica e jurídica. Atendimento pautado na escuta ética, respeito à diversidade e promoção da saúde mental em contextos de vulnerabilidade e afirmação de gênero.",
-  especialidades: [
-    "Psicologia afirmativa de gênero",
-    "Pessoas trans e não binárias",
-    "Acompanhamento psicológico na transição",
-    "Saúde mental LGBTQIAPN+",
-    "Autoconhecimento",
-  ],
+    "Psicóloga com foco em Terapia Cognitivo-Comportamental, dedicada a ajudar adultos a superarem desafios emocionais e buscarem o autoconhecimento em um ambiente acolhedor e seguro.",
+  especialidades: ["Ansiedade", "Depressão", "TCC", "Luto", "Autoconhecimento"],
   estatisticas: {
     pacientes: 120,
     avaliacao: 4.9,
@@ -91,11 +86,11 @@ export default function PerfilPsicologo() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#3D2B2E" />
+          <Ionicons name="arrow-back" size={24} color="#D65C73" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Perfil</Text>
         <TouchableOpacity style={styles.menuButton} onPress={handleSettings}>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#3D2B2E" />
+          <Ionicons name="ellipsis-horizontal" size={24} color="#D65C73" />
         </TouchableOpacity>
       </View>
 
@@ -118,31 +113,11 @@ export default function PerfilPsicologo() {
           </Text>
         </View>
 
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {perfil.estatisticas.pacientes}+
-            </Text>
-            <Text style={styles.statLabel}>PACIENTES</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <View style={styles.ratingContainer}>
-              <Text style={styles.statValue}>
-                {perfil.estatisticas.avaliacao}
-              </Text>
-              <Ionicons name="star" size={20} color="#FFA500" />
-            </View>
-            <Text style={styles.statLabel}>AVALIAÇÕES</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>
-              {perfil.estatisticas.experiencia} anos
-            </Text>
-            <Text style={styles.statLabel}>EXPERIÊNCIA</Text>
-          </View>
-        </View>
+        <ProfileStats
+          pacientes={perfil.estatisticas.pacientes}
+          avaliacao={perfil.estatisticas.avaliacao}
+          experiencia={perfil.estatisticas.experiencia}
+        />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sobre mim</Text>
@@ -241,44 +216,6 @@ const styles = StyleSheet.create({
     color: "#D65C73",
     letterSpacing: 0.5,
   },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    marginHorizontal: 24,
-    backgroundColor: "#FFF5F7",
-    borderRadius: 16,
-    marginBottom: 24,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#3D2B2E",
-    marginBottom: 4,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#9CA3AF",
-    letterSpacing: 0.5,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "#F3E8EB",
-  },
   section: {
     paddingHorizontal: 24,
     marginBottom: 24,
@@ -324,7 +261,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#D65C73",
     paddingVertical: 16,
     borderRadius: 12,
-    shadowColor: "#EC4899",
+    shadowColor: "#D65C73",
     shadowOffset: {
       width: 0,
       height: 4,
