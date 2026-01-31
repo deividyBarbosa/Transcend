@@ -51,7 +51,7 @@ export default function AgendarPsicologoScreen() {
       foto: psicologo.foto,
     }).toString();
     
-    router.push(`/pessoa-trans/agendar-consulta?${params}`);
+    router.push(`/pessoa-trans/agendamento/agendar-consulta?${params}`);
   };
 
   const renderPsicologoCard = (psicologo: Psicologo, isPrincipal: boolean = false) => (

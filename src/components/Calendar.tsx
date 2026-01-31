@@ -10,6 +10,7 @@ interface CalendarProps {
   onDayPress: (day: number) => void;
   markedDates?: string[];
   selectedDay?: number;
+  markedDatesStatus?: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' };
 }
 
 export default function Calendar({
@@ -19,6 +20,7 @@ export default function Calendar({
   onDayPress,
   markedDates = [],
   selectedDay,  
+  markedDatesStatus,
 }: CalendarProps) {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -60,16 +62,23 @@ export default function Calendar({
           <View style={[
             styles.dayNumber, 
             isToday && styles.todayCircle,
-            selectedDay === day && styles.selectedCircle  // ← ADICIONE ESTA LINHA
+            selectedDay === day && styles.selectedCircle 
           ]}>
             <Text style={[
               styles.dayText, 
-              (isToday || selectedDay === day) && styles.todayText  // ← AJUSTE ESTA LINHA
+              (isToday || selectedDay === day) && styles.todayText  
             ]}>
               {day}
             </Text>
           </View>
-          {hasEntry && <View style={styles.entryMark} />}
+          {hasEntry && (
+            <View style={[
+              styles.entryMark,
+              markedDatesStatus?.[dateStr] === 'aplicado' && styles.entryMarkAplicado,
+              markedDatesStatus?.[dateStr] === 'atrasado' && styles.entryMarkAtrasado,
+              markedDatesStatus?.[dateStr] === 'pendente' && styles.entryMarkPendente,
+            ]} />
+          )}
         </TouchableOpacity>
       );
     }
@@ -166,11 +175,13 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   todayCircle: {
-    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.primary,
     borderRadius: 16,
+    backgroundColor: 'transparent',
   },
   todayText: {
-    color: colors.white,
+    color: colors.text,
     fontFamily: fonts.semibold,
   },
   entryMark: {
@@ -183,5 +194,14 @@ const styles = StyleSheet.create({
   selectedCircle: { 
     backgroundColor: colors.primary,
     borderRadius: 16,
+  },
+  entryMarkAplicado: {
+  backgroundColor: '#4CAF50', 
+  },
+  entryMarkAtrasado: {
+    backgroundColor: '#FF9800', 
+  },
+  entryMarkPendente: {
+    backgroundColor: colors.primary, 
   },
 });

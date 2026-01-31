@@ -1,5 +1,3 @@
-// to-do: colocar a linha até o canto da tela
-
 import React, { useState } from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Image, Alert, ScrollView} from 'react-native';
 import { useRouter } from 'expo-router';
@@ -110,7 +108,6 @@ const styles = StyleSheet.create({
     marginTop: 70,
   },
   content: {
-    // flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,

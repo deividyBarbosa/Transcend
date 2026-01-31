@@ -1,3 +1,5 @@
+// algumas const nao são utilizadas. mais tarde vou verificar se podem ser removidas _mesmo_
+
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert} from 'react-native';
 import { useRouter } from 'expo-router';

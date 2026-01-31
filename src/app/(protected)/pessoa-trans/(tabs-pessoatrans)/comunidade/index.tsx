@@ -1,5 +1,3 @@
-// só deus sabe se isso funciona
-
 import { View, Text, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';

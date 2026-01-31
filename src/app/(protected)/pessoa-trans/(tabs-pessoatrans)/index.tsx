@@ -1,4 +1,5 @@
 // to-do: integrar com back, 'ativar lembrete', botao de configurações
+// acho que o botão de 'visualizar plano hormonal está muito pequeno, com pouco destaque para uma das principais tela. vou testar aumentar um pouco já já
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
@@ -7,7 +8,6 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
 import Button from '@/components/Button';
-import { Alert } from 'react-native';
 
 
 export default function InicioScreen() {
@@ -101,7 +101,7 @@ export default function InicioScreen() {
 
         <Button 
           title="Agendar Psicólogo" 
-          onPress={() => router.push('/pessoa-trans/agendar-psicologo')} 
+          onPress={() => router.push('/pessoa-trans/agendamento/agendar-psicologo')} 
         />
 
         <View style={{ marginTop: 5 }} />

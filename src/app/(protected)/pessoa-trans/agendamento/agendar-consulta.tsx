@@ -16,7 +16,7 @@ import { fonts } from '@/theme/fonts';
 import { Ionicons } from '@expo/vector-icons';
 
 
-// Mock de dados do psicólogo
+// Mock de dados do psicólogo.. ps.: descobrir onde foi parar esse mock 
 const PSICOLOGO_MOCK = {
   '1': {
     nome: 'Dr. Alex Cardoso',
@@ -113,7 +113,7 @@ export default function AgendarConsultaScreen() {
     const mes = currentMonth.getMonth();
     const dataFormatada = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(diaSelecionado).padStart(2, '0')}`;
     
-    router.push(`/pessoa-trans/horarios-disponiveis?psicologoId=${psicologoId}&data=${dataFormatada}&nome=${psicologo.nome}`);
+    router.push(`/pessoa-trans/agendamento/horarios-disponiveis?psicologoId=${psicologoId}&data=${dataFormatada}&nome=${psicologo.nome}`);
   };
 
   return (
