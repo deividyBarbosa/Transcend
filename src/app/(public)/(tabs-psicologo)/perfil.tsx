@@ -39,7 +39,7 @@ const MOCK_PERFIL: Perfil = {
     "Psicóloga com foco em Terapia Cognitivo-Comportamental, dedicada a ajudar adultos a superarem desafios emocionais e buscarem o autoconhecimento em um ambiente acolhedor e seguro.",
   especialidades: ["Ansiedade", "Depressão", "TCC", "Luto", "Autoconhecimento"],
   estatisticas: {
-    pacientes: 120,
+    pacientes: 120, //todo: tratar pra aparecer mensagem caso nao tenha ou nao tenha informado em editar perfil
     avaliacao: 4.9,
     experiencia: 8,
   },
