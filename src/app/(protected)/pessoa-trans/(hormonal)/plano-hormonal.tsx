@@ -1,5 +1,4 @@
-/* back-enders heeeeeelp todos os dados aqui são fakes fixos obviamente */
-// to-do: gráfico de evolução
+// to-do: arrumar isso, acho que dá pra deixar mais legível
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
@@ -13,74 +12,8 @@ import MedicationCard from '@/components/MedicationCard';
 import Calendar from '@/components/Calendar';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Mock de aplicações com estados
-const APLICACOES_MOCK = [
-  // Janeiro 2026
-  { 
-    data: '2026-01-15', 
-    hormonio: 'Testosterona', 
-    dosagem: '20mg', 
-    horario: '08:00',
-    status: 'atrasado', // aplicado, pendente, atrasado
-    dataHoraAplicacao: '2026-01-15T08:15:00',
-  },
-  { 
-    data: '2026-01-15', 
-    hormonio: 'Finasterida', 
-    dosagem: '1mg', 
-    horario: '22:00',
-    status: 'aplicado',
-    dataHoraAplicacao: '2026-01-15T22:05:00',
-  },
-  { 
-    data: '2026-01-22', 
-    hormonio: 'Testosterona', 
-    dosagem: '20mg', 
-    horario: '08:00',
-    status: 'aplicado',
-    dataHoraAplicacao: '2026-01-22T08:30:00',
-  },
-  { 
-    data: '2026-01-22', 
-    hormonio: 'Finasterida', 
-    dosagem: '1mg', 
-    horario: '22:00',
-    status: 'aplicado',
-    dataHoraAplicacao: '2026-01-22T22:10:00',
-  },
-  { 
-    data: '2026-01-29', 
-    hormonio: 'Testosterona', 
-    dosagem: '20mg', 
-    horario: '08:00',
-    status: 'aplicado',
-    dataHoraAplicacao: '2026-01-29T08:00:00',
-  },
-  { 
-    data: '2026-01-29', 
-    hormonio: 'Finasterida', 
-    dosagem: '1mg', 
-    horario: '22:00',
-    status: 'aplicado',
-    dataHoraAplicacao: '2026-01-29T22:00:00',
-  },
-  // Fevereiro 2026 - testando
-  { 
-    data: '2026-02-05', 
-    hormonio: 'Testosterona', 
-    dosagem: '20mg', 
-    horario: '08:00',
-    status: 'pendente',
-  },
-  { 
-    data: '2026-02-05', 
-    hormonio: 'Finasterida', 
-    dosagem: '1mg', 
-    horario: '22:00',
-    status: 'pendente',
-  },
-];
+import { HORMONIOS_MOCK, APLICACOES_MOCK, calcularEstatisticas, EVOLUCAO_MOCK } from '@/mocks/mockPlanoHormonal';
+import EvolutionChart from '@/components/EvolutionChart';
 
 const getMarkedDatesStatus = () => {
   const status: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } = {};
@@ -110,24 +43,15 @@ const getMarkedDatesStatus = () => {
 export default function PlanoHormonalScreen() {
   const router = useRouter();
 
-  const [planoAtual] = useState([
-    { id: '1', nome: 'Testosterona', dose: '20mg/semana' },
-    { id: '2', nome: 'Finasterida', dose: '1mg/dia' },
-  ]);
+  const [planoAtual] = useState(HORMONIOS_MOCK);
+  const stats = calcularEstatisticas();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  const parseDose = (dose: string) => {
-    const match = dose.match(/^(\d+\.?\d*)([a-zçõãá()]+)\/(.+)$/i);
-    if (match) {
-      return {
-        quantidade: match[1],
-        unidade: match[2],
-        frequencia: match[3],
-      };
-    }
-    return { quantidade: '', unidade: '', frequencia: '' };
+  // Função para buscar hormônio por ID
+  const getHormonioPorId = (hormonioId: string) => {
+    return HORMONIOS_MOCK.find(h => h.id === hormonioId);
   };
 
   // Obter datas com aplicações para marcar no calendário
@@ -156,25 +80,26 @@ export default function PlanoHormonalScreen() {
 
   const handleDayPress = (day: number) => {
     setSelectedDay(day);
-    setTimeout(() => {
-      // teste teste
-  }, 1);
   };
 
-  const handleRegistrarAplicacao = (hormonio: string) => {
-    // Buscar dados completos da aplicação
-    const aplicacao = aplicacoesDoDia.find(app => app.hormonio === hormonio);
+  const handleRegistrarAplicacao = (nomeHormonio: string) => {
+    const aplicacao = aplicacoesDoDia.find(app => {
+      const h = getHormonioPorId(app.hormonioId);
+      return h?.nome === nomeHormonio;
+    });
     
-    if (!aplicacao) return;
+    const hormonio = HORMONIOS_MOCK.find(h => h.nome === nomeHormonio);
+    
+    if (!aplicacao || !hormonio) return;
     
     router.push({
       pathname: '/pessoa-trans/registrar-aplicacao',
       params: {
-        hormonio: aplicacao.hormonio,
+        hormonio: nomeHormonio,
         data: aplicacao.data,
-        horario: aplicacao.horario,
-        dosagem: aplicacao.dosagem,
-        modoAplicacao: 'Injetável', // TO-DO: pegar do plano quando tiver no banco
+        horario: aplicacao.horarioPrevisto,
+        dosagem: hormonio.dosagem + hormonio.unidadeDosagem,
+        modoAplicacao: hormonio.modoAplicacao,
       }
     });
   };
@@ -225,22 +150,34 @@ export default function PlanoHormonalScreen() {
             <Text style={styles.sectionTitle}>Plano Atual</Text>
 
             {planoAtual.map(item => {
-              const parsed = parseDose(item.dose);
               return (
-                <MedicationCard
-                  key={item.id}
-                  icon="medical-outline"
-                  title={item.nome}
-                  subtitle={item.dose}
-                  onEdit={() => router.push({
-                    pathname: '/pessoa-trans/hormonal/editar-medicamento',
-                    params: {
-                      id: item.id,
-                      nome: item.nome,
-                      ...parsed
-                    }
-                  })}
-                />
+                <View key={item.id}>
+                  <MedicationCard
+                    icon="medical-outline"
+                    title={item.nome}
+                    subtitle={`${item.dosagem}${item.unidadeDosagem}/${item.frequencia.toLowerCase()}`}
+                  />
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity onPress={() => router.push(`/pessoa-trans/detalhes-hormonio?id=${item.id}`)}>
+                      <Ionicons name="eye-outline" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push({
+                      pathname: '/pessoa-trans/editar-medicamento',
+                      params: { 
+                        id: item.id, 
+                        nome: item.nome,
+                        dosagem: item.dosagem,
+                        unidadeDosagem: item.unidadeDosagem,
+                        frequencia: item.frequencia,
+                        modoAplicacao: item.modoAplicacao,
+                        horarioPreferencial: item.horarioPreferencial,
+                        observacoesMedicas: item.observacoesMedicas,
+                      }
+                    })}>
+                      <Ionicons name="create-outline" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               );
             })}
 
@@ -272,6 +209,10 @@ export default function PlanoHormonalScreen() {
 
                 {aplicacoesDoDia.map((app, index) => {
                   const statusIcon = getStatusIcon(app.status);
+                  const hormonio = getHormonioPorId(app.hormonioId);
+                  
+                  if (!hormonio) return null;
+                  
                   return (
                     <View key={index} style={styles.aplicacaoItem}>
                       <View style={styles.aplicacaoHeader}>
@@ -282,13 +223,15 @@ export default function PlanoHormonalScreen() {
                             color={statusIcon.color} 
                           />
                           <Text style={styles.aplicacaoHormonio}>
-                            {app.hormonio}
+                            {hormonio.nome}
                           </Text>
                         </View>
-                        <Text style={styles.aplicacaoHorario}>{app.horario}</Text>
+                        <Text style={styles.aplicacaoHorario}>{app.horarioPrevisto}</Text>
                       </View>
 
-                      <Text style={styles.aplicacaoDosagem}>{app.dosagem}</Text>
+                      <Text style={styles.aplicacaoDosagem}>
+                        {hormonio.dosagem}{hormonio.unidadeDosagem}
+                      </Text>
                       
                       <View style={styles.aplicacaoStatus}>
                         <Text style={[
@@ -301,16 +244,16 @@ export default function PlanoHormonalScreen() {
                         {app.status === 'pendente' && (
                           <TouchableOpacity
                             style={styles.registrarButton}
-                            onPress={() => handleRegistrarAplicacao(app.hormonio)}
+                            onPress={() => handleRegistrarAplicacao(hormonio.nome)}
                           >
                             <Text style={styles.registrarButtonText}>Registrar</Text>
                           </TouchableOpacity>
                         )}
                       </View>
 
-                      {app.dataHoraAplicacao && (
+                      {app.horarioAplicado && (
                         <Text style={styles.aplicacaoDetalhe}>
-                          Aplicado às {app.dataHoraAplicacao.split('T')[1].substring(0, 5)}
+                          Aplicado às {app.horarioAplicado}
                         </Text>
                       )}
                     </View>
@@ -328,21 +271,16 @@ export default function PlanoHormonalScreen() {
             )}
 
             {/* Evolução */}
+
             <Text style={styles.sectionTitle}>Evolução</Text>
 
-            <View style={styles.evolutionCard}>
-              <Text style={styles.level}>550 ng/dL</Text>
-              <Text style={styles.evolutionText}>Últimos 6 meses +15%</Text>
-              
-              <View style={styles.graphPlaceholder}>
-                <Text style={styles.graphText}>📊 Gráfico em desenvolvimento</Text>
-              </View>
-              
-              <Button 
-                title="Ver Estatísticas"
-                onPress={() => Alert.alert('Estatísticas', 'Funcionalidade em desenvolvimento')}
-              />
-            </View>
+            <EvolutionChart
+              currentLevel={EVOLUCAO_MOCK.testosterona.nivelAtual}
+              percentageChange={EVOLUCAO_MOCK.testosterona.percentualMudanca}
+              data={EVOLUCAO_MOCK.testosterona.dados}
+              labels={EVOLUCAO_MOCK.testosterona.labels}
+              onViewDetails={() => router.push('/pessoa-trans/estatisticas')} 
+            />
           </ScrollView>
         </View>
       </DismissKeyboard>
@@ -444,33 +382,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 20,
   },
-  evolutionCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 10,
-  },
-  level: {
-    fontFamily: fonts.bold,
-    fontSize: 22,
-    color: colors.text,
-  },
-  evolutionText: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.muted,
-    marginBottom: 12,
-  },
-  graphPlaceholder: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: 30,
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  graphText: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.muted,
+  cardActions: {
+    flexDirection: 'row',
+    gap: 16,
+    position: 'absolute',
+    right: 16,
+    top: 16,
   },
 });

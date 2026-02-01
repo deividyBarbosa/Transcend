@@ -1,4 +1,5 @@
 // acho que dá pra deixar essa tela mais bonita, fora que precisamos pensar no que vem depois de confirmar consulta... e o pagamento?
+// to-do: o que marina mandou sobre o pagamento
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';

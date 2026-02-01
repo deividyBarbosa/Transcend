@@ -1,4 +1,5 @@
-// to-do: resumo semanal funcional, upload de foto, botao de configuraçoes, 'visualizar historico de sessoes', melhorar a aparencia geral do registro de diario
+// to-do: resumo semanal funcional, upload de foto, 'visualizar historico de sessoes', melhorar a aparencia geral do registro de diario
+// tirei o botao feio de configurações pq n tava fazendo nada mesmo
 
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
@@ -21,7 +22,6 @@ interface DiaryEntry {
 
 const MOODS = ['Feliz', 'Neutro', 'Triste', 'Ansioso', 'Irritado'];
 const SYMPTOMS = ['Cansaço', 'Dores de cabeça', 'Insônia', 'Mudanças de apetite'];
-
 
 export default function DiarioScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
@@ -138,9 +138,6 @@ export default function DiarioScreen() {
       <ScrollView ref={scrollViewRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Meu diário</Text>
-          <TouchableOpacity>
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
         </View>
 
         <Calendar

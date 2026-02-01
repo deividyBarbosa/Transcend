@@ -348,7 +348,7 @@ export default function EditarMedicamentoScreen() {
             onClose={() => setShowUnidadeModal(false)}
           />
 
-          {/* Modal de dias da semana - será melhorado depois */}
+          {/* Modal de dias da semana - vai melhorar depois, eu espero */}
           <SelectModal
             visible={showDiasSemanaModal}
             title="Dias da Semana"

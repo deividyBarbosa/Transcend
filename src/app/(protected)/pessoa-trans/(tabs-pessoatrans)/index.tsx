@@ -1,6 +1,3 @@
-// to-do: integrar com back, 'ativar lembrete', botao de configurações
-// acho que o botão de 'visualizar plano hormonal está muito pequeno, com pouco destaque para uma das principais tela. vou testar aumentar um pouco já já
-
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,91 +5,99 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
 import Button from '@/components/Button';
-
+import { 
+  HORMONIOS_MOCK, 
+  calcularEstatisticas, 
+  getProximaAplicacao,
+  getAplicacoesHoje,
+  getHumorMedio 
+} from '@/mocks/mockPlanoHormonal';
 
 export default function InicioScreen() {
   const nome = 'Alex';
   const router = useRouter();
+  
+  // Obter dados dinâmicos
+  const stats = calcularEstatisticas();
+  const proximaAplicacao = getProximaAplicacao();
+  const aplicacoesHoje = getAplicacoesHoje();
+  const humorMedio = getHumorMedio();
+  
+  const getHumorTexto = (valor: number | null) => {
+    if (!valor) return 'Não registrado';
+    const textos = ['Ruim', 'Regular', 'Neutro', 'Bom', 'Ótimo'];
+    return textos[valor - 1] || 'Não registrado';
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Início</Text>
-
-          <TouchableOpacity style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={22} color={colors.text} />
-          </TouchableOpacity>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Início</Text>
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={() => router.push('/pessoa-trans/(tabs-pessoatrans)/perfil')}
+        >
+          <Ionicons name="settings-outline" size={22} color={colors.text} />
+        </TouchableOpacity>
+      </View>
 
         {/* Saudação */}
         <Text style={styles.greeting}>
           Olá, <Text style={styles.name}>{nome}</Text> 
         </Text>
 
-        {/* Plano Hormonal */}
+        {/* Plano Hormonal - Card expandido com dados reais */}
         <Text style={styles.sectionTitle}>Plano Hormonal</Text>
-
-        <TouchableOpacity
+        <TouchableOpacity 
+          style={styles.planoCardExpanded}
           onPress={() => router.push('/pessoa-trans/plano-hormonal')}
-          style={styles.viewButton}
         >
-          <Text style={styles.viewLink}>Visualizar</Text>
-          <Ionicons
-            name="eye-outline"
-            size={15}
-            color={colors.primary}
-            style={{ marginTop: 1 }}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.card}>
-          <Ionicons name="medkit-outline" size={22} color={colors.primary} />
-          <View>
-            <Text style={styles.cardTitle}>Testosterona</Text>
-            <Text style={styles.cardSubtitle}>20mg/semana</Text>
+          <View style={styles.planoHeader}>
+            <View style={styles.planoHeaderLeft}>
+              <Ionicons name="medical" size={24} color={colors.primary} />
+              <Text style={styles.planoTitle}>Meu Plano Hormonal</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </View>
-        </View>
 
-        <View style={styles.card}>
-          <Ionicons name="bandage-outline" size={22} color={colors.primary} />
-          <View>
-            <Text style={styles.cardTitle}>Finasterida</Text>
-            <Text style={styles.cardSubtitle}>1mg/dia</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardRow}>
-          <View style={styles.card}>
-            <Ionicons name="calendar-outline" size={22} color={colors.primary} />
-            <View>
-              <Text style={styles.cardTitle}>Ciclo de Aplicação</Text>
-              <Text style={styles.cardSubtitle}>Próxima dose em 3 dias</Text>
+          <View style={styles.planoStats}>
+            <View style={styles.planoStatItem}>
+              <Text style={styles.planoStatValue}>
+                {HORMONIOS_MOCK.filter(h => h.ativo).length}
+              </Text>
+              <Text style={styles.planoStatLabel}>Hormônios ativos</Text>
+            </View>
+            <View style={styles.planoDivider} />
+            <View style={styles.planoStatItem}>
+              <Text style={styles.planoStatValue}>{aplicacoesHoje.length}</Text>
+              <Text style={styles.planoStatLabel}>Aplicações hoje</Text>
+            </View>
+            <View style={styles.planoDivider} />
+            <View style={styles.planoStatItem}>
+              <Text style={styles.planoStatValue}>{stats.taxaAdesao}%</Text>
+              <Text style={styles.planoStatLabel}>Taxa de adesão</Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.reminderButton}>
-            <Text style={styles.reminderText}>Ativar Lembrete</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.planoFooter}>
+            <Ionicons name="time-outline" size={14} color={colors.primary} />
+            <Text style={styles.planoFooterText}>
+              Próxima aplicação: {proximaAplicacao.diasRestantes === 0 ? 'Hoje' : `Em ${proximaAplicacao.diasRestantes} dias`} às {proximaAplicacao.horario}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
-        {/* Bem-estar */}
+        {/* Bem-estar com dados reais */}
         <Text style={styles.sectionTitle}>Bem-estar</Text>
-
         <View style={styles.card}>
           <Ionicons name="happy-outline" size={22} color={colors.primary} />
           <View>
             <Text style={styles.cardTitle}>Hoje</Text>
-            <Text style={styles.cardSubtitle}>Humor: Feliz</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Ionicons name="heart-outline" size={22} color={colors.primary} />
-          <View>
-            <Text style={styles.cardTitle}>Sintomas</Text>
-            <Text style={styles.cardSubtitle}>Nenhum</Text>
+            <Text style={styles.cardSubtitle}>
+              Humor: {getHumorTexto(humorMedio)}
+            </Text>
           </View>
         </View>
 
@@ -174,7 +179,7 @@ settingsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#EADDE0',
+    backgroundColor: '#fffafb',
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
@@ -206,5 +211,71 @@ settingsButton: {
   flexDirection: 'row',
   alignItems: 'baseline',
   gap:4,
+},
+planoCardExpanded: {
+  backgroundColor: '#fffafb',
+  borderRadius: 16,
+  padding: 16,
+  marginBottom: 16,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 4,
+  elevation: 2,
+},
+planoHeader: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 16,
+},
+planoHeaderLeft: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 12,
+},
+planoTitle: {
+  fontFamily: fonts.semibold,
+  fontSize: 16,
+  color: colors.text,
+},
+planoStats: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  paddingVertical: 12,
+  borderTopWidth: 1,
+  borderBottomWidth: 1,
+  borderColor: '#F0F0F0',
+  marginBottom: 12,
+},
+planoStatItem: {
+  alignItems: 'center',
+  flex: 1,
+},
+planoStatValue: {
+  fontFamily: fonts.bold,
+  fontSize: 20,
+  color: colors.primary,
+  marginBottom: 4,
+},
+planoStatLabel: {
+  fontFamily: fonts.regular,
+  fontSize: 11,
+  color: colors.muted,
+  textAlign: 'center',
+},
+planoDivider: {
+  width: 1,
+  backgroundColor: '#F0F0F0',
+},
+planoFooter: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+},
+planoFooterText: {
+  fontFamily: fonts.regular,
+  fontSize: 13,
+  color: colors.primary,
 },
 });

@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
@@ -14,7 +8,6 @@ import Calendar from '@/components/Calendar';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { Ionicons } from '@expo/vector-icons';
-
 
 // Mock de dados do psicólogo.. ps.: descobrir onde foi parar esse mock 
 const PSICOLOGO_MOCK = {
