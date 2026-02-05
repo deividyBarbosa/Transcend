@@ -23,7 +23,22 @@ export default function LoginScreen() {
       const resultado = await fazerLogin(email, senha);
       
       if (resultado.sucesso) {
-        router.replace('/pessoa-trans');
+        if (!resultado.dados) {
+          Alert.alert('Erro', 'Não foi possível identificar o perfil do usuário');
+          return;
+        }
+
+        if (resultado.dados.tipo === 'pessoa_trans') {
+          router.replace('/pessoa-trans');
+          return;
+        }
+
+        if (resultado.dados.tipo === 'psicologo') {
+          router.replace('/(public)/(tabs-psicologo)/home-psicologo');
+          return;
+        }
+
+        Alert.alert('Erro', 'Tipo de usuário não suportado para login');
       } else {
         Alert.alert('Erro', resultado.erro || 'Credenciais inválidas');
       }
@@ -80,10 +95,6 @@ return (
           title="ENTRAR" 
           onPress={handleLogin}
           loading={carregando}
-        />
-        <Button
-          title="teste psicologo"
-          onPress={() => router.push('/(public)/(tabs-psicologo)/home-psicologo')}
         />
 
         {/* Link para cadastro */}
