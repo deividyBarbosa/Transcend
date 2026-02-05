@@ -1,5 +1,5 @@
-// todo: resumo semanal é uma farsa, upload de foto também, botao de configuraçoes tbm
-// vou voltar aqui ainda porque ta muuito grande e acho que dá pra diminuir
+// to-do: resumo semanal funcional, upload de foto, 'visualizar historico de sessoes', melhorar a aparencia geral do registro de diario
+// tirei o botao feio de configurações pq n tava fazendo nada mesmo
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
@@ -218,9 +218,6 @@ export default function DiarioScreen() {
       <ScrollView ref={scrollViewRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Meu diário</Text>
-          <TouchableOpacity>
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
         </View>
 
         <Calendar
@@ -364,7 +361,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 20,
     marginBottom: 20,
   },
   title: {
@@ -417,7 +414,7 @@ const styles = StyleSheet.create({
   formHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 60,
+    marginTop: 20,
     marginBottom: 20,
   },
   backIcon: {

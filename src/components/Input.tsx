@@ -25,7 +25,7 @@ export default function Input({ label, error, style, ...props }: InputProps) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   label: {
     fontSize: 16,

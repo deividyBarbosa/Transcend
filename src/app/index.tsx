@@ -1,5 +1,3 @@
-// to-do: colocar a linha até o canto da tela
-
 import React, { useState } from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Image, Alert, ScrollView} from 'react-native';
 import { useRouter } from 'expo-router';
@@ -83,9 +81,13 @@ return (
           onPress={handleLogin}
           loading={carregando}
         />
+        <Button
+          title="teste psicologo"
+          onPress={() => router.push('/(public)/(tabs-psicologo)/home-psicologo')}
+        />
 
         {/* Link para cadastro */}
-        <TouchableOpacity onPress={() => router.push('/cadastro')}>
+        <TouchableOpacity onPress={() => router.push('/(public)/cadastro/cadastro')}>
           <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
         </TouchableOpacity>
        </View>
@@ -106,7 +108,6 @@ const styles = StyleSheet.create({
     marginTop: 70,
   },
   content: {
-    // flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 30,

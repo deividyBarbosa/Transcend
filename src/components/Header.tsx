@@ -3,21 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HeaderProps {
   title: string;
   showBackButton?: boolean;
+  rightButton?: React.ReactNode;
   rightIcon?: React.ReactNode;
   onBackPress?: () => void;
 }
 
-export default function Header({ 
-  title, 
-  showBackButton = false, 
-  rightIcon,
-  onBackPress 
-}: HeaderProps) {
+export default function Header({ title, showBackButton = false, rightIcon, onBackPress }: HeaderProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleBack = () => {
     if (onBackPress) {
@@ -55,7 +53,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    // paddingTop: 20,
     paddingBottom: 10,
     backgroundColor: colors.background,
   },

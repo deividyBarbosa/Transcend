@@ -11,6 +11,7 @@ interface MedicationCardProps {
   onEdit?: () => void;
   onPress?: () => void;
   variant?: 'default' | 'add';
+  onView?: () => void; 
 }
 
 export default function MedicationCard({
@@ -20,6 +21,7 @@ export default function MedicationCard({
   onEdit,
   onPress,
   variant = 'default',
+  onView,
 }: MedicationCardProps) {
   const isAdd = variant === 'add';
 
@@ -45,6 +47,11 @@ export default function MedicationCard({
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
         )}
       </View>
+      {onView && (
+        <TouchableOpacity onPress={onView} style={{ marginRight: 8 }}>
+          <Ionicons name="eye-outline" size={18} color={colors.primary} />
+        </TouchableOpacity>
+      )}
       {onEdit && (
         <TouchableOpacity onPress={onEdit}>
           <Ionicons name="create-outline" size={18} color={colors.primary} />
