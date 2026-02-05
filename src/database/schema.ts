@@ -151,14 +151,8 @@ export interface Database {
           id: string;
           usuario_id: string;
           data_entrada: string;
-          titulo: string | null;
           conteudo: string;
           humor: NivelHumor | null;
-          energia: number | null;
-          ansiedade: number | null;
-          disforia: number | null;
-          euforia: number | null;
-          qualidade_sono: number | null;
           tags: string[] | null;
           compartilhado_psicologo: boolean;
           privado: boolean;

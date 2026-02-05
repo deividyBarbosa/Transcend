@@ -14,14 +14,8 @@ export interface EntradaDiario {
   id: string;
   usuario_id: string;
   data_entrada: string;
-  titulo: string | null;
   conteudo: string;
   humor: NivelHumor | null;
-  energia: number | null;
-  ansiedade: number | null;
-  disforia: number | null;
-  euforia: number | null;
-  qualidade_sono: number | null;
   tags: string[] | null;
   compartilhado_psicologo: boolean;
   privado: boolean;
@@ -34,13 +28,7 @@ export interface DadosCriarEntrada {
   usuario_id: string;
   data_entrada: string;
   conteudo: string;
-  titulo?: string | null;
   humor?: NivelHumor | null;
-  energia?: number | null;
-  ansiedade?: number | null;
-  disforia?: number | null;
-  euforia?: number | null;
-  qualidade_sono?: number | null;
   tags?: string[] | null;
   compartilhado_psicologo?: boolean;
   privado?: boolean;
@@ -48,14 +36,8 @@ export interface DadosCriarEntrada {
 
 // Dados para atualizar uma entrada no diário
 export interface DadosAtualizarEntrada {
-  titulo?: string | null;
   conteudo?: string;
   humor?: NivelHumor | null;
-  energia?: number | null;
-  ansiedade?: number | null;
-  disforia?: number | null;
-  euforia?: number | null;
-  qualidade_sono?: number | null;
   tags?: string[] | null;
   compartilhado_psicologo?: boolean;
   privado?: boolean;
@@ -96,11 +78,6 @@ export interface ArquivoFoto {
 export interface MediasEmocionais {
   humor_contagem: Record<NivelHumor, number>;
   humor_predominante: NivelHumor | null;
-  energia_media: number | null;
-  ansiedade_media: number | null;
-  disforia_media: number | null;
-  euforia_media: number | null;
-  qualidade_sono_media: number | null;
 }
 
 // Tendência emocional (comparação entre períodos)
