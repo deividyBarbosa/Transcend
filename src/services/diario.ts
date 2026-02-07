@@ -8,37 +8,54 @@ import {
   ArquivoFoto,
   RelatorioEmocional,
   MediasEmocionais,
-  TendenciaEmocional,
   FiltroPeriodo,
   NivelHumor,
   Resultado,
 } from '../types/diario';
+import { criptografar, descriptografar } from './crypto';
 
 /**
- * Tag convencional para marcar eventos importantes
+ * Criptografa o conteúdo e retorna o texto criptografado.
+ * Em caso de falha na criptografia, retorna o texto original (fallback).
  */
-const TAG_EVENTO_IMPORTANTE = 'evento_importante';
-
-/**
- * Calcula a média de um array de números, ignorando nulls
- */
-const calcularMedia = (valores: (number | null)[]): number | null => {
-  const validos = valores.filter((v): v is number => v !== null);
-  if (validos.length === 0) return null;
-  return validos.reduce((soma, v) => soma + v, 0) / validos.length;
+const criptografarConteudo = async (conteudo: string): Promise<string> => {
+  const resultado = await criptografar(conteudo);
+  if (resultado.sucesso && resultado.dados) {
+    return resultado.dados;
+  }
+  console.warn('Falha ao criptografar, salvando em texto plano');
+  return conteudo;
 };
 
 /**
- * Valida que um campo numérico está entre 0 e 10
+ * Descriptografa o conteúdo. Tenta descriptografar; se falhar,
+ * assume que é texto plano e retorna como está.
  */
-const validarCampoNumerico = (valor: number | null | undefined, campo: string): string | null => {
-  if (valor === null || valor === undefined) return null;
-  if (valor < 0 || valor > 10) return `${campo} deve estar entre 0 e 10`;
-  return null;
+const descriptografarConteudo = async (conteudo: string): Promise<string> => {
+  const resultado = await descriptografar(conteudo);
+  if (resultado.sucesso && resultado.dados) {
+    return resultado.dados;
+  }
+  // Conteúdo pode estar em texto plano (legado)
+  return conteudo;
 };
 
 /**
- * Cria uma nova entrada no diário
+ * Descriptografa uma lista de entradas em paralelo
+ */
+const descriptografarEntradas = async (
+  entradas: EntradaDiario[]
+): Promise<EntradaDiario[]> => {
+  return Promise.all(
+    entradas.map(async (entrada) => ({
+      ...entrada,
+      conteudo: await descriptografarConteudo(entrada.conteudo),
+    }))
+  );
+};
+
+/**
+ * Cria uma nova entrada no diário (com criptografia do conteúdo)
  */
 export const criarEntrada = async (
   dados: DadosCriarEntrada
@@ -50,33 +67,18 @@ export const criarEntrada = async (
       return { sucesso: false, erro: 'O conteúdo do diário é obrigatório' };
     }
 
-    // Validar campos numéricos
-    const camposNumericos = [
-      { valor: dados.energia, nome: 'Energia' },
-      { valor: dados.ansiedade, nome: 'Ansiedade' },
-      { valor: dados.disforia, nome: 'Disforia' },
-      { valor: dados.euforia, nome: 'Euforia' },
-      { valor: dados.qualidade_sono, nome: 'Qualidade do sono' },
-    ];
-
-    for (const campo of camposNumericos) {
-      const erro = validarCampoNumerico(campo.valor, campo.nome);
-      if (erro) return { sucesso: false, erro };
-    }
+    // Criptografar o conteúdo antes de salvar
+    const conteudoCriptografado = await criptografarConteudo(dados.conteudo);
 
     const { data, error } = await supabase
       .from('diario_entradas')
       .insert({
         usuario_id: dados.usuario_id,
         data_entrada: dados.data_entrada,
-        conteudo: dados.conteudo,
-        titulo: dados.titulo ?? null,
+        conteudo: conteudoCriptografado,
         humor: dados.humor ?? null,
-        energia: dados.energia ?? null,
-        ansiedade: dados.ansiedade ?? null,
-        disforia: dados.disforia ?? null,
-        euforia: dados.euforia ?? null,
-        qualidade_sono: dados.qualidade_sono ?? null,
+        tipo: dados.tipo ?? 'diario',
+        is_importante: dados.is_importante ?? false,
         tags: dados.tags ?? null,
         compartilhado_psicologo: dados.compartilhado_psicologo ?? false,
         privado: dados.privado ?? true,
@@ -92,8 +94,11 @@ export const criarEntrada = async (
       return { sucesso: false, erro: 'Erro ao criar entrada no diário', codigo: error.code };
     }
 
+    // Retorna com conteúdo original (não criptografado) para a UI
+    const entrada: EntradaDiario = { ...(data as EntradaDiario), conteudo: dados.conteudo };
+
     console.log('Entrada criada com sucesso:', data.id);
-    return { sucesso: true, dados: data as EntradaDiario };
+    return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao criar entrada:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao criar a entrada no diário' };
@@ -101,7 +106,7 @@ export const criarEntrada = async (
 };
 
 /**
- * Busca entradas do diário por uma data específica
+ * Busca entradas do diário por uma data específica (com descriptografia)
  */
 export const buscarEntradasPorData = async (
   usuarioId: string,
@@ -122,7 +127,11 @@ export const buscarEntradasPorData = async (
       return { sucesso: false, erro: 'Erro ao buscar entradas do diário', codigo: error.code };
     }
 
-    return { sucesso: true, dados: (entradas || []) as EntradaDiario[] };
+    const entradasDescriptografadas = await descriptografarEntradas(
+      (entradas || []) as EntradaDiario[]
+    );
+
+    return { sucesso: true, dados: entradasDescriptografadas };
   } catch (erro) {
     console.error('Erro ao buscar entradas:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao buscar as entradas' };
@@ -130,7 +139,7 @@ export const buscarEntradasPorData = async (
 };
 
 /**
- * Busca todas as entradas do diário de um mês específico
+ * Busca todas as entradas do diário de um mês específico (com descriptografia)
  * @param mes - Mês (1-12)
  */
 export const buscarEntradasPorMes = async (
@@ -158,7 +167,11 @@ export const buscarEntradasPorMes = async (
       return { sucesso: false, erro: 'Erro ao buscar entradas do mês', codigo: error.code };
     }
 
-    return { sucesso: true, dados: (entradas || []) as EntradaDiario[] };
+    const entradasDescriptografadas = await descriptografarEntradas(
+      (entradas || []) as EntradaDiario[]
+    );
+
+    return { sucesso: true, dados: entradasDescriptografadas };
   } catch (erro) {
     console.error('Erro ao buscar entradas do mês:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao buscar as entradas do mês' };
@@ -166,7 +179,7 @@ export const buscarEntradasPorMes = async (
 };
 
 /**
- * Atualiza uma entrada existente no diário
+ * Atualiza uma entrada existente no diário (com criptografia do conteúdo)
  */
 export const atualizarEntrada = async (
   entradaId: string,
@@ -180,23 +193,18 @@ export const atualizarEntrada = async (
       return { sucesso: false, erro: 'Nenhum dado para atualizar' };
     }
 
-    // Validar campos numéricos
-    const camposNumericos = [
-      { valor: dados.energia, nome: 'Energia' },
-      { valor: dados.ansiedade, nome: 'Ansiedade' },
-      { valor: dados.disforia, nome: 'Disforia' },
-      { valor: dados.euforia, nome: 'Euforia' },
-      { valor: dados.qualidade_sono, nome: 'Qualidade do sono' },
-    ];
+    // Criptografar conteúdo se fornecido
+    const dadosParaAtualizar: Record<string, any> = { ...dados };
+    let conteudoOriginal: string | undefined;
 
-    for (const campo of camposNumericos) {
-      const erro = validarCampoNumerico(campo.valor, campo.nome);
-      if (erro) return { sucesso: false, erro };
+    if (dados.conteudo) {
+      conteudoOriginal = dados.conteudo;
+      dadosParaAtualizar.conteudo = await criptografarConteudo(dados.conteudo);
     }
 
     const { data, error } = await supabase
       .from('diario_entradas')
-      .update(dados)
+      .update(dadosParaAtualizar)
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)
       .select()
@@ -210,8 +218,14 @@ export const atualizarEntrada = async (
       return { sucesso: false, erro: 'Erro ao atualizar entrada do diário', codigo: error.code };
     }
 
+    // Retorna com conteúdo original para a UI
+    const entrada: EntradaDiario = data as EntradaDiario;
+    if (conteudoOriginal) {
+      entrada.conteudo = conteudoOriginal;
+    }
+
     console.log('Entrada atualizada com sucesso:', data.id);
-    return { sucesso: true, dados: data as EntradaDiario };
+    return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao atualizar entrada:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao atualizar a entrada' };
@@ -282,6 +296,7 @@ export const deletarEntrada = async (
 
 /**
  * Faz upload de uma foto do diário para o storage
+ * A URL da foto é criptografada no campo foto_url_encrypted
  */
 export const uploadFotoDiario = async (
   arquivo: ArquivoFoto,
@@ -314,6 +329,9 @@ export const uploadFotoDiario = async (
       .from('diario-fotos')
       .getPublicUrl(uploadData.path);
 
+    // Criptografar a URL da foto
+    const urlCriptografada = await criptografarConteudo(urlData.publicUrl);
+
     // Inserir registro na tabela
     const { data, error } = await supabase
       .from('diario_fotos')
@@ -321,7 +339,7 @@ export const uploadFotoDiario = async (
         entrada_id: dados.entrada_id ?? null,
         usuario_id: dados.usuario_id,
         foto_url: urlData.publicUrl,
-        foto_url_encrypted: null,
+        foto_url_encrypted: urlCriptografada,
         descricao: dados.descricao ?? null,
         categoria: dados.categoria ?? null,
         data_foto: dados.data_foto,
@@ -382,7 +400,6 @@ export const buscarFotosTransicao = async (
 
 /**
  * Marca uma entrada do diário como evento importante
- * Adiciona a tag 'evento_importante' ao array de tags (idempotente)
  */
 export const marcarEventoImportante = async (
   entradaId: string,
@@ -391,30 +408,9 @@ export const marcarEventoImportante = async (
   try {
     console.log('Marcando evento importante:', entradaId);
 
-    // Buscar entrada atual
-    const { data: entrada, error: fetchError } = await supabase
-      .from('diario_entradas')
-      .select('*')
-      .eq('id', entradaId)
-      .eq('usuario_id', usuarioId)
-      .single();
-
-    if (fetchError || !entrada) {
-      console.error('Erro ao buscar entrada:', fetchError);
-      return { sucesso: false, erro: 'Entrada não encontrada' };
-    }
-
-    // Verificar se já está marcada
-    const tagsAtuais: string[] = entrada.tags || [];
-    if (tagsAtuais.includes(TAG_EVENTO_IMPORTANTE)) {
-      return { sucesso: true, dados: entrada as EntradaDiario };
-    }
-
-    // Adicionar tag
-    const novasTags = [...tagsAtuais, TAG_EVENTO_IMPORTANTE];
     const { data, error } = await supabase
       .from('diario_entradas')
-      .update({ tags: novasTags })
+      .update({ is_importante: true })
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)
       .select()
@@ -425,8 +421,11 @@ export const marcarEventoImportante = async (
       return { sucesso: false, erro: 'Erro ao marcar evento importante', codigo: error.code };
     }
 
+    const entrada = data as EntradaDiario;
+    entrada.conteudo = await descriptografarConteudo(entrada.conteudo);
+
     console.log('Evento marcado como importante:', entradaId);
-    return { sucesso: true, dados: data as EntradaDiario };
+    return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao marcar evento:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao marcar o evento' };
@@ -447,7 +446,7 @@ export const buscarEventosImportantes = async (
       .from('diario_entradas')
       .select('*')
       .eq('usuario_id', usuarioId)
-      .contains('tags', [TAG_EVENTO_IMPORTANTE])
+      .eq('is_importante', true)
       .order('data_entrada', { ascending: false });
 
     if (filtro) {
@@ -463,7 +462,11 @@ export const buscarEventosImportantes = async (
       return { sucesso: false, erro: 'Erro ao buscar eventos importantes', codigo: error.code };
     }
 
-    return { sucesso: true, dados: (data || []) as EntradaDiario[] };
+    const entradasDescriptografadas = await descriptografarEntradas(
+      (data || []) as EntradaDiario[]
+    );
+
+    return { sucesso: true, dados: entradasDescriptografadas };
   } catch (erro) {
     console.error('Erro ao buscar eventos:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao buscar os eventos' };
@@ -472,7 +475,6 @@ export const buscarEventosImportantes = async (
 
 /**
  * Gera um relatório emocional agregado para um período
- * Compara com o período anterior de mesma duração para calcular tendências
  */
 export const gerarRelatorioEmocional = async (
   usuarioId: string,
@@ -481,7 +483,6 @@ export const gerarRelatorioEmocional = async (
   try {
     console.log('Gerando relatório emocional:', periodo.data_inicio, 'a', periodo.data_fim);
 
-    // Buscar entradas do período atual
     const { data: entradasAtuais, error } = await supabase
       .from('diario_entradas')
       .select('*')
@@ -495,28 +496,11 @@ export const gerarRelatorioEmocional = async (
       return { sucesso: false, erro: 'Erro ao gerar relatório emocional', codigo: error.code };
     }
 
-    const entradas = (entradasAtuais || []) as EntradaDiario[];
+    const entradas = await descriptografarEntradas(
+      (entradasAtuais || []) as EntradaDiario[]
+    );
 
-    // Calcular período anterior de mesma duração
-    const inicio = new Date(periodo.data_inicio);
-    const fim = new Date(periodo.data_fim);
-    const duracaoDias = Math.ceil((fim.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
-    const inicioAnterior = new Date(inicio);
-    inicioAnterior.setDate(inicioAnterior.getDate() - duracaoDias - 1);
-    const fimAnterior = new Date(inicio);
-    fimAnterior.setDate(fimAnterior.getDate() - 1);
-
-    const { data: entradasAnteriores } = await supabase
-      .from('diario_entradas')
-      .select('*')
-      .eq('usuario_id', usuarioId)
-      .gte('data_entrada', inicioAnterior.toISOString().split('T')[0])
-      .lte('data_entrada', fimAnterior.toISOString().split('T')[0])
-      .order('data_entrada', { ascending: true });
-
-    const anteriores = (entradasAnteriores || []) as EntradaDiario[];
-
-    // Calcular médias emocionais
+    // Calcular contagem de humor
     const humorContagem: Record<NivelHumor, number> = {
       irritado: 0,
       triste: 0,
@@ -543,51 +527,7 @@ export const gerarRelatorioEmocional = async (
     const medias: MediasEmocionais = {
       humor_contagem: humorContagem,
       humor_predominante: humorPredominante,
-      energia_media: calcularMedia(entradas.map(e => e.energia)),
-      ansiedade_media: calcularMedia(entradas.map(e => e.ansiedade)),
-      disforia_media: calcularMedia(entradas.map(e => e.disforia)),
-      euforia_media: calcularMedia(entradas.map(e => e.euforia)),
-      qualidade_sono_media: calcularMedia(entradas.map(e => e.qualidade_sono)),
     };
-
-    // Calcular tendências
-    const camposPositivos = ['energia', 'euforia', 'qualidade_sono'];
-    const campos: { campo: string; chave: keyof EntradaDiario; label: string }[] = [
-      { campo: 'energia', chave: 'energia', label: 'Energia' },
-      { campo: 'ansiedade', chave: 'ansiedade', label: 'Ansiedade' },
-      { campo: 'disforia', chave: 'disforia', label: 'Disforia' },
-      { campo: 'euforia', chave: 'euforia', label: 'Euforia' },
-      { campo: 'qualidade_sono', chave: 'qualidade_sono', label: 'Qualidade do sono' },
-    ];
-
-    const tendencias: TendenciaEmocional[] = campos.map(({ campo, chave, label }) => {
-      const valorAtual = calcularMedia(entradas.map(e => e[chave] as number | null));
-      const valorAnterior = calcularMedia(anteriores.map(e => e[chave] as number | null));
-
-      let direcao: TendenciaEmocional['direcao'] = 'sem_dados';
-      let variacao: number | null = null;
-
-      if (valorAtual !== null && valorAnterior !== null) {
-        variacao = valorAtual - valorAnterior;
-        const limiar = 0.5;
-
-        if (Math.abs(variacao) <= limiar) {
-          direcao = 'estavel';
-        } else if (camposPositivos.includes(campo)) {
-          direcao = variacao > 0 ? 'melhorou' : 'piorou';
-        } else {
-          direcao = variacao < 0 ? 'melhorou' : 'piorou';
-        }
-      }
-
-      return {
-        campo: label,
-        valor_atual: valorAtual,
-        valor_anterior: valorAnterior,
-        variacao,
-        direcao,
-      };
-    });
 
     // Calcular tags frequentes
     const tagContagem: Record<string, number> = {};
@@ -615,7 +555,6 @@ export const gerarRelatorioEmocional = async (
       periodo_fim: periodo.data_fim,
       total_entradas: entradas.length,
       medias,
-      tendencias,
       entradas_por_dia: entradasPorDia,
       tags_frequentes: tagsFrequentes,
     };
@@ -640,7 +579,10 @@ export const compartilharComPsicologo = async (
 
     const { data, error } = await supabase
       .from('diario_entradas')
-      .update({ compartilhado_psicologo: true })
+      .update({
+        compartilhado_psicologo: true,
+        compartilhado_em: new Date().toISOString(),
+      })
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)
       .select()
@@ -654,8 +596,11 @@ export const compartilharComPsicologo = async (
       return { sucesso: false, erro: 'Erro ao compartilhar entrada', codigo: error.code };
     }
 
+    const entrada = data as EntradaDiario;
+    entrada.conteudo = await descriptografarConteudo(entrada.conteudo);
+
     console.log('Entrada compartilhada com sucesso:', entradaId);
-    return { sucesso: true, dados: data as EntradaDiario };
+    return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao compartilhar entrada:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao compartilhar a entrada' };
@@ -674,7 +619,10 @@ export const revogarCompartilhamento = async (
 
     const { data, error } = await supabase
       .from('diario_entradas')
-      .update({ compartilhado_psicologo: false })
+      .update({
+        compartilhado_psicologo: false,
+        compartilhado_em: null,
+      })
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)
       .select()
@@ -688,8 +636,11 @@ export const revogarCompartilhamento = async (
       return { sucesso: false, erro: 'Erro ao revogar compartilhamento', codigo: error.code };
     }
 
+    const entrada = data as EntradaDiario;
+    entrada.conteudo = await descriptografarConteudo(entrada.conteudo);
+
     console.log('Compartilhamento revogado com sucesso:', entradaId);
-    return { sucesso: true, dados: data as EntradaDiario };
+    return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao revogar compartilhamento:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro ao revogar o compartilhamento' };

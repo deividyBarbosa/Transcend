@@ -53,7 +53,7 @@ export default function CadastroTransScreen() {
 
     try {
       const resultado = await cadastrarTrans({
-        nome_social: nomeSocial,
+        nome: nomeSocial,
         email,
         senha,
         genero: genero as Genero,
@@ -119,8 +119,8 @@ export default function CadastroTransScreen() {
                 />
                 <SelectButton
                   label="Pessoa não-binária"
-                  selected={genero === 'nao_binaria'}
-                  onPress={() => setGenero('nao_binaria')}
+                  selected={genero === 'nao_binario'}
+                  onPress={() => setGenero('nao_binario')}
                 />
               </View>
 

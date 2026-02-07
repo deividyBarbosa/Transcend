@@ -42,14 +42,10 @@ const criarOuAtualizarPerfil = async (
   userId: string,
   email: string,
   dados: {
-    nome_social: string;
+    nome: string;
     tipo: TipoUsuario;
-    nome_civil?: string | null;
-    telefone?: string | null;
     data_nascimento?: string | null;
-    genero?: Genero | null;
-    cidade?: string | null;
-    estado?: string | null;
+    genero: Genero;
   }
 ): Promise<{ perfil: Perfil | null; erro: string | null }> => {
   // Aguarda um pouco para dar tempo ao trigger (se existir)
@@ -69,13 +65,9 @@ const criarOuAtualizarPerfil = async (
     const { data: perfilAtualizado, error: updateError } = await supabase
       .from('perfis')
       .update({
-        nome_social: dados.nome_social,
-        nome_civil: dados.nome_civil || null,
-        telefone: dados.telefone || null,
+        nome: dados.nome,
         data_nascimento: dados.data_nascimento || null,
-        genero: dados.genero || null,
-        cidade: dados.cidade || null,
-        estado: dados.estado || null,
+        genero: dados.genero,
       })
       .eq('id', userId)
       .select()
@@ -98,15 +90,9 @@ const criarOuAtualizarPerfil = async (
       id: userId,
       email: email,
       tipo: dados.tipo,
-      nome_social: dados.nome_social,
-      nome_civil: dados.nome_civil || null,
-      telefone: dados.telefone || null,
+      nome: dados.nome,
       data_nascimento: dados.data_nascimento || null,
-      genero: dados.genero || null,
-      cidade: dados.cidade || null,
-      estado: dados.estado || null,
-      two_factor_enabled: false,
-      biometria_enabled: false,
+      genero: dados.genero,
     })
     .select()
     .single();
@@ -273,7 +259,7 @@ export const cadastrarTrans = async (
       password: dados.senha,
       options: {
         data: {
-          nome_social: dados.nome_social,
+          nome: dados.nome,
           tipo: 'pessoa_trans' as TipoUsuario,
         },
       },
@@ -302,14 +288,10 @@ export const cadastrarTrans = async (
       authData.user.id,
       dados.email,
       {
-        nome_social: dados.nome_social,
+        nome: dados.nome,
         tipo: 'pessoa_trans',
-        nome_civil: dados.nome_civil,
-        telefone: dados.telefone,
         data_nascimento: dados.data_nascimento,
         genero: dados.genero,
-        cidade: dados.cidade,
-        estado: dados.estado,
       }
     );
 
@@ -350,7 +332,7 @@ export const cadastrarPsicologo = async (
       password: dados.senha,
       options: {
         data: {
-          nome_social: dados.nome_social,
+          nome: dados.nome,
           tipo: 'psicologo' as TipoUsuario,
         },
       },
@@ -379,11 +361,10 @@ export const cadastrarPsicologo = async (
       authData.user.id,
       dados.email,
       {
-        nome_social: dados.nome_social,
+        nome: dados.nome,
         tipo: 'psicologo',
-        nome_civil: dados.nome_civil,
-        telefone: dados.telefone,
         data_nascimento: dados.data_nascimento,
+        genero: dados.genero || 'outro',
       }
     );
 

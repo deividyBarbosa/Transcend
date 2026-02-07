@@ -148,8 +148,7 @@ export default function CadastroPsicologoScreen() {
     try {
       // 1. Cadastrar o psicólogo
       const resultadoCadastro = await cadastrarPsicologo({
-        nome_social: nomeCompleto,
-        nome_civil: nomeCompleto,
+        nome: nomeCompleto,
         email,
         senha,
         data_nascimento: converterDataParaISO(dataNascimento),
