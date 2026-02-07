@@ -90,6 +90,15 @@ export interface MediasEmocionais {
   humor_predominante: NivelHumor | null;
 }
 
+// Tendência emocional (comparação entre períodos)
+export interface TendenciaEmocional {
+  campo: string;
+  valor_atual: number | null;
+  valor_anterior: number | null;
+  variacao: number | null;
+  direcao: 'melhorou' | 'piorou' | 'estavel' | 'sem_dados';
+}
+
 // Relatório emocional
 export interface RelatorioEmocional {
   periodo_inicio: string;

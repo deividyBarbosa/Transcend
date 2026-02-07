@@ -5,23 +5,27 @@ import { fazerLogin } from '@/services/auth';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const handleLogin = async () => {
+    setErro(null);
+
     if (!email || !senha) {
-      Alert.alert('Atenção', 'Por favor, preencha todos os campos');
+      setErro('Preencha o email e a senha para continuar.');
       return;
     }
 
     setCarregando(true);
     try {
       const resultado = await fazerLogin(email, senha);
-      
+
       if (resultado.sucesso) {
         if (!resultado.dados) {
           Alert.alert('Erro', 'Não foi possível identificar o perfil do usuário');
@@ -40,10 +44,10 @@ export default function LoginScreen() {
 
         Alert.alert('Erro', 'Tipo de usuário não suportado para login');
       } else {
-        Alert.alert('Erro', resultado.erro || 'Credenciais inválidas');
+        setErro(resultado.erro || 'Email ou senha incorretos. Verifique seus dados e tente novamente.');
       }
-    } catch (erro) {
-      Alert.alert('Erro', 'Ocorreu um erro ao fazer login');
+    } catch (e) {
+      setErro('Ocorreu um erro inesperado ao fazer login. Verifique sua conexão e tente novamente.');
     } finally {
       setCarregando(false);
     }
@@ -67,11 +71,13 @@ return (
         {/* Texto de boas-vindas */}
         <Text style={styles.title}>Bem-vindo de volta</Text>
 
+        <ErrorMessage message={erro} />
+
         {/* Campos */}
         <Input
           placeholder="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(text: string) => { setErro(null); setEmail(text); }}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
@@ -80,7 +86,7 @@ return (
         <Input
           placeholder="Senha"
           value={senha}
-          onChangeText={setSenha}
+          onChangeText={(text: string) => { setErro(null); setSenha(text); }}
           secureTextEntry
           autoCapitalize="none"
         />

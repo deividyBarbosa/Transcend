@@ -89,9 +89,9 @@ export const criarEntrada = async (
     if (error) {
       console.error('Erro ao criar entrada:', error);
       if (error.code === '23505') {
-        return { sucesso: false, erro: 'Já existe uma entrada para esta data', codigo: error.code };
+        return { sucesso: false, erro: 'Você já escreveu uma entrada para esta data. Edite a entrada existente ou escolha outra data.', codigo: error.code };
       }
-      return { sucesso: false, erro: 'Erro ao criar entrada no diário', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível salvar a entrada no diário. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     // Retorna com conteúdo original (não criptografado) para a UI
@@ -101,7 +101,7 @@ export const criarEntrada = async (
     return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao criar entrada:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao criar a entrada no diário' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao salvar a entrada. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -124,7 +124,7 @@ export const buscarEntradasPorData = async (
 
     if (error) {
       console.error('Erro ao buscar entradas:', error);
-      return { sucesso: false, erro: 'Erro ao buscar entradas do diário', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível carregar as entradas do diário. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entradasDescriptografadas = await descriptografarEntradas(
@@ -134,7 +134,7 @@ export const buscarEntradasPorData = async (
     return { sucesso: true, dados: entradasDescriptografadas };
   } catch (erro) {
     console.error('Erro ao buscar entradas:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao buscar as entradas' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao carregar as entradas. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -164,7 +164,7 @@ export const buscarEntradasPorMes = async (
 
     if (error) {
       console.error('Erro ao buscar entradas do mês:', error);
-      return { sucesso: false, erro: 'Erro ao buscar entradas do mês', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível carregar as entradas deste mês. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entradasDescriptografadas = await descriptografarEntradas(
@@ -174,7 +174,7 @@ export const buscarEntradasPorMes = async (
     return { sucesso: true, dados: entradasDescriptografadas };
   } catch (erro) {
     console.error('Erro ao buscar entradas do mês:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao buscar as entradas do mês' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao carregar as entradas do mês. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -190,7 +190,7 @@ export const atualizarEntrada = async (
     console.log('Atualizando entrada:', entradaId);
 
     if (Object.keys(dados).length === 0) {
-      return { sucesso: false, erro: 'Nenhum dado para atualizar' };
+      return { sucesso: false, erro: 'Nenhum Nenhuma alteração foi detectada. Modifique ao menos um campo antes de salvar.' };
     }
 
     // Criptografar conteúdo se fornecido
@@ -213,7 +213,7 @@ export const atualizarEntrada = async (
     if (error) {
       console.error('Erro ao atualizar entrada:', error);
       if (error.code === 'PGRST116') {
-        return { sucesso: false, erro: 'Entrada não encontrada ou sem permissão', codigo: error.code };
+        return { sucesso: false, erro: 'Esta entrada não foi encontrada. Ela pode ter sido removida ou você não tem permissão para editá-la.', codigo: error.code };
       }
       return { sucesso: false, erro: 'Erro ao atualizar entrada do diário', codigo: error.code };
     }
@@ -228,7 +228,7 @@ export const atualizarEntrada = async (
     return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao atualizar entrada:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao atualizar a entrada' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao atualizar a entrada. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -283,14 +283,14 @@ export const deletarEntrada = async (
 
     if (error) {
       console.error('Erro ao deletar entrada:', error);
-      return { sucesso: false, erro: 'Erro ao deletar entrada do diário', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível excluir a entrada do diário. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     console.log('Entrada deletada com sucesso:', entradaId);
     return { sucesso: true };
   } catch (erro) {
     console.error('Erro ao deletar entrada:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao deletar a entrada' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao excluir a entrada. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -321,7 +321,7 @@ export const uploadFotoDiario = async (
 
     if (uploadError) {
       console.error('Erro no upload:', uploadError);
-      return { sucesso: false, erro: 'Erro ao fazer upload da foto' };
+      return { sucesso: false, erro: 'Não foi possível enviar a foto. Verifique se o arquivo é uma imagem válida e tente novamente.' };
     }
 
     // Obter URL pública
@@ -350,14 +350,14 @@ export const uploadFotoDiario = async (
 
     if (error) {
       console.error('Erro ao registrar foto:', error);
-      return { sucesso: false, erro: 'Erro ao registrar foto no diário', codigo: error.code };
+      return { sucesso: false, erro: 'A foto foi enviada, mas não foi possível registrá-la no diário. Tente novamente.', codigo: error.code };
     }
 
     console.log('Foto enviada com sucesso:', data.id);
     return { sucesso: true, dados: data as FotoDiario };
   } catch (erro) {
     console.error('Erro no upload de foto:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao fazer upload da foto' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao enviar a foto. Verifique sua conexão e tente novamente.' };
   }
 };
 
@@ -388,13 +388,13 @@ export const buscarFotosTransicao = async (
 
     if (error) {
       console.error('Erro ao buscar fotos:', error);
-      return { sucesso: false, erro: 'Erro ao buscar fotos de transição', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível carregar as fotos de transição. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     return { sucesso: true, dados: (data || []) as FotoDiario[] };
   } catch (erro) {
     console.error('Erro ao buscar fotos:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao buscar as fotos' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao carregar as fotos. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -418,7 +418,7 @@ export const marcarEventoImportante = async (
 
     if (error) {
       console.error('Erro ao marcar evento:', error);
-      return { sucesso: false, erro: 'Erro ao marcar evento importante', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível marcar o evento como importante. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entrada = data as EntradaDiario;
@@ -428,7 +428,7 @@ export const marcarEventoImportante = async (
     return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao marcar evento:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao marcar o evento' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao marcar o evento. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -459,7 +459,7 @@ export const buscarEventosImportantes = async (
 
     if (error) {
       console.error('Erro ao buscar eventos:', error);
-      return { sucesso: false, erro: 'Erro ao buscar eventos importantes', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível carregar os eventos importantes. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entradasDescriptografadas = await descriptografarEntradas(
@@ -469,7 +469,7 @@ export const buscarEventosImportantes = async (
     return { sucesso: true, dados: entradasDescriptografadas };
   } catch (erro) {
     console.error('Erro ao buscar eventos:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao buscar os eventos' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao carregar os eventos. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -493,7 +493,7 @@ export const gerarRelatorioEmocional = async (
 
     if (error) {
       console.error('Erro ao buscar entradas para relatório:', error);
-      return { sucesso: false, erro: 'Erro ao gerar relatório emocional', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível gerar o relatório emocional. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entradas = await descriptografarEntradas(
@@ -563,7 +563,7 @@ export const gerarRelatorioEmocional = async (
     return { sucesso: true, dados: relatorio };
   } catch (erro) {
     console.error('Erro ao gerar relatório:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao gerar o relatório emocional' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao gerar o relatório. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -591,9 +591,9 @@ export const compartilharComPsicologo = async (
     if (error) {
       console.error('Erro ao compartilhar entrada:', error);
       if (error.code === 'PGRST116') {
-        return { sucesso: false, erro: 'Entrada não encontrada ou sem permissão', codigo: error.code };
+        return { sucesso: false, erro: 'Esta entrada não foi encontrada. Ela pode ter sido removida ou você não tem permissão para compartilhá-la.', codigo: error.code };
       }
-      return { sucesso: false, erro: 'Erro ao compartilhar entrada', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível compartilhar a entrada com o psicólogo. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entrada = data as EntradaDiario;
@@ -603,7 +603,7 @@ export const compartilharComPsicologo = async (
     return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao compartilhar entrada:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao compartilhar a entrada' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao compartilhar a entrada. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -631,9 +631,9 @@ export const revogarCompartilhamento = async (
     if (error) {
       console.error('Erro ao revogar compartilhamento:', error);
       if (error.code === 'PGRST116') {
-        return { sucesso: false, erro: 'Entrada não encontrada ou sem permissão', codigo: error.code };
+        return { sucesso: false, erro: 'Esta entrada não foi encontrada. Ela pode ter sido removida ou você não tem permissão para alterar o compartilhamento.', codigo: error.code };
       }
-      return { sucesso: false, erro: 'Erro ao revogar compartilhamento', codigo: error.code };
+      return { sucesso: false, erro: 'Não foi possível revogar o compartilhamento. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
     const entrada = data as EntradaDiario;
@@ -643,6 +643,6 @@ export const revogarCompartilhamento = async (
     return { sucesso: true, dados: entrada };
   } catch (erro) {
     console.error('Erro ao revogar compartilhamento:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro ao revogar o compartilhamento' };
+    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao revogar o compartilhamento. Tente novamente em alguns instantes.' };
   }
 };
