@@ -21,21 +21,41 @@ import { criptografar, descriptografar } from './crypto';
 const TAG_EVENTO_IMPORTANTE = 'evento_importante';
 
 /**
- * Calcula a média de um array de números, ignorando nulls
+ * Helper para criptografar conteúdo
  */
-const calcularMedia = (valores: (number | null)[]): number | null => {
-  const validos = valores.filter((v): v is number => v !== null);
-  if (validos.length === 0) return null;
-  return validos.reduce((soma, v) => soma + v, 0) / validos.length;
+const criptografarConteudo = async (conteudo: string): Promise<string> => {
+  try {
+    const resultado = await criptografar(conteudo);
+    return resultado.sucesso && resultado.dados ? resultado.dados : conteudo;
+  } catch (erro) {
+    console.error('Erro ao criptografar conteúdo, usando original:', erro);
+    return conteudo;
+  }
 };
 
 /**
- * Valida que um campo numérico está entre 0 e 10
+ * Helper para descriptografar conteúdo
  */
-const validarCampoNumerico = (valor: number | null | undefined, campo: string): string | null => {
-  if (valor === null || valor === undefined) return null;
-  if (valor < 0 || valor > 10) return `${campo} deve estar entre 0 e 10`;
-  return null;
+const descriptografarConteudo = async (conteudo: string): Promise<string> => {
+  try {
+    const resultado = await descriptografar(conteudo);
+    return resultado.sucesso && resultado.dados ? resultado.dados : conteudo;
+  } catch (erro) {
+    console.error('Erro ao descriptografar conteúdo, usando original:', erro);
+    return conteudo;
+  }
+};
+
+/**
+ * Helper para descriptografar múltiplas entradas
+ */
+const descriptografarEntradas = async (entradas: EntradaDiario[]): Promise<EntradaDiario[]> => {
+  return Promise.all(
+    entradas.map(async (entrada) => ({
+      ...entrada,
+      conteudo: await descriptografarConteudo(entrada.conteudo),
+    }))
+  );
 };
 
 /**
@@ -51,33 +71,17 @@ export const criarEntrada = async (
       return { sucesso: false, erro: 'O conteúdo do diário é obrigatório' };
     }
 
-    // Validar campos numéricos
-    const camposNumericos = [
-      { valor: dados.energia, nome: 'Energia' },
-      { valor: dados.ansiedade, nome: 'Ansiedade' },
-      { valor: dados.disforia, nome: 'Disforia' },
-      { valor: dados.euforia, nome: 'Euforia' },
-      { valor: dados.qualidade_sono, nome: 'Qualidade do sono' },
-    ];
-
-    for (const campo of camposNumericos) {
-      const erro = validarCampoNumerico(campo.valor, campo.nome);
-      if (erro) return { sucesso: false, erro };
-    }
+    // Criptografar conteúdo
+    const conteudoCriptografado = await criptografarConteudo(dados.conteudo);
 
     const { data, error } = await supabase
       .from('diario_entradas')
       .insert({
         usuario_id: dados.usuario_id,
         data_entrada: dados.data_entrada,
-        conteudo: dados.conteudo,
+        conteudo: conteudoCriptografado,
         titulo: dados.titulo ?? null,
         humor: dados.humor ?? null,
-        energia: dados.energia ?? null,
-        ansiedade: dados.ansiedade ?? null,
-        disforia: dados.disforia ?? null,
-        euforia: dados.euforia ?? null,
-        qualidade_sono: dados.qualidade_sono ?? null,
         tags: dados.tags ?? null,
         compartilhado_psicologo: dados.compartilhado_psicologo ?? false,
         privado: dados.privado ?? true,
@@ -192,18 +196,13 @@ export const atualizarEntrada = async (
       return { sucesso: false, erro: 'Nenhum dado para atualizar' };
     }
 
-    // Validar campos numéricos
-    const camposNumericos = [
-      { valor: dados.energia, nome: 'Energia' },
-      { valor: dados.ansiedade, nome: 'Ansiedade' },
-      { valor: dados.disforia, nome: 'Disforia' },
-      { valor: dados.euforia, nome: 'Euforia' },
-      { valor: dados.qualidade_sono, nome: 'Qualidade do sono' },
-    ];
+    // Preparar dados para atualização, criptografando conteúdo se presente
+    const dadosParaAtualizar: any = { ...dados };
+    let conteudoOriginal: string | null = null;
 
-    for (const campo of camposNumericos) {
-      const erro = validarCampoNumerico(campo.valor, campo.nome);
-      if (erro) return { sucesso: false, erro };
+    if (dados.conteudo) {
+      conteudoOriginal = dados.conteudo;
+      dadosParaAtualizar.conteudo = await criptografarConteudo(dados.conteudo);
     }
 
     const { data, error } = await supabase
@@ -446,11 +445,11 @@ export const marcarEventoImportante = async (
       return { sucesso: false, erro: 'Não foi possível marcar o evento como importante. Verifique sua conexão e tente novamente.', codigo: error.code };
     }
 
-    const entrada = data as EntradaDiario;
-    entrada.conteudo = await descriptografarConteudo(entrada.conteudo);
+    const entradaAtualizada = data as EntradaDiario;
+    entradaAtualizada.conteudo = await descriptografarConteudo(entradaAtualizada.conteudo);
 
     console.log('Evento marcado como importante:', entradaId);
-    return { sucesso: true, dados: entrada };
+    return { sucesso: true, dados: entradaAtualizada };
   } catch (erro) {
     console.error('Erro ao marcar evento:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro inesperado ao marcar o evento. Tente novamente em alguns instantes.' };
@@ -569,51 +568,7 @@ export const gerarRelatorioEmocional = async (
     const medias: MediasEmocionais = {
       humor_contagem: humorContagem,
       humor_predominante: humorPredominante,
-      energia_media: calcularMedia(entradas.map(e => e.energia)),
-      ansiedade_media: calcularMedia(entradas.map(e => e.ansiedade)),
-      disforia_media: calcularMedia(entradas.map(e => e.disforia)),
-      euforia_media: calcularMedia(entradas.map(e => e.euforia)),
-      qualidade_sono_media: calcularMedia(entradas.map(e => e.qualidade_sono)),
     };
-
-    // Calcular tendências
-    const camposPositivos = ['energia', 'euforia', 'qualidade_sono'];
-    const campos: { campo: string; chave: keyof EntradaDiario; label: string }[] = [
-      { campo: 'energia', chave: 'energia', label: 'Energia' },
-      { campo: 'ansiedade', chave: 'ansiedade', label: 'Ansiedade' },
-      { campo: 'disforia', chave: 'disforia', label: 'Disforia' },
-      { campo: 'euforia', chave: 'euforia', label: 'Euforia' },
-      { campo: 'qualidade_sono', chave: 'qualidade_sono', label: 'Qualidade do sono' },
-    ];
-
-    const tendencias: TendenciaEmocional[] = campos.map(({ campo, chave, label }) => {
-      const valorAtual = calcularMedia(entradas.map(e => e[chave] as number | null));
-      const valorAnterior = calcularMedia(anteriores.map(e => e[chave] as number | null));
-
-      let direcao: TendenciaEmocional['direcao'] = 'sem_dados';
-      let variacao: number | null = null;
-
-      if (valorAtual !== null && valorAnterior !== null) {
-        variacao = valorAtual - valorAnterior;
-        const limiar = 0.5;
-
-        if (Math.abs(variacao) <= limiar) {
-          direcao = 'estavel';
-        } else if (camposPositivos.includes(campo)) {
-          direcao = variacao > 0 ? 'melhorou' : 'piorou';
-        } else {
-          direcao = variacao < 0 ? 'melhorou' : 'piorou';
-        }
-      }
-
-      return {
-        campo: label,
-        valor_atual: valorAtual,
-        valor_anterior: valorAnterior,
-        variacao,
-        direcao,
-      };
-    });
 
     // Calcular tags frequentes
     const tagContagem: Record<string, number> = {};
