@@ -27,7 +27,7 @@ const MOCK_CONSULTAS: Consulta[] = [
   {
     id: "1",
     pacientName: "Lucas Silva",
-    dataConsulta: new Date(2026, 0, 31),
+    dataConsulta: new Date(2026, 2, 31),
     horaInicio: "10:00",
     horaFim: "11:00",
   },
@@ -124,7 +124,7 @@ export default function PsicologoHome() {
   }, [router]);
 
   const handleVerMaisPress = useCallback(() => {
-    router.push("/consultas");
+    router.push("/consultas/consultas");
   }, [router]);
 
   const handleListaCompletaPress = useCallback(() => {

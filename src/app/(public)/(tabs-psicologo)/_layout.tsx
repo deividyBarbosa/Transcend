@@ -61,6 +61,27 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="solicitacoes"
+        options={{
+          href: null, 
+          title: "Solicitações",
+        }}
+      />
+      <Tabs.Screen
+        name="consultas/consultas"
+        options={{
+          href: null,
+
+        }}
+      />
+      <Tabs.Screen
+        name="consultas/detalhes-consulta"
+        options={{
+          href: null, 
+        }}
+      />
     </Tabs>
   );
 }
