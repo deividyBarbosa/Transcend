@@ -16,16 +16,16 @@ import {
  */
 const mapearErro = (codigo: string, mensagemOriginal: string): string => {
   const erros: Record<string, string> = {
-    'invalid_credentials': 'Email ou senha incorretos',
-    'email_not_confirmed': 'Por favor, confirme seu email antes de fazer login',
-    'user_already_exists': 'Este email já está cadastrado',
-    'weak_password': 'A senha deve ter pelo menos 6 caracteres',
-    'invalid_email': 'Email inválido',
-    'over_email_send_rate_limit': 'Muitas tentativas. Aguarde alguns minutos',
-    'user_not_found': 'Usuário não encontrado',
+    'invalid_credentials': 'Email ou senha incorretos. Verifique seus dados e tente novamente.',
+    'email_not_confirmed': 'Seu email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.',
+    'user_already_exists': 'Este email já está cadastrado. Tente fazer login ou use outro email.',
+    'weak_password': 'A senha é muito fraca. Use pelo menos 6 caracteres, combinando letras e números.',
+    'invalid_email': 'O email informado não é válido. Verifique se digitou corretamente (ex: nome@email.com).',
+    'over_email_send_rate_limit': 'Muitas tentativas em pouco tempo. Aguarde alguns minutos antes de tentar novamente.',
+    'user_not_found': 'Nenhuma conta encontrada com este email. Verifique o email ou crie uma nova conta.',
   };
 
-  return erros[codigo] || mensagemOriginal || 'Ocorreu um erro inesperado';
+  return erros[codigo] || mensagemOriginal || 'Ocorreu um erro inesperado. Tente novamente em alguns instantes.';
 };
 
 /**
@@ -42,14 +42,10 @@ const criarOuAtualizarPerfil = async (
   userId: string,
   email: string,
   dados: {
-    nome_social: string;
+    nome: string;
     tipo: TipoUsuario;
-    nome_civil?: string | null;
-    telefone?: string | null;
     data_nascimento?: string | null;
-    genero?: Genero | null;
-    cidade?: string | null;
-    estado?: string | null;
+    genero: Genero;
   }
 ): Promise<{ perfil: Perfil | null; erro: string | null }> => {
   // Aguarda um pouco para dar tempo ao trigger (se existir)
@@ -69,13 +65,9 @@ const criarOuAtualizarPerfil = async (
     const { data: perfilAtualizado, error: updateError } = await supabase
       .from('perfis')
       .update({
-        nome_social: dados.nome_social,
-        nome_civil: dados.nome_civil || null,
-        telefone: dados.telefone || null,
+        nome: dados.nome,
         data_nascimento: dados.data_nascimento || null,
-        genero: dados.genero || null,
-        cidade: dados.cidade || null,
-        estado: dados.estado || null,
+        genero: dados.genero,
       })
       .eq('id', userId)
       .select()
@@ -98,15 +90,9 @@ const criarOuAtualizarPerfil = async (
       id: userId,
       email: email,
       tipo: dados.tipo,
-      nome_social: dados.nome_social,
-      nome_civil: dados.nome_civil || null,
-      telefone: dados.telefone || null,
+      nome: dados.nome,
       data_nascimento: dados.data_nascimento || null,
-      genero: dados.genero || null,
-      cidade: dados.cidade || null,
-      estado: dados.estado || null,
-      two_factor_enabled: false,
-      biometria_enabled: false,
+      genero: dados.genero,
     })
     .select()
     .single();
@@ -230,7 +216,7 @@ export const fazerLogin = async (
     if (!data.user) {
       return {
         sucesso: false,
-        erro: 'Não foi possível obter os dados do usuário',
+        erro: 'Não foi possível obter os dados do usuário. Tente fazer login novamente.',
       };
     }
 
@@ -239,7 +225,7 @@ export const fazerLogin = async (
     if (!perfil) {
       return {
         sucesso: false,
-        erro: 'Perfil não encontrado',
+        erro: 'Seu perfil não foi encontrado. Entre em contato com o suporte se o problema persistir.',
       };
     }
 
@@ -251,7 +237,7 @@ export const fazerLogin = async (
     console.error('Erro no login:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao fazer login',
+      erro: 'Ocorreu um erro inesperado ao fazer login. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -273,7 +259,7 @@ export const cadastrarTrans = async (
       password: dados.senha,
       options: {
         data: {
-          nome_social: dados.nome_social,
+          nome: dados.nome,
           tipo: 'pessoa_trans' as TipoUsuario,
         },
       },
@@ -291,7 +277,7 @@ export const cadastrarTrans = async (
     if (!authData.user) {
       return {
         sucesso: false,
-        erro: 'Não foi possível criar o usuário',
+        erro: 'Não foi possível criar sua conta. Tente novamente em alguns instantes.',
       };
     }
 
@@ -302,14 +288,10 @@ export const cadastrarTrans = async (
       authData.user.id,
       dados.email,
       {
-        nome_social: dados.nome_social,
+        nome: dados.nome,
         tipo: 'pessoa_trans',
-        nome_civil: dados.nome_civil,
-        telefone: dados.telefone,
         data_nascimento: dados.data_nascimento,
         genero: dados.genero,
-        cidade: dados.cidade,
-        estado: dados.estado,
       }
     );
 
@@ -328,7 +310,7 @@ export const cadastrarTrans = async (
     console.error('Erro no cadastro trans:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao realizar o cadastro',
+      erro: 'Ocorreu um erro inesperado ao realizar o cadastro. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -350,7 +332,7 @@ export const cadastrarPsicologo = async (
       password: dados.senha,
       options: {
         data: {
-          nome_social: dados.nome_social,
+          nome: dados.nome,
           tipo: 'psicologo' as TipoUsuario,
         },
       },
@@ -368,7 +350,7 @@ export const cadastrarPsicologo = async (
     if (!authData.user) {
       return {
         sucesso: false,
-        erro: 'Não foi possível criar o usuário',
+        erro: 'Não foi possível criar sua conta. Tente novamente em alguns instantes.',
       };
     }
 
@@ -379,11 +361,10 @@ export const cadastrarPsicologo = async (
       authData.user.id,
       dados.email,
       {
-        nome_social: dados.nome_social,
+        nome: dados.nome,
         tipo: 'psicologo',
-        nome_civil: dados.nome_civil,
-        telefone: dados.telefone,
         data_nascimento: dados.data_nascimento,
+        genero: dados.genero || 'outro',
       }
     );
 
@@ -429,7 +410,7 @@ export const cadastrarPsicologo = async (
     console.error('Erro no cadastro psicólogo:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao realizar o cadastro',
+      erro: 'Ocorreu um erro inesperado ao realizar o cadastro. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -444,7 +425,7 @@ export const fazerLogout = async (): Promise<ResultadoAuth<void>> => {
     if (error) {
       return {
         sucesso: false,
-        erro: 'Erro ao fazer logout',
+        erro: 'Não foi possível fazer logout. Tente novamente.',
       };
     }
 
@@ -453,7 +434,7 @@ export const fazerLogout = async (): Promise<ResultadoAuth<void>> => {
     console.error('Erro no logout:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao fazer logout',
+      erro: 'Ocorreu um erro inesperado ao fazer logout. Tente novamente.',
     };
   }
 };
@@ -480,7 +461,7 @@ export const recuperarSenha = async (email: string): Promise<ResultadoAuth<void>
     console.error('Erro na recuperação de senha:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao enviar o email de recuperação',
+      erro: 'Ocorreu um erro inesperado ao enviar o email de recuperação. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -507,7 +488,7 @@ export const atualizarSenha = async (novaSenha: string): Promise<ResultadoAuth<v
     console.error('Erro ao atualizar senha:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao atualizar a senha',
+      erro: 'Ocorreu um erro inesperado ao atualizar a senha. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -613,7 +594,7 @@ export const atualizarPerfil = async (
     console.error('Erro ao atualizar perfil:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao atualizar o perfil',
+      erro: 'Ocorreu um erro inesperado ao atualizar o perfil. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -644,7 +625,7 @@ export const uploadFotoPerfil = async (
       console.error('Erro no upload:', error);
       return {
         sucesso: false,
-        erro: 'Erro ao fazer upload da foto',
+        erro: 'Não foi possível enviar a foto. Verifique se o arquivo é uma imagem válida e tente novamente.',
       };
     }
 
@@ -667,7 +648,7 @@ export const uploadFotoPerfil = async (
     console.error('Erro no upload:', erro);
     return {
       sucesso: false,
-      erro: 'Erro ao fazer upload da foto',
+      erro: 'Não foi possível enviar a foto. Verifique se o arquivo é uma imagem válida e tente novamente.',
     };
   }
 };

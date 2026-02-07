@@ -8,21 +8,15 @@ export type Genero = 'mulher_trans' | 'homem_trans' | 'nao_binario' | 'outro';
 export interface Perfil {
   id: string;
   tipo: TipoUsuario;
-  nome_social: string;
-  nome_civil?: string | null;
+  nome: string;
   email: string;
-  telefone?: string | null;
-  data_nascimento?: string | null;
-  genero?: Genero | null;
-  foto_url?: string | null;
-  bio?: string | null;
-  cidade?: string | null;
-  estado?: string | null;
-  two_factor_enabled: boolean;
-  biometria_enabled: boolean;
+  data_nascimento: string | null;
+  genero: Genero;
+  foto_url: string | null;
+  bio: string | null;
   created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
+  updated_at: string | null;
+  deleted_at: string | null;
 }
 
 // Dados específicos de psicólogo (tabela psicologos)
@@ -30,19 +24,28 @@ export interface Psicologo {
   id: string;
   usuario_id: string;
   crp: string;
-  especialidades?: string[] | null;
-  abordagem?: string | null;
-  valor_consulta?: number | null;
-  aceita_convenio: boolean;
-  convenios?: string[] | null;
-  disponibilidade?: any | null;
-  atende_online: boolean;
-  atende_presencial: boolean;
-  endereco_consultorio?: string | null;
-  verificado: boolean;
-  verificado_em?: string | null;
-  created_at: string;
-  updated_at: string;
+  titulo: string | null;
+  descricao: string | null;
+  bio: string | null;
+  foto_url: string | null;
+  especialidades: string[] | null;
+  abordagem: string | null;
+  valor_consulta: number | null;
+  aceita_convenio: boolean | null;
+  convenios: string[] | null;
+  disponibilidade: any | null;
+  atende_online: boolean | null;
+  atende_presencial: boolean | null;
+  endereco_consultorio: string | null;
+  anos_experiencia: number | null;
+  duracao_sessao: number | null;
+  avaliacao_media: number | null;
+  total_avaliacoes: number | null;
+  total_pacientes: number | null;
+  verificado: boolean | null;
+  verificado_em: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // Usuário completo (perfil + dados específicos se psicólogo)
@@ -52,25 +55,20 @@ export interface Usuario extends Perfil {
 
 // Dados para cadastro de pessoa trans
 export interface DadosCadastroTrans {
-  nome_social: string;
-  nome_civil?: string;
+  nome: string;
   email: string;
   senha: string;
-  telefone?: string;
   data_nascimento?: string;
-  genero?: Genero;
-  cidade?: string;
-  estado?: string;
+  genero: Genero;
 }
 
 // Dados para cadastro de psicólogo
 export interface DadosCadastroPsicologo {
-  nome_social: string;
-  nome_civil?: string;
+  nome: string;
   email: string;
   senha: string;
-  telefone?: string;
   data_nascimento?: string;
+  genero?: Genero;
   crp: string;
   especialidades?: string[];
   abordagem?: string;
@@ -107,11 +105,11 @@ export interface EstadoAuth {
 export interface ConfiguracoesPrivacidade {
   id: string;
   usuario_id: string;
-  compartilhar_diario_psicologo: boolean;
-  mostrar_perfil_comunidade: boolean;
-  receber_notificacoes_push: boolean;
-  receber_notificacoes_email: boolean;
-  perfil_anonimo_comunidade: boolean;
-  created_at: string;
-  updated_at: string;
+  compartilhar_diario_psicologo: boolean | null;
+  mostrar_perfil_comunidade: boolean | null;
+  receber_notificacoes_push: boolean | null;
+  receber_notificacoes_email: boolean | null;
+  perfil_anonimo_comunidade: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }

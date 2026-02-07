@@ -1,6 +1,9 @@
 // Nível de humor (enum nivel_humor no banco)
 export type NivelHumor = 'feliz' | 'triste' | 'neutro' | 'ansioso' | 'irritado';
 
+// Tipo de entrada do diário (enum tipo_entrada no banco)
+export type TipoEntrada = 'diario' | 'evento' | 'marco';
+
 // Resultado genérico de operações de serviço
 export interface Resultado<T = void> {
   sucesso: boolean;
@@ -14,19 +17,16 @@ export interface EntradaDiario {
   id: string;
   usuario_id: string;
   data_entrada: string;
-  titulo: string | null;
   conteudo: string;
   humor: NivelHumor | null;
-  energia: number | null;
-  ansiedade: number | null;
-  disforia: number | null;
-  euforia: number | null;
-  qualidade_sono: number | null;
+  tipo: TipoEntrada;
+  is_importante: boolean;
+  privado: boolean | null;
+  compartilhado_psicologo: boolean | null;
+  compartilhado_em: string | null;
   tags: string[] | null;
-  compartilhado_psicologo: boolean;
-  privado: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // Dados para criar uma entrada no diário
@@ -34,13 +34,9 @@ export interface DadosCriarEntrada {
   usuario_id: string;
   data_entrada: string;
   conteudo: string;
-  titulo?: string | null;
   humor?: NivelHumor | null;
-  energia?: number | null;
-  ansiedade?: number | null;
-  disforia?: number | null;
-  euforia?: number | null;
-  qualidade_sono?: number | null;
+  tipo?: TipoEntrada;
+  is_importante?: boolean;
   tags?: string[] | null;
   compartilhado_psicologo?: boolean;
   privado?: boolean;
@@ -48,14 +44,10 @@ export interface DadosCriarEntrada {
 
 // Dados para atualizar uma entrada no diário
 export interface DadosAtualizarEntrada {
-  titulo?: string | null;
   conteudo?: string;
   humor?: NivelHumor | null;
-  energia?: number | null;
-  ansiedade?: number | null;
-  disforia?: number | null;
-  euforia?: number | null;
-  qualidade_sono?: number | null;
+  tipo?: TipoEntrada;
+  is_importante?: boolean;
   tags?: string[] | null;
   compartilhado_psicologo?: boolean;
   privado?: boolean;
@@ -71,7 +63,7 @@ export interface FotoDiario {
   descricao: string | null;
   categoria: string | null;
   data_foto: string;
-  privado: boolean;
+  privado: boolean | null;
   created_at: string;
 }
 
@@ -92,15 +84,10 @@ export interface ArquivoFoto {
   type: string;
 }
 
-// Médias emocionais para relatório
+// Médias emocionais para relatório (baseado em campos disponíveis)
 export interface MediasEmocionais {
   humor_contagem: Record<NivelHumor, number>;
   humor_predominante: NivelHumor | null;
-  energia_media: number | null;
-  ansiedade_media: number | null;
-  disforia_media: number | null;
-  euforia_media: number | null;
-  qualidade_sono_media: number | null;
 }
 
 // Tendência emocional (comparação entre períodos)
@@ -112,13 +99,12 @@ export interface TendenciaEmocional {
   direcao: 'melhorou' | 'piorou' | 'estavel' | 'sem_dados';
 }
 
-// Relatório emocional completo
+// Relatório emocional
 export interface RelatorioEmocional {
   periodo_inicio: string;
   periodo_fim: string;
   total_entradas: number;
   medias: MediasEmocionais;
-  tendencias: TendenciaEmocional[];
   entradas_por_dia: Record<string, EntradaDiario>;
   tags_frequentes: { tag: string; contagem: number }[];
 }
