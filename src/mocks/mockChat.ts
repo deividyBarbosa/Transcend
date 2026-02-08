@@ -19,13 +19,18 @@ export interface Conversa {
   ativa: boolean;
 }
 
+// teste para o chat
+export const isRecente = (timestamp: string) => {
+  return new Date(timestamp).getTime() > Date.now() - 86400000;
+};
+
 export const MENSAGENS_MOCK: { [conversaId: string]: Mensagem[] } = {
   '1': [
     {
       id: '1',
       remetenteId: 'sistema',
       remetenteTipo: 'sistema',
-      conteudo: '🤖 Lembrete: Pagamentos e agendamentos são combinados diretamente com seu psicólogo. O Transcend não processa pagamentos.',
+      conteudo: 'Lembrete: Pagamentos e agendamentos são combinados diretamente com seu psicólogo. O Transcend não processa pagamentos.',
       timestamp: '2026-02-01T10:00:00',
       lida: true,
       tipo: 'texto',
@@ -81,7 +86,7 @@ export const MENSAGENS_MOCK: { [conversaId: string]: Mensagem[] } = {
       id: '7',
       remetenteId: 'sistema',
       remetenteTipo: 'sistema',
-      conteudo: '🤖 Lembrete: Pagamentos e agendamentos são combinados diretamente com seu psicólogo. O Transcend não processa pagamentos.',
+      conteudo: 'Lembrete: Pagamentos e agendamentos são combinados diretamente com seu psicólogo. O Transcend não processa pagamentos.',
       timestamp: '2026-01-20T09:00:00',
       lida: true,
       tipo: 'texto',
@@ -105,7 +110,7 @@ export const CONVERSAS_MOCK: Conversa[] = [
     psicologoNome: 'Dr. Davi Britto',
     psicologoFoto: 'https://i.pravatar.cc/150?img=7',
     ultimaMensagem: 'Ótimo! Assim que confirmar o pagamento, te envio o link da consulta.',
-    timestampUltimaMensagem: '2026-02-07T14:30:00',
+    timestampUltimaMensagem: '2026-02-08T14:30:00',
     naoLidas: 1,
     ativa: true,
   },

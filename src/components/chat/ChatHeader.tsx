@@ -9,7 +9,6 @@ import { fonts } from '@/theme/fonts';
 interface ChatHeaderProps {
   nome: string;
   foto: string;
-  online?: boolean;
   onBack: () => void;
   onCall?: () => void;
   onVideoCall?: () => void;
@@ -18,7 +17,6 @@ interface ChatHeaderProps {
 export default function ChatHeader({
   nome,
   foto,
-  online = true,
   onBack,
   onCall,
   onVideoCall,
@@ -31,9 +29,6 @@ export default function ChatHeader({
       <Image source={{ uri: foto }} style={styles.avatar} />
       <View style={styles.info}>
         <Text style={styles.nome}>{nome}</Text>
-        <Text style={[styles.status, online && styles.statusOnline]}>
-          {online ? 'Online' : 'Offline'}
-        </Text>
       </View>
       {onCall && (
         <TouchableOpacity style={styles.button} onPress={onCall}>

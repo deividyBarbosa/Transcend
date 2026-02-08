@@ -67,7 +67,7 @@ export default function PerfilScreen() {
           text: 'Sair',
           style: 'destructive',
           onPress: () => {
-            // TODO: Fazer logout real quando tiver autenticação
+            // TO-DO: Fazer logout real quando tiver autenticação
             Alert.alert('Logout', 'Funcionalidade em desenvolvimento');
           },
         },

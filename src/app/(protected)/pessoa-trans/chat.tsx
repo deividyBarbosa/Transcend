@@ -1,4 +1,4 @@
-// to-do: ajeitar o onfocus para quando digitar mensagem, tirar esse 'online' e resolver esse 'chat' que apareceu aí, remover o que não uso mais do anexo de pdf e imagens
+// to-do: remover o que não uso mais do anexo de pdf e imagens
 
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
@@ -10,6 +10,7 @@ import ChatInput from '@/components/chat/ChatInput';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { MENSAGENS_MOCK, CONVERSAS_MOCK, type Mensagem } from '@/mocks/mockChat';
+
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -59,9 +60,9 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={[]}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: colors.background }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
@@ -82,6 +83,7 @@ export default function ChatScreen() {
               avatarUrl={item.remetenteTipo === 'psicologo' ? conversa.psicologoFoto : undefined}
             />
           )}
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.mensagensList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
@@ -90,6 +92,11 @@ export default function ChatScreen() {
           value={inputText}
           onChangeText={setInputText}
           onSend={handleEnviar}
+          onFocus={() => {
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 500);
+          }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -99,7 +106,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
   mensagensList: {
     padding: 16,

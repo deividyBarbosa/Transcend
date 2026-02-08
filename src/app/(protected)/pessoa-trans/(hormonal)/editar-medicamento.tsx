@@ -98,7 +98,7 @@ export default function EditarMedicamentoScreen() {
       return false;
     }
     // Se for injetável e frequência não for diária, precisa selecionar dias
-    if (modoAplicacao === 'Injetável' && frequencia !== 'Diária' && diasSemana.length === 0) {
+    if ( modoAplicacao === 'Injetável' && (frequencia === 'Semanal' || frequencia === 'Quinzenal') && diasSemana.length === 0 ) {
       Alert.alert('Atenção', 'Selecione os dias da semana para aplicação');
       return false;
     }
@@ -108,6 +108,9 @@ export default function EditarMedicamentoScreen() {
   const handleSalvar = () => {
     if (!validarFormulario()) return;
 
+    const diasAplicacaoFinal =
+      frequencia === 'Mensal' ? [1] : diasSemana;
+
     const hormonio = {
       id: params.id || Date.now().toString(),
       nome,
@@ -115,7 +118,7 @@ export default function EditarMedicamentoScreen() {
       modoAplicacao,
       frequencia,
       horarioPreferencial,
-      diasSemana,
+      diasAplicacao: diasAplicacaoFinal,
       localAplicacao,
       observacoesMedicas,
       ativo: true,

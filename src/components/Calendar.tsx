@@ -45,19 +45,27 @@ export default function Calendar({
     const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
 
     for (let i = 0; i < firstDay; i++) {
-      days.push(<View key={`empty-${i}`} style={styles.dayCell} />);
+      days.push(<View key={`empty-${i}`} style={[styles.dayCell]} />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = formatDate(currentMonth.getFullYear(), currentMonth.getMonth(), day);
       const isToday = dateStr === todayStr;
       const hasEntry = isMarked(dateStr);
+      const isFuture = dateStr > todayStr;
 
       days.push(
         <TouchableOpacity
           key={day}
-          style={styles.dayCell}
-          onPress={() => onDayPress(day)}
+          disabled={isFuture}
+          style={[
+            styles.dayCell,
+            isFuture && { opacity: 0.4 }
+          ]}
+          onPress={() => {
+            if (isFuture) return;
+            onDayPress(day);
+          }}
         >
           <View style={[
             styles.dayNumber, 
@@ -83,11 +91,33 @@ export default function Calendar({
       );
     }
 
+    const totalCells = days.length;
+    const remainder = totalCells % 7;
+
+    if (remainder !== 0) {
+      const toAdd = 7 - remainder;
+      for (let i = 0; i < toAdd; i++) {
+        days.push(
+          <View key={`end-empty-${i}`} style={styles.dayCell} />
+        );
+      }
+    }
+
     return days;
   };
 
   const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
+  const monthLabel = (() => {
+  const text = currentMonth.toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+  })();
+
+  
   return (
     <View style={styles.container}>
       <View style={styles.monthHeader}>
@@ -95,7 +125,7 @@ export default function Calendar({
           <Text style={styles.monthArrow}>{'<'}</Text>
         </TouchableOpacity>
         <Text style={styles.monthText}>
-          {currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+          {monthLabel}
         </Text>
         <TouchableOpacity onPress={onNextMonth}>
           <Text style={styles.monthArrow}>{'>'}</Text>
@@ -132,8 +162,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.semibold,
     color: colors.text,
-    textTransform: 'capitalize',
-  },
+    },
   monthArrow: {
     fontSize: 20,
     color: colors.text,
@@ -141,7 +170,8 @@ const styles = StyleSheet.create({
   },
   weekDaysRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 10,
+    marginTop: 10,
   },
   weekDayCell: {
     flex: 1,
@@ -158,10 +188,9 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: '14.28%',
-    aspectRatio: 1,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 4,
   },
   dayNumber: {
     width: 32,
@@ -203,5 +232,8 @@ const styles = StyleSheet.create({
   },
   entryMarkPendente: {
     backgroundColor: colors.primary, 
+  },
+  futureDayText: {
+  color: colors.muted,
   },
 });

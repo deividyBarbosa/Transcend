@@ -7,6 +7,7 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 
 interface ChatInputProps {
+  onFocus?: () => void;
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
@@ -17,6 +18,7 @@ export default function ChatInput({
   value,
   onChangeText,
   onSend,
+  onFocus,
   placeholder = 'Digite uma mensagem...',
 }: ChatInputProps) {
   return (
@@ -27,6 +29,7 @@ export default function ChatInput({
         placeholderTextColor={colors.muted}
         value={value}
         onChangeText={onChangeText}
+        onFocus={onFocus}
         multiline
         maxLength={1000}
       />
