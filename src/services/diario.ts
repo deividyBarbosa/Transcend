@@ -3,9 +3,6 @@ import {
   EntradaDiario,
   DadosCriarEntrada,
   DadosAtualizarEntrada,
-  FotoDiario,
-  DadosUploadFoto,
-  ArquivoFoto,
   RelatorioEmocional,
   MediasEmocionais,
   FiltroPeriodo,
@@ -82,6 +79,7 @@ export const criarEntrada = async (
         conteudo: conteudoCriptografado,
         humor: dados.humor ?? null,
         tags: dados.tags ?? null,
+        foto_url: dados.foto_url ?? null,
         compartilhado_psicologo: dados.compartilhado_psicologo ?? false,
         privado: dados.privado ?? true,
       })
@@ -235,7 +233,7 @@ export const atualizarEntrada = async (
 };
 
 /**
- * Deleta uma entrada do diário e suas fotos associadas
+ * Deleta uma entrada do diário e remove a foto do storage se existir
  */
 export const deletarEntrada = async (
   entradaId: string,
@@ -244,36 +242,24 @@ export const deletarEntrada = async (
   try {
     console.log('Deletando entrada:', entradaId);
 
-    // 1. Buscar fotos associadas para limpar o storage
-    const { data: fotos } = await supabase
-      .from('diario_fotos')
-      .select('id, foto_url')
-      .eq('entrada_id', entradaId)
-      .eq('usuario_id', usuarioId);
+    // 1. Buscar a entrada para obter a URL da foto
+    const { data: entrada } = await supabase
+      .from('diario_entradas')
+      .select('foto_url')
+      .eq('id', entradaId)
+      .eq('usuario_id', usuarioId)
+      .single();
 
-    // 2. Remover arquivos do storage e registros de fotos
-    if (fotos && fotos.length > 0) {
+    // 2. Remover arquivo do storage se existir
+    if (entrada?.foto_url) {
       try {
-        const caminhos = fotos
-          .map(f => {
-            const url = f.foto_url;
-            const match = url.match(/diario-fotos\/(.+)$/);
-            return match ? match[1] : null;
-          })
-          .filter((c): c is string => c !== null);
-
-        if (caminhos.length > 0) {
-          await supabase.storage.from('diario-fotos').remove(caminhos);
+        const match = entrada.foto_url.match(/diario-fotos\/(.+)$/);
+        if (match) {
+          await supabase.storage.from('diario-fotos').remove([match[1]]);
         }
       } catch (storageErro) {
-        console.error('Erro ao remover fotos do storage (continuando):', storageErro);
+        console.error('Erro ao remover foto do storage (continuando):', storageErro);
       }
-
-      await supabase
-        .from('diario_fotos')
-        .delete()
-        .eq('entrada_id', entradaId)
-        .eq('usuario_id', usuarioId);
     }
 
     // 3. Deletar a entrada
@@ -297,18 +283,17 @@ export const deletarEntrada = async (
 };
 
 /**
- * Faz upload de uma foto do diário para o storage
- * A URL da foto é criptografada no campo foto_url_encrypted
+ * Faz upload de uma foto do diário para o storage e retorna a URL pública
  */
 export const uploadFotoDiario = async (
-  arquivo: ArquivoFoto,
-  dados: DadosUploadFoto
-): Promise<Resultado<FotoDiario>> => {
+  arquivo: { uri: string; name: string; type: string },
+  usuarioId: string
+): Promise<Resultado<string>> => {
   try {
     console.log('Fazendo upload de foto do diário:', arquivo.name);
 
     const extensao = arquivo.name.split('.').pop();
-    const nomeArquivo = `${dados.usuario_id}/diario_${Date.now()}.${extensao}`;
+    const nomeArquivo = `${usuarioId}/diario_${Date.now()}.${extensao}`;
 
     // Converter URI para blob
     const response = await fetch(arquivo.uri);
@@ -331,72 +316,11 @@ export const uploadFotoDiario = async (
       .from('diario-fotos')
       .getPublicUrl(uploadData.path);
 
-    // Criptografar a URL da foto
-    const urlCriptografada = await criptografarConteudo(urlData.publicUrl);
-
-    // Inserir registro na tabela
-    const { data, error } = await supabase
-      .from('diario_fotos')
-      .insert({
-        entrada_id: dados.entrada_id ?? null,
-        usuario_id: dados.usuario_id,
-        foto_url: urlData.publicUrl,
-        foto_url_encrypted: urlCriptografada,
-        descricao: dados.descricao ?? null,
-        categoria: dados.categoria ?? null,
-        data_foto: dados.data_foto,
-        privado: dados.privado ?? true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Erro ao registrar foto:', error);
-      return { sucesso: false, erro: 'A foto foi enviada, mas não foi possível registrá-la no diário. Tente novamente.', codigo: error.code };
-    }
-
-    console.log('Foto enviada com sucesso:', data.id);
-    return { sucesso: true, dados: data as FotoDiario };
+    console.log('Foto enviada com sucesso:', urlData.publicUrl);
+    return { sucesso: true, dados: urlData.publicUrl };
   } catch (erro) {
     console.error('Erro no upload de foto:', erro);
     return { sucesso: false, erro: 'Ocorreu um erro inesperado ao enviar a foto. Verifique sua conexão e tente novamente.' };
-  }
-};
-
-/**
- * Busca fotos de transição do usuário (timeline visual)
- */
-export const buscarFotosTransicao = async (
-  usuarioId: string,
-  limite?: number,
-  offset?: number
-): Promise<Resultado<FotoDiario[]>> => {
-  try {
-    console.log('Buscando fotos de transição:', usuarioId);
-
-    let query = supabase
-      .from('diario_fotos')
-      .select('*')
-      .eq('usuario_id', usuarioId)
-      .order('data_foto', { ascending: false });
-
-    if (limite !== undefined && offset !== undefined) {
-      query = query.range(offset, offset + limite - 1);
-    } else if (limite !== undefined) {
-      query = query.limit(limite);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Erro ao buscar fotos:', error);
-      return { sucesso: false, erro: 'Não foi possível carregar as fotos de transição. Verifique sua conexão e tente novamente.', codigo: error.code };
-    }
-
-    return { sucesso: true, dados: (data || []) as FotoDiario[] };
-  } catch (erro) {
-    console.error('Erro ao buscar fotos:', erro);
-    return { sucesso: false, erro: 'Ocorreu um erro inesperado ao carregar as fotos. Tente novamente em alguns instantes.' };
   }
 };
 
@@ -426,14 +350,16 @@ export const marcarEventoImportante = async (
     // Verificar se já está marcada
     const tagsAtuais: string[] = entrada.tags || [];
     if (tagsAtuais.includes(TAG_EVENTO_IMPORTANTE)) {
-      return { sucesso: true, dados: entrada as EntradaDiario };
+      const entradaDescriptografada = entrada as EntradaDiario;
+      entradaDescriptografada.conteudo = await descriptografarConteudo(entradaDescriptografada.conteudo);
+      return { sucesso: true, dados: entradaDescriptografada };
     }
 
     // Adicionar tag
     const novasTags = [...tagsAtuais, TAG_EVENTO_IMPORTANTE];
     const { data, error } = await supabase
       .from('diario_entradas')
-      .update({ is_importante: true })
+      .update({ tags: novasTags })
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)
       .select()
@@ -469,7 +395,7 @@ export const buscarEventosImportantes = async (
       .from('diario_entradas')
       .select('*')
       .eq('usuario_id', usuarioId)
-      .eq('is_importante', true)
+      .contains('tags', [TAG_EVENTO_IMPORTANTE])
       .order('data_entrada', { ascending: false });
 
     if (filtro) {
@@ -621,7 +547,6 @@ export const compartilharComPsicologo = async (
       .from('diario_entradas')
       .update({
         compartilhado_psicologo: true,
-        compartilhado_em: new Date().toISOString(),
       })
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)
@@ -661,7 +586,6 @@ export const revogarCompartilhamento = async (
       .from('diario_entradas')
       .update({
         compartilhado_psicologo: false,
-        compartilhado_em: null,
       })
       .eq('id', entradaId)
       .eq('usuario_id', usuarioId)

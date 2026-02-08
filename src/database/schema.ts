@@ -150,6 +150,7 @@ export interface Database {
           conteudo: string;
           humor: NivelHumor | null;
           tags: string[] | null;
+          foto_url: string | null;
           compartilhado_psicologo: boolean;
           privado: boolean;
           created_at: string;
@@ -157,24 +158,6 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['diario_entradas']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['diario_entradas']['Insert']>;
-      };
-
-      // Fotos do diário
-      diario_fotos: {
-        Row: {
-          id: string;
-          entrada_id: string | null;
-          usuario_id: string;
-          foto_url: string;
-          foto_url_encrypted: string | null;
-          descricao: string | null;
-          categoria: string | null;
-          data_foto: string;
-          privado: boolean;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['diario_fotos']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['diario_fotos']['Insert']>;
       };
 
       // Sessões psicológicas
