@@ -9,6 +9,7 @@ import {
   Sessao,
   TipoUsuario,
   Genero,
+  ConfiguracoesPrivacidade,
 } from '../types/auth';
 
 /**
@@ -649,6 +650,98 @@ export const uploadFotoPerfil = async (
     return {
       sucesso: false,
       erro: 'Não foi possível enviar a foto. Verifique se o arquivo é uma imagem válida e tente novamente.',
+    };
+  }
+};
+
+/**
+ * Busca as configurações de privacidade do usuário
+ */
+export const buscarConfiguracoes = async (
+  usuarioId: string
+): Promise<ResultadoAuth<ConfiguracoesPrivacidade>> => {
+  try {
+    const { data, error } = await supabase
+      .from('configuracoes_privacidade')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .single();
+
+    if (error) {
+      // Se não existe, retornar valores padrão
+      if (error.code === 'PGRST116') {
+        return {
+          sucesso: true,
+          dados: {
+            id: '',
+            usuario_id: usuarioId,
+            compartilhar_diario_psicologo: false,
+            mostrar_perfil_comunidade: true,
+            receber_notificacoes_push: true,
+            receber_notificacoes_email: true,
+            perfil_anonimo_comunidade: false,
+            created_at: null,
+            updated_at: null,
+          },
+        };
+      }
+
+      console.error('Erro ao buscar configurações:', error);
+      return {
+        sucesso: false,
+        erro: 'Não foi possível carregar as configurações.',
+      };
+    }
+
+    return {
+      sucesso: true,
+      dados: data as ConfiguracoesPrivacidade,
+    };
+  } catch (erro) {
+    console.error('Erro inesperado ao buscar configurações:', erro);
+    return {
+      sucesso: false,
+      erro: 'Erro inesperado ao carregar configurações. Verifique sua conexão.',
+    };
+  }
+};
+
+/**
+ * Atualiza as configurações de privacidade do usuário (cria se não existir)
+ */
+export const atualizarConfiguracoes = async (
+  usuarioId: string,
+  dados: Partial<ConfiguracoesPrivacidade>
+): Promise<ResultadoAuth<ConfiguracoesPrivacidade>> => {
+  try {
+    const { id, created_at, updated_at, ...dadosAtualizaveis } = dados;
+
+    const { data, error } = await supabase
+      .from('configuracoes_privacidade')
+      .upsert(
+        { usuario_id: usuarioId, ...dadosAtualizaveis },
+        { onConflict: 'usuario_id' }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar configurações:', error);
+      return {
+        sucesso: false,
+        erro: 'Não foi possível salvar as configurações.',
+      };
+    }
+
+    return {
+      sucesso: true,
+      dados: data as ConfiguracoesPrivacidade,
+    };
+  } catch (erro) {
+    console.error('Erro inesperado ao atualizar configurações:', erro);
+    return {
+      sucesso: false,
+      erro: 'Erro inesperado ao salvar configurações. Verifique sua conexão.',
     };
   }
 };

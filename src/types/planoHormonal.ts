@@ -87,6 +87,7 @@ export interface DadosAtualizarPlano {
 
 // Dados para registrar uma aplicação hormonal
 export interface DadosRegistrarAplicacao {
+  
   plano_id: string;
   usuario_id: string;
   data_aplicacao: string;
