@@ -5,44 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-
-// Mock de dados dos psicólogos
-const PSICOLOGOS_MOCK = {
-  meuPsicologo: {
-    id: '1',
-    nome: 'Dr. Davi Britto',
-    especialidade: 'Especialista em apoio durante transição de gênero',
-    tipo: 'Sessões online via aplicativo',
-    foto: 'https://i.pravatar.cc/150?img=7',
-  },
-  outrosPsicologos: [
-    {
-      id: '2',
-      nome: 'Dra. Tyla Silva',
-      especialidade: 'Especialista em identidade de gênero',
-      tipo: 'Sessões online via aplicativo e presenciais',
-      foto: 'https://i.pravatar.cc/150?img=5',
-    },
-    {
-      id: '3',
-      nome: 'Dra. Choo Doloona',
-      especialidade: 'Foco em terapia hormonal e saúde mental',
-      tipo: 'Sessões online via aplicativo',
-      foto: 'https://i.pravatar.cc/150?img=9',
-    },
-  ],
-};
-
-interface Psicologo {
-  id: string;
-  nome: string;
-  especialidade: string;
-  tipo: string;
-  foto: string;
-}
+import { getMeuPsicologo, getOutrosPsicologos, Psicologo } from '@/mocks/mockPsicologos';
 
 export default function AgendarPsicologoScreen() {
   const router = useRouter();
+  const meuPsicologo = getMeuPsicologo();
+  const outrosPsicologos = getOutrosPsicologos();
 
   const handleVerDisponibilidade = (psicologo: Psicologo) => {
     const params = new URLSearchParams({
@@ -91,11 +59,11 @@ export default function AgendarPsicologoScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Meu Psicólogo */}
-          {renderPsicologoCard(PSICOLOGOS_MOCK.meuPsicologo, true)}
+          {renderPsicologoCard(meuPsicologo, true)}
 
           {/* Outros Psicólogos */}
           <Text style={styles.sectionTitle}>Outros Psicólogos</Text>
-          {PSICOLOGOS_MOCK.outrosPsicologos.map(psicologo => 
+          {outrosPsicologos.map(psicologo => 
             renderPsicologoCard(psicologo, false)
           )}
         </ScrollView>

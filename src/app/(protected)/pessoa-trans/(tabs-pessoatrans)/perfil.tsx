@@ -27,11 +27,11 @@ export default function PerfilScreen() {
   };
 
   const handleEditarPerfil = () => {
-    Alert.alert('Em desenvolvimento', 'Funcionalidade de editar perfil em breve!');
+    router.push('/pessoa-trans/editar-perfil');
   };
 
   const handleConfiguracoes = () => {
-    Alert.alert('Em desenvolvimento', 'Tela de configurações em breve!');
+    router.push('/pessoa-trans/configuracoes');
   };
 
     const handleAjuda = () => {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textTransform: 'uppercase',
     marginBottom: 12,
-    marginTop: 24,
+    marginTop: 1,
   },
   logoutContainer: {
     marginTop: 24,

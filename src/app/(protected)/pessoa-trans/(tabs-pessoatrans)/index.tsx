@@ -5,13 +5,9 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
 import Button from '@/components/Button';
-import { 
-  HORMONIOS_MOCK, 
-  calcularEstatisticas, 
-  getProximaAplicacao,
-  getAplicacoesHoje,
-  getHumorMedio 
-} from '@/mocks/mockPlanoHormonal';
+import { HORMONIOS_MOCK, calcularEstatisticas, getProximaAplicacao, getAplicacoesHoje, getHumorMedio } from '@/mocks/mockPlanoHormonal';
+import ConsultaCard from '@/components/ConsultaCard';
+import { getProximaConsulta, formatarData } from '@/mocks/mockConsultas';
 
 export default function InicioScreen() {
   const nome = 'Alex';
@@ -22,6 +18,7 @@ export default function InicioScreen() {
   const proximaAplicacao = getProximaAplicacao();
   const aplicacoesHoje = getAplicacoesHoje();
   const humorMedio = getHumorMedio();
+  const proximaConsulta = getProximaConsulta();
   
   const getHumorTexto = (valor: number | null) => {
     if (!valor) return 'Não registrado';
@@ -88,6 +85,17 @@ export default function InicioScreen() {
             </Text>
           </View>
         </TouchableOpacity>
+
+        {/* Minhas Consultas */}
+        <Text style={styles.sectionTitle}>Minhas Consultas</Text>
+        <ConsultaCard
+          proximaConsulta={proximaConsulta ? {
+            data: formatarData(proximaConsulta.data),
+            horario: proximaConsulta.horario,
+            psicologo: proximaConsulta.psicologoNome,
+          } : null}
+          onPress={() => router.push('/pessoa-trans/consultas')}
+        />
 
         {/* Bem-estar com dados reais */}
         <Text style={styles.sectionTitle}>Bem-estar</Text>
