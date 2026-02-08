@@ -80,7 +80,6 @@ export const criarEntrada = async (
         usuario_id: dados.usuario_id,
         data_entrada: dados.data_entrada,
         conteudo: conteudoCriptografado,
-        titulo: dados.titulo ?? null,
         humor: dados.humor ?? null,
         tags: dados.tags ?? null,
         compartilhado_psicologo: dados.compartilhado_psicologo ?? false,
