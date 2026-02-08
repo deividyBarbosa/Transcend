@@ -34,7 +34,7 @@ const MOCK_CHATS: Chat[] = [
     paciente: {
       id: "p1",
       nome: "Sophia Duarte",
-      foto: require("../../../assets/avatar-woman.png"),
+      foto: require("@/assets/avatar-woman.png"),
     },
     ultimaMensagem: {
       texto: "Obrigada pela sessão de hoje, me senti bem melhor.",
@@ -47,7 +47,7 @@ const MOCK_CHATS: Chat[] = [
     paciente: {
       id: "p2",
       nome: "Alex Moreno",
-      foto: require("../../../assets/avatar-man.png"),
+      foto: require("@/assets/avatar-man.png"),
     },
     ultimaMensagem: {
       texto: "Podemos remarcar para quinta-feira?",
@@ -60,7 +60,7 @@ const MOCK_CHATS: Chat[] = [
     paciente: {
       id: "p3",
       nome: "Lucas Ribeiro",
-      foto: require("../../../assets/avatar-man.png"),
+      foto: require("@/assets/avatar-man.png"),
     },
     ultimaMensagem: {
       texto: "Já realizei o pagamento da mensalidade.",
@@ -73,7 +73,7 @@ const MOCK_CHATS: Chat[] = [
     paciente: {
       id: "p4",
       nome: "Beatriz Silva",
-      foto: require("../../../assets/avatar-woman.png"),
+      foto: require("@/assets/avatar-woman.png"),
     },
     ultimaMensagem: {
       texto: "Até a próxima semana, doutora!",
@@ -86,7 +86,7 @@ const MOCK_CHATS: Chat[] = [
     paciente: {
       id: "p5",
       nome: "Gabriel Santos",
-      foto: require("../../../assets/avatar-man.png"),
+      foto: require("@/assets/avatar-man.png"),
     },
     ultimaMensagem: {
       texto: "Você enviou um arquivo.",
@@ -99,7 +99,7 @@ const MOCK_CHATS: Chat[] = [
     paciente: {
       id: "p6",
       nome: "Mariana Lima",
-      foto: require("../../../assets/avatar-woman.png"),
+      foto: require("@/assets/avatar-woman.png"),
     },
     ultimaMensagem: {
       texto: "Obrigado pela indicação do livro.",

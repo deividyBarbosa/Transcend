@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
-import { colors } from "../../theme/colors";
-import { fonts } from "../../theme/fonts";
+import { colors } from "@/theme/colors";
+import { fonts } from "@/theme/fonts";
 
 interface CalendarProps {
   currentMonth: Date;
@@ -83,7 +83,7 @@ export default function PsicologoCalendar({
       <View style={styles.monthHeader}>
         <TouchableOpacity onPress={onPreviousMonth} style={styles.arrowButton}>
           <Image
-            source={require("../../assets/seta-esquerda.png")}
+            source={require("@/assets/seta-esquerda.png")}
             style={styles.image}
             resizeMode="contain"
           />
@@ -96,7 +96,7 @@ export default function PsicologoCalendar({
         </Text>
         <TouchableOpacity onPress={onNextMonth} style={styles.arrowButton}>
           <Image
-            source={require("../../assets/seta-direita.png")}
+            source={require("@/assets/seta-direita.png")}
             style={styles.image}
             resizeMode="contain"
           />

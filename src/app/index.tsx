@@ -38,7 +38,7 @@ export default function LoginScreen() {
         }
 
         if (resultado.dados.tipo === 'psicologo') {
-          router.replace('/(public)/(tabs-psicologo)/home-psicologo');
+          router.replace('/psicologo');
           return;
         }
 

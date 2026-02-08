@@ -97,7 +97,7 @@ export function ConsultaCard({
           <Image source={pacientPhoto} style={styles.pacientPhoto} />
         ) : (
           <Image
-            source={require("../../assets/calendario-icon.png")}
+            source={require("@/assets/calendario-icon.png")}
             style={styles.calendarIcon}
             resizeMode="contain"
           />

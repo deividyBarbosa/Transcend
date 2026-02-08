@@ -42,8 +42,6 @@ export default function TabLayout() {
           ),
         }}
       />
-<<<<<<< HEAD
-=======
 
       <Tabs.Screen
         name="historico-chat"
@@ -54,7 +52,6 @@ export default function TabLayout() {
           ),
         }}
       />
->>>>>>> origin/feature/home-psicologo
       <Tabs.Screen
         name="perfil"
         options={{

@@ -5,6 +5,7 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
 import Button from '@/components/Button';
+import ConsultaCard from '@/components/ConsultaCard';
 import { supabase } from '@/utils/supabase';
 import { 
   HORMONIOS_MOCK, 
@@ -13,6 +14,8 @@ import {
   getAplicacoesHoje,
   getHumorMedio 
 } from '@/mocks/mockPlanoHormonal';
+import { getProximaConsulta, formatarData } from '@/mocks/mockConsultas';
+
 
 export default function InicioScreen() {
   const [nome, setNome] = useState<string>('');

@@ -27,7 +27,7 @@ export default function DetalhesConsulta() {
   const consulta = {
     id: id,
     patientName: "Mariana Silva",
-    patientPhoto: require("../../../../assets/avatar-woman.png"),
+    patientPhoto: require("@/assets/avatar-woman.png"),
     sessionType: "Terapia Individual Online",
     date: "24 de Out. 2023",
     time: "14:00 - 15:00",
