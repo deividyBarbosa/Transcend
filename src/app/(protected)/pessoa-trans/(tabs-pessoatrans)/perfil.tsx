@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -6,6 +6,7 @@ import ProfileOption from '@/components/ProfileOption';
 import SelectModal from '@/components/SelectModal';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { supabase } from '@/utils/supabase';
 
 const PRONOMES = [
   'Ele/Dele',
@@ -18,12 +19,46 @@ export default function PerfilScreen() {
   const router = useRouter();
   const [showPronomesModal, setShowPronomesModal] = useState(false);
   const [pronomes, setPronomes] = useState('Ele/Dele');
+  const [usuario, setUsuario] = useState({
+    nome: '',
+    email: '',
+    fotoPerfil: null,
+  });
 
-  // Mock de dados do usuário
-  const usuario = {
-    nome: 'Alex Santos',
-    email: 'alex@email.com',
-    fotoPerfil: null, 
+  useEffect(() => {
+    carregarDadosUsuario();
+  }, []);
+
+  const carregarDadosUsuario = async () => {
+    try {
+      // Obter usuário autenticado
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error('Erro ao obter usuário:', authError);
+        return;
+      }
+
+      // Buscar perfil do usuário
+      const { data: perfil, error: perfilError } = await supabase
+        .from('perfis')
+        .select('nome, email, foto_url')
+        .eq('id', user.id)
+        .single();
+
+      if (perfilError) {
+        console.error('Erro ao buscar perfil:', perfilError);
+        return;
+      }
+
+      setUsuario({
+        nome: perfil?.nome || '',
+        email: perfil?.email || '',
+        fotoPerfil: perfil?.foto_url || null,
+      });
+    } catch (erro) {
+      console.error('Erro ao carregar dados do usuário:', erro);
+    }
   };
 
   const handleEditarPerfil = () => {
@@ -66,9 +101,22 @@ export default function PerfilScreen() {
         {
           text: 'Sair',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Fazer logout real quando tiver autenticação
-            Alert.alert('Logout', 'Funcionalidade em desenvolvimento');
+          onPress: async () => {
+            try {
+              const { error } = await supabase.auth.signOut();
+              
+              if (error) {
+                console.error('Erro ao fazer logout:', error);
+                Alert.alert('Erro', 'Não foi possível fazer logout. Tente novamente.');
+                return;
+              }
+
+              // Redirecionar para a tela de login
+              router.replace('/');
+            } catch (erro) {
+              console.error('Erro inesperado ao fazer logout:', erro);
+              Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
+            }
           },
         },
       ]
