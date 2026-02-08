@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,8 @@ import Button from '@/components/Button';
 import SelectModal from '@/components/SelectModal';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { supabase } from '@/utils/supabase';
+import { criarPlano, atualizarPlano, removerHormonio } from '@/services/planoHormonal';
 
 // Opções para os selects
 const MODOS_APLICACAO = [
@@ -49,6 +51,17 @@ export default function EditarMedicamentoScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const isEditing = !!params.id;
+
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    const obterUsuario = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) setUsuarioId(data.user.id);
+    };
+    obterUsuario();
+  }, []);
 
   // Estados básicos
   const [nome, setNome] = useState(params.nome as string || '');
@@ -105,37 +118,71 @@ export default function EditarMedicamentoScreen() {
     return true;
   };
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     if (!validarFormulario()) return;
 
-    const diasAplicacaoFinal =
-      frequencia === 'Mensal' ? [1] : diasSemana;
+    if (!usuarioId) {
+      Alert.alert('Erro', 'Você precisa estar autenticado. Faça login novamente.');
+      return;
+    }
 
-    const hormonio = {
-      id: params.id || Date.now().toString(),
-      nome,
-      dosagem: `${dosagem}${unidadeDosagem}`,
-      modoAplicacao,
-      frequencia,
-      horarioPreferencial,
-      diasAplicacao: diasAplicacaoFinal,
-      localAplicacao,
-      observacoesMedicas,
-      ativo: true,
-      dataInicio: new Date().toISOString(),
-    };
+    setSalvando(true);
 
-    // TO-DO: Salvar no Supabase quando estiver pronto
-    console.log('Hormônio salvo:', hormonio);
-    
-    Alert.alert(
-      'Sucesso',
-      `Hormônio ${isEditing ? 'atualizado' : 'adicionado'} com sucesso!`,
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
+    if (isEditing) {
+      const resultado = await atualizarPlano(params.id as string, usuarioId, {
+        nome,
+        dosagem,
+        unidade_dosagem: unidadeDosagem,
+        modo_aplicacao: modoAplicacao,
+        frequencia,
+        horario_preferencial: horarioPreferencial || null,
+        dias_semana: diasSemana.length > 0 ? diasSemana : null,
+        observacoes: observacoesMedicas || null,
+      });
+
+      setSalvando(false);
+
+      if (!resultado.sucesso) {
+        Alert.alert('Erro', resultado.erro || 'Não foi possível atualizar o hormônio.');
+        return;
+      }
+
+      Alert.alert('Sucesso', 'Hormônio atualizado com sucesso!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } else {
+      const resultado = await criarPlano({
+        usuario_id: usuarioId,
+        nome,
+        dosagem,
+        unidade_dosagem: unidadeDosagem,
+        modo_aplicacao: modoAplicacao,
+        frequencia,
+        horario_preferencial: horarioPreferencial || null,
+        dias_semana: diasSemana.length > 0 ? diasSemana : null,
+        data_inicio: new Date().toISOString().split('T')[0],
+        observacoes: observacoesMedicas || null,
+      });
+
+      setSalvando(false);
+
+      if (!resultado.sucesso) {
+        Alert.alert('Erro', resultado.erro || 'Não foi possível salvar o hormônio.');
+        return;
+      }
+
+      Alert.alert('Sucesso', 'Hormônio adicionado com sucesso!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    }
   };
 
   const handleRemover = () => {
+    if (!usuarioId) {
+      Alert.alert('Erro', 'Você precisa estar autenticado. Faça login novamente.');
+      return;
+    }
+
     Alert.alert(
       'Confirmar remoção',
       'Deseja realmente remover este hormônio? O histórico será mantido.',
@@ -144,11 +191,18 @@ export default function EditarMedicamentoScreen() {
         {
           text: 'Remover',
           style: 'destructive',
-          onPress: () => {
-            // TO-DO: Marcar como inativo no Supabase
-            console.log('Hormônio removido (marcado como inativo)');
+          onPress: async () => {
+            setSalvando(true);
+            const resultado = await removerHormonio(params.id as string, usuarioId);
+            setSalvando(false);
+
+            if (!resultado.sucesso) {
+              Alert.alert('Erro', resultado.erro || 'Não foi possível remover o hormônio.');
+              return;
+            }
+
             Alert.alert('Removido', 'Hormônio removido com sucesso', [
-              { text: 'OK', onPress: () => router.back() }
+              { text: 'OK', onPress: () => router.back() },
             ]);
           },
         },
@@ -309,7 +363,7 @@ export default function EditarMedicamentoScreen() {
 
             {/* Botões */}
             <View style={styles.buttonContainer}>
-              <Button title="Salvar" onPress={handleSalvar} />
+              <Button title={salvando ? 'Salvando...' : 'Salvar'} onPress={handleSalvar} disabled={salvando} />
               
               {isEditing && (
                 <View style={{ marginTop: 15 }}>

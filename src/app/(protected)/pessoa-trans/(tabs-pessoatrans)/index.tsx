@@ -1,17 +1,60 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { useRouter } from 'expo-router';
 import Button from '@/components/Button';
-import { HORMONIOS_MOCK, calcularEstatisticas, getProximaAplicacao, getAplicacoesHoje, getHumorMedio } from '@/mocks/mockPlanoHormonal';
 import ConsultaCard from '@/components/ConsultaCard';
+import { supabase } from '@/utils/supabase';
+import { 
+  HORMONIOS_MOCK, 
+  calcularEstatisticas, 
+  getProximaAplicacao,
+  getAplicacoesHoje,
+  getHumorMedio 
+} from '@/mocks/mockPlanoHormonal';
 import { getProximaConsulta, formatarData } from '@/mocks/mockConsultas';
 
+
 export default function InicioScreen() {
-  const nome = 'Alex';
+  const [nome, setNome] = useState<string>('');
   const router = useRouter();
+
+  useEffect(() => {
+    carregarNomeUsuario();
+  }, []);
+
+  const carregarNomeUsuario = async () => {
+    try {
+      // Obter usuário autenticado
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Erro ao obter usuário:', authError);
+        setNome('Usuário');
+        return;
+      }
+
+      // Buscar perfil do usuário
+      const { data: perfil, error: perfilError } = await supabase
+        .from('perfis')
+        .select('nome')
+        .eq('id', user.id)
+        .single();
+
+      if (perfilError) {
+        console.error('Erro ao buscar perfil:', perfilError);
+        setNome('Usuário');
+        return;
+      }
+
+      setNome(perfil?.nome || 'Usuário');
+    } catch (erro) {
+      console.error('Erro ao carregar nome do usuário:', erro);
+      setNome('Usuário');
+    }
+  };
   
   // Obter dados dinâmicos
   const stats = calcularEstatisticas();

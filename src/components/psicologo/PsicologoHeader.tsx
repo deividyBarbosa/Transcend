@@ -20,7 +20,7 @@ export function PsychologistHeader({
           </Text>
         </View>
         <Image
-          source={require("../../assets/header-illustration.png")}
+          source={require("@/assets/header-illustration.png")}
           style={styles.image}
           resizeMode="contain"
         />

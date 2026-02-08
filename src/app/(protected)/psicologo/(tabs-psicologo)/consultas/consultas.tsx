@@ -29,7 +29,7 @@ const MOCK_CONSULTAS_PROXIMAS: Consulta[] = [
   {
     id: "1",
     patientName: "Mariana Silva",
-    patientPhoto: require("../../../../assets/avatar-woman.png"),
+    patientPhoto: require("@/assets/avatar-woman.png"),
     sessionType: "Online • Terapia Individual",
     date: "24 de Fev. 2026",
     time: "14:00 - 15:00",
@@ -38,7 +38,7 @@ const MOCK_CONSULTAS_PROXIMAS: Consulta[] = [
   {
     id: "2",
     patientName: "Ricardo Santos",
-    patientPhoto: require("../../../../assets/avatar-man.png"),
+    patientPhoto: require("@/assets/avatar-man.png"),
     sessionType: "Presencial • Terapia Individual",
     date: "25 de Fev. 2026",
     time: "09:30 - 10:30",
@@ -50,7 +50,7 @@ const MOCK_CONSULTAS_PROXIMAS: Consulta[] = [
 const MOCK_CONSULTAS_PASSADAS: Consulta[] = [{
     id: "3",
     patientName: "Ana Ferreira",
-    patientPhoto: require("../../../../assets/avatar-woman.png"),
+    patientPhoto: require("@/assets/avatar-woman.png"),
     sessionType: "Online • Primeira Consulta",
     date: "28 de Jan. 2026",
     time: "16:00 - 17:00",

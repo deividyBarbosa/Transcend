@@ -9,68 +9,66 @@ import {
 import { useRouter } from "expo-router";
 
 import { colors } from "@/theme/colors";
-import { SolicitacaoAtendimentoCard } from "@/components/psicologo/SolicitacaoAtendimentoCard";
+import { PacienteCard } from "@/components/psicologo/PacienteCard";
 
-interface Solicitacao {
+interface Paciente {
   id: string;
   name: string;
-  photo: any;
-  scheduledTime: string;
-   
+  age: number;
+  photo: any; 
 }
 
 // dados mockados p dps vcs pegarem da api
-const MOCK_PACIENTES: Solicitacao[] = [
+const MOCK_PACIENTES: Paciente[] = [
   {
     id: "1",
-    name: "Jorge Pietro",
-    photo: require("../../../assets/avatar-man.png"),
-    scheduledTime: "quarta-feira às 17h30",
+    name: "Mario Cururu",
+    age: 24,
+    photo: require("@/assets/avatar-man.png"),
   },
   {
-    id: "2",
-    name: "Priscila Lima",
-    photo: require("../../../assets/avatar-woman.png"),
-    scheduledTime: "quarta-feira às 18h30",
+    id: "2", 
+    name: "Ana Mary",
+    age: 16,
+    photo: require("@/assets/avatar-woman.png"),
   },
 ];
 
-export default function Solicitacoes() {
+export default function Pacientes() {
   const router = useRouter();
-  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>(MOCK_PACIENTES);
+  const [pacientes, setPacientes] = useState<Paciente[]>(MOCK_PACIENTES);
   const [isLoading, setIsLoading] = useState(false);
 
 
-  const handleSolicitacaoPress = useCallback(
+  const handlePacientePress = useCallback(
     (pacienteId: string) => {
       router.push(`/paciente/${pacienteId}`);
     },
     [router],
   );
 
-  const renderSolicitacaoCard = useCallback(
-    ({ item }: { item: Solicitacao }) => (
-      <SolicitacaoAtendimentoCard
-        patientName={item.name}
-        patientPhoto={item.photo}
-        scheduledTime={item.scheduledTime}
-        onReject={() => console.log("Solicitação recusada")}
-        onAccept={() => console.log("Solicitação aceita")}
+  const renderPacienteCard = useCallback(
+    ({ item }: { item: Paciente }) => (
+      <PacienteCard
+        pacientName={item.name}
+        pacientAge={item.age}
+        pacientPhoto={item.photo}
+        onPress={() => handlePacientePress(item.id)}
       />
     ),
-    [handleSolicitacaoPress],
+    [handlePacientePress],
   );
 
   const renderEmptyList = useCallback(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Nenhuma solicitação pendente</Text>
+        <Text style={styles.emptyText}>Nenhum paciente cadastrado</Text>
       </View>
     ),
     [],
   );
 
-  const keyExtractor = useCallback((item: Solicitacao) => item.id, []);
+  const keyExtractor = useCallback((item: Paciente) => item.id, []);
 
   if (isLoading) {
     return (
@@ -84,12 +82,12 @@ export default function Solicitacoes() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Pacientes</Text>
-        <Text style={styles.subtitle}>{solicitacoes.length} paciente(s)</Text>
+        <Text style={styles.subtitle}>{pacientes.length} paciente(s)</Text>
       </View>
 
       <FlatList
-        data={solicitacoes}
-        renderItem={renderSolicitacaoCard}
+        data={pacientes}
+        renderItem={renderPacienteCard}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}

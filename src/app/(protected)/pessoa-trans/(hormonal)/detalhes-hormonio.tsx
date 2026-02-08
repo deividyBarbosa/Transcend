@@ -1,8 +1,9 @@
 // se der tempo vou refatorar esse depois
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/Header';
@@ -10,95 +11,137 @@ import Button from '@/components/Button';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import DetalhesAplicacaoModal from '@/components/DetalhesAplicacaoModal';
-import { HORMONIOS_MOCK, APLICACOES_MOCK } from '@/mocks/mockPlanoHormonal';
+import { supabase } from '@/utils/supabase';
+import { buscarHistoricoAplicacoes, buscarProximasAplicacoes } from '@/services/planoHormonal';
+import type { PlanoHormonal, AplicacaoHormonal, ProximaAplicacao } from '@/types/planoHormonal';
 
-
-// Mock de histórico
-const HISTORICO_MOCK = [
-  {
-    id: '1',
-    data: '2026-01-29',
-    horarioPrevisto: '08:00',
-    horarioAplicado: '08:00',
-    status: 'aplicado',
-    atraso: 0,
-  },
-  {
-    id: '2',
-    data: '2026-01-22',
-    horarioPrevisto: '08:00',
-    horarioAplicado: '09:45',
-    status: 'atrasado',
-    atraso: 105, // minutos
-  },
-  {
-    id: '3',
-    data: '2026-01-15',
-    horarioPrevisto: '08:00',
-    horarioAplicado: '08:00',
-    status: 'aplicado',
-    atraso: 0,
-  },
-  {
-    id: '4',
-    data: '2026-01-08',
-    horarioPrevisto: '08:00',
-    horarioAplicado: '08:15',
-    status: 'atrasado',
-    atraso: 15,
-  },
-];
-
-// Mock de estatísticas
-const ESTATISTICAS_MOCK = {
-  taxaAdesao: 94,
-  noHorario: 12,
-  atrasadas: 1,
-  atrasoMedio: 15, // minutos
+const FREQUENCIA_PARA_DIAS: Record<string, number> = {
+  'Diária': 1,
+  'Semanal': 7,
+  'Quinzenal': 15,
+  'Mensal': 30,
 };
 
 export default function DetalhesHormonioScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  
-  const hormonioId = params.id as string || '1';
 
-  const hormonio = HORMONIOS_MOCK.find(h => h.id === hormonioId) || HORMONIOS_MOCK[0];
+  const planoId = params.id as string;
 
-  const proximaAplicacao = {
-    data: '2026-02-05',
-    diasRestantes: 3,
-  };
+  const [hormonio, setHormonio] = useState<PlanoHormonal | null>(null);
+  const [historico, setHistorico] = useState<AplicacaoHormonal[]>([]);
+  const [proximaAplicacao, setProximaAplicacao] = useState<{ data: string; diasRestantes: number } | null>(null);
+  const [stats, setStats] = useState({ taxaAdesao: 0, noHorario: 0, atrasadas: 0, atrasoMedio: 0 });
+  const [carregando, setCarregando] = useState(true);
 
-  const historico = HISTORICO_MOCK;
+  useFocusEffect(
+    useCallback(() => {
+      const carregar = async () => {
+        setCarregando(true);
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user || !planoId) {
+          setCarregando(false);
+          return;
+        }
 
-  const stats = ESTATISTICAS_MOCK;
+        // Buscar plano por ID
+        const { data: planoData } = await supabase
+          .from('planos_hormonais')
+          .select('*')
+          .eq('id', planoId)
+          .eq('usuario_id', userData.user.id)
+          .single();
+
+        if (planoData) {
+          setHormonio(planoData as PlanoHormonal);
+        }
+
+        // Buscar histórico de aplicações
+        const resultado = await buscarHistoricoAplicacoes(userData.user.id, planoId, 10);
+        if (resultado.sucesso && resultado.dados) {
+          setHistorico(resultado.dados);
+
+          // Calcular estatísticas a partir do histórico real
+          const apps = resultado.dados;
+          const aplicadas = apps.filter(a => a.status === 'aplicado' || a.status === 'atrasado');
+          const noHorario = apps.filter(a => a.status === 'aplicado' && a.atraso === 0).length;
+          const atrasadas = apps.filter(a => a.status === 'atrasado').length;
+          const totalAtrasos = apps.filter(a => a.atraso > 0).reduce((sum, a) => sum + a.atraso, 0);
+          const atrasoMedio = atrasadas > 0 ? Math.round(totalAtrasos / atrasadas) : 0;
+          const taxaAdesao = aplicadas.length > 0 ? Math.round((noHorario / aplicadas.length) * 100) : 100;
+
+          setStats({ taxaAdesao, noHorario, atrasadas, atrasoMedio });
+        }
+
+        // Calcular próxima aplicação
+        if (planoData) {
+          const freqDias = FREQUENCIA_PARA_DIAS[planoData.frequencia] || 1;
+          const hoje = new Date();
+          hoje.setHours(0, 0, 0, 0);
+
+          let proximaData: Date;
+
+          // Buscar última aplicação
+          const { data: ultimaApp } = await supabase
+            .from('aplicacoes_hormonais')
+            .select('data_aplicacao')
+            .eq('plano_id', planoId)
+            .eq('usuario_id', userData.user.id)
+            .order('data_aplicacao', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (ultimaApp) {
+            proximaData = new Date(ultimaApp.data_aplicacao);
+            proximaData.setDate(proximaData.getDate() + freqDias);
+          } else {
+            proximaData = new Date(planoData.data_inicio);
+          }
+          proximaData.setHours(0, 0, 0, 0);
+
+          const diffMs = proximaData.getTime() - hoje.getTime();
+          const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+          setProximaAplicacao({
+            data: proximaData.toISOString().split('T')[0],
+            diasRestantes,
+          });
+        }
+
+        setCarregando(false);
+      };
+      carregar();
+    }, [planoId])
+  );
 
   const handleEditar = () => {
+    if (!hormonio) return;
     router.push({
       pathname: '/pessoa-trans/editar-medicamento',
       params: {
         id: hormonio.id,
         nome: hormonio.nome,
         dosagem: hormonio.dosagem,
-        unidadeDosagem: 'mg',
+        unidadeDosagem: hormonio.unidade_dosagem,
         frequencia: hormonio.frequencia,
-        modoAplicacao: hormonio.modoAplicacao,
-        horarioPreferencial: hormonio.horarioPreferencial,
-        observacoesMedicas: hormonio.observacoesMedicas,
+        modoAplicacao: hormonio.modo_aplicacao,
+        horarioPreferencial: hormonio.horario_preferencial ?? '',
+        observacoesMedicas: hormonio.observacoes ?? '',
       }
     });
   };
 
   const handleRegistrarAplicacao = () => {
+    if (!hormonio) return;
     router.push({
-        pathname: '/pessoa-trans/registrar-aplicacao',
-        params: {
+      pathname: '/pessoa-trans/registrar-aplicacao',
+      params: {
+        planoId: hormonio.id,
         hormonio: hormonio.nome,
-        data: proximaAplicacao.data,  
-        horario: hormonio.horarioPreferencial, 
-        modoAplicacao: hormonio.modoAplicacao,
-        }
+        data: proximaAplicacao?.data || new Date().toISOString().split('T')[0],
+        horario: hormonio.horario_preferencial || '08:00',
+        modoAplicacao: hormonio.modo_aplicacao,
+      }
     });
   };
 
@@ -131,13 +174,41 @@ export default function DetalhesHormonioScreen() {
   };
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [aplicacaoSelecionada, setAplicacaoSelecionada] = useState<typeof HISTORICO_MOCK[0] | null>(null);
+  const [aplicacaoSelecionada, setAplicacaoSelecionada] = useState<AplicacaoHormonal | null>(null);
+
+  if (carregando) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.container}>
+          <Header title="Carregando..." showBackButton />
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!hormonio) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.container}>
+          <Header title="Hormônio" showBackButton />
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 16, color: colors.muted, textAlign: 'center' }}>
+              Hormônio não encontrado.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
 return (
   <>
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
-        <Header 
+        <Header
           title={hormonio.nome}
           showBackButton
           rightIcon={
@@ -147,7 +218,7 @@ return (
           }
         />
 
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
@@ -163,40 +234,48 @@ return (
             </View>
 
             <Text style={styles.label}>Dosagem Atual</Text>
-            <Text style={styles.dosagem}>{hormonio.dosagem}{hormonio.unidadeDosagem}/{hormonio.frequencia.toLowerCase()}</Text>
+            <Text style={styles.dosagem}>{hormonio.dosagem}{hormonio.unidade_dosagem}/{hormonio.frequencia.toLowerCase()}</Text>
 
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Ionicons name="fitness-outline" size={16} color={colors.muted} />
-                <Text style={styles.infoText}>{hormonio.modoAplicacao}</Text>
+                <Text style={styles.infoText}>{hormonio.modo_aplicacao}</Text>
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="time-outline" size={16} color={colors.muted} />
-                <Text style={styles.infoText}>{hormonio.horarioPreferencial}</Text>
+                <Text style={styles.infoText}>{hormonio.horario_preferencial || '--:--'}</Text>
               </View>
             </View>
           </View>
 
           {/* Próxima Aplicação */}
-          <Text style={styles.sectionTitle}>Próxima Aplicação</Text>
-          <View style={styles.nextCard}>
-            <View style={styles.nextCardContent}>
-              <Text style={styles.nextDate}>
-                {formatarDataCompleta(proximaAplicacao.data)}
-              </Text>
-              <Text style={styles.nextCountdown}>
-                Em {proximaAplicacao.diasRestantes} dias
-              </Text>
-              <Text style={styles.nextReminder}>
-                Prepare sua dose para as {hormonio.horarioPreferencial}
-              </Text>
-            </View>
-            <Button
-              title="Registrar"
-              onPress={handleRegistrarAplicacao}
-              style={styles.registrarButton}
-            />
-          </View>
+          {proximaAplicacao && (
+            <>
+              <Text style={styles.sectionTitle}>Próxima Aplicação</Text>
+              <View style={styles.nextCard}>
+                <View style={styles.nextCardContent}>
+                  <Text style={styles.nextDate}>
+                    {formatarDataCompleta(proximaAplicacao.data)}
+                  </Text>
+                  <Text style={styles.nextCountdown}>
+                    {proximaAplicacao.diasRestantes <= 0
+                      ? 'Atrasada!'
+                      : proximaAplicacao.diasRestantes === 1
+                        ? 'Amanhã'
+                        : `Em ${proximaAplicacao.diasRestantes} dias`}
+                  </Text>
+                  <Text style={styles.nextReminder}>
+                    Prepare sua dose para as {hormonio.horario_preferencial || '08:00'}
+                  </Text>
+                </View>
+                <Button
+                  title="Registrar"
+                  onPress={handleRegistrarAplicacao}
+                  style={styles.registrarButton}
+                />
+              </View>
+            </>
+          )}
 
           {/* Estatísticas */}
           <Text style={styles.sectionTitle}>Estatísticas</Text>
@@ -241,11 +320,19 @@ return (
             />
           </View>
 
+          {historico.length === 0 && (
+            <View style={styles.observacoesCard}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: colors.muted, textAlign: 'center' }}>
+                Nenhuma aplicação registrada ainda
+              </Text>
+            </View>
+          )}
+
           {historico.map((item) => {
             const statusIcon = getStatusIcon(item.status);
             return (
-              <TouchableOpacity 
-                key={item.id} 
+              <TouchableOpacity
+                key={item.id}
                 style={styles.historicoItem}
                 onPress={() => {
                   setAplicacaoSelecionada(item);
@@ -256,16 +343,16 @@ return (
                   styles.historicoIcon,
                   { backgroundColor: item.status === 'aplicado' ? '#E8F5E9' : '#FFF3E0' }
                 ]}>
-                  <Ionicons 
+                  <Ionicons
                     name={statusIcon.name as any}
                     size={24}
                     color={statusIcon.color}
                   />
                 </View>
                 <View style={styles.historicoContent}>
-                  <Text style={styles.historicoData}>{formatarData(item.data)}</Text>
+                  <Text style={styles.historicoData}>{formatarData(item.data_aplicacao)}</Text>
                   <Text style={styles.historicoDetalhe}>
-                    {item.horarioAplicado} • {formatarAtraso(item.atraso)}
+                    {item.horario_aplicado || item.horario_previsto || '--:--'} • {formatarAtraso(item.atraso)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.muted} />
@@ -274,18 +361,21 @@ return (
           })}
 
           {/* Observações Médicas */}
-          <Text style={styles.sectionTitle}>Observações Médicas</Text>
-          <View style={styles.observacoesCard}>
-            <View style={styles.observacoesIcon}>
-              <Ionicons name="information-circle" size={24} color={colors.primary} />
-            </View>
-            <View style={styles.observacoesContent}>
-              <Text style={styles.observacoesTexto}>
-                "{hormonio.observacoesMedicas}"
-              </Text>
-              <Text style={styles.observacoesMedico}>— {hormonio.medico}</Text>
-            </View>
-          </View>
+          {hormonio.observacoes && (
+            <>
+              <Text style={styles.sectionTitle}>Observações Médicas</Text>
+              <View style={styles.observacoesCard}>
+                <View style={styles.observacoesIcon}>
+                  <Ionicons name="information-circle" size={24} color={colors.primary} />
+                </View>
+                <View style={styles.observacoesContent}>
+                  <Text style={styles.observacoesTexto}>
+                    "{hormonio.observacoes}"
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
         </ScrollView>
       </View>
     </SafeAreaView>

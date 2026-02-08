@@ -9,6 +9,7 @@ import {
   Sessao,
   TipoUsuario,
   Genero,
+  ConfiguracoesPrivacidade,
 } from '../types/auth';
 
 /**
@@ -16,16 +17,16 @@ import {
  */
 const mapearErro = (codigo: string, mensagemOriginal: string): string => {
   const erros: Record<string, string> = {
-    'invalid_credentials': 'Email ou senha incorretos',
-    'email_not_confirmed': 'Por favor, confirme seu email antes de fazer login',
-    'user_already_exists': 'Este email já está cadastrado',
-    'weak_password': 'A senha deve ter pelo menos 6 caracteres',
-    'invalid_email': 'Email inválido',
-    'over_email_send_rate_limit': 'Muitas tentativas. Aguarde alguns minutos',
-    'user_not_found': 'Usuário não encontrado',
+    'invalid_credentials': 'Email ou senha incorretos. Verifique seus dados e tente novamente.',
+    'email_not_confirmed': 'Seu email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.',
+    'user_already_exists': 'Este email já está cadastrado. Tente fazer login ou use outro email.',
+    'weak_password': 'A senha é muito fraca. Use pelo menos 6 caracteres, combinando letras e números.',
+    'invalid_email': 'O email informado não é válido. Verifique se digitou corretamente (ex: nome@email.com).',
+    'over_email_send_rate_limit': 'Muitas tentativas em pouco tempo. Aguarde alguns minutos antes de tentar novamente.',
+    'user_not_found': 'Nenhuma conta encontrada com este email. Verifique o email ou crie uma nova conta.',
   };
 
-  return erros[codigo] || mensagemOriginal || 'Ocorreu um erro inesperado';
+  return erros[codigo] || mensagemOriginal || 'Ocorreu um erro inesperado. Tente novamente em alguns instantes.';
 };
 
 /**
@@ -216,7 +217,7 @@ export const fazerLogin = async (
     if (!data.user) {
       return {
         sucesso: false,
-        erro: 'Não foi possível obter os dados do usuário',
+        erro: 'Não foi possível obter os dados do usuário. Tente fazer login novamente.',
       };
     }
 
@@ -225,7 +226,7 @@ export const fazerLogin = async (
     if (!perfil) {
       return {
         sucesso: false,
-        erro: 'Perfil não encontrado',
+        erro: 'Seu perfil não foi encontrado. Entre em contato com o suporte se o problema persistir.',
       };
     }
 
@@ -237,7 +238,7 @@ export const fazerLogin = async (
     console.error('Erro no login:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao fazer login',
+      erro: 'Ocorreu um erro inesperado ao fazer login. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -277,7 +278,7 @@ export const cadastrarTrans = async (
     if (!authData.user) {
       return {
         sucesso: false,
-        erro: 'Não foi possível criar o usuário',
+        erro: 'Não foi possível criar sua conta. Tente novamente em alguns instantes.',
       };
     }
 
@@ -310,7 +311,7 @@ export const cadastrarTrans = async (
     console.error('Erro no cadastro trans:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao realizar o cadastro',
+      erro: 'Ocorreu um erro inesperado ao realizar o cadastro. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -350,7 +351,7 @@ export const cadastrarPsicologo = async (
     if (!authData.user) {
       return {
         sucesso: false,
-        erro: 'Não foi possível criar o usuário',
+        erro: 'Não foi possível criar sua conta. Tente novamente em alguns instantes.',
       };
     }
 
@@ -410,7 +411,7 @@ export const cadastrarPsicologo = async (
     console.error('Erro no cadastro psicólogo:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao realizar o cadastro',
+      erro: 'Ocorreu um erro inesperado ao realizar o cadastro. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -425,7 +426,7 @@ export const fazerLogout = async (): Promise<ResultadoAuth<void>> => {
     if (error) {
       return {
         sucesso: false,
-        erro: 'Erro ao fazer logout',
+        erro: 'Não foi possível fazer logout. Tente novamente.',
       };
     }
 
@@ -434,7 +435,7 @@ export const fazerLogout = async (): Promise<ResultadoAuth<void>> => {
     console.error('Erro no logout:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao fazer logout',
+      erro: 'Ocorreu um erro inesperado ao fazer logout. Tente novamente.',
     };
   }
 };
@@ -461,7 +462,7 @@ export const recuperarSenha = async (email: string): Promise<ResultadoAuth<void>
     console.error('Erro na recuperação de senha:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao enviar o email de recuperação',
+      erro: 'Ocorreu um erro inesperado ao enviar o email de recuperação. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -488,7 +489,7 @@ export const atualizarSenha = async (novaSenha: string): Promise<ResultadoAuth<v
     console.error('Erro ao atualizar senha:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao atualizar a senha',
+      erro: 'Ocorreu um erro inesperado ao atualizar a senha. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -594,7 +595,7 @@ export const atualizarPerfil = async (
     console.error('Erro ao atualizar perfil:', erro);
     return {
       sucesso: false,
-      erro: 'Ocorreu um erro ao atualizar o perfil',
+      erro: 'Ocorreu um erro inesperado ao atualizar o perfil. Verifique sua conexão e tente novamente.',
     };
   }
 };
@@ -625,7 +626,7 @@ export const uploadFotoPerfil = async (
       console.error('Erro no upload:', error);
       return {
         sucesso: false,
-        erro: 'Erro ao fazer upload da foto',
+        erro: 'Não foi possível enviar a foto. Verifique se o arquivo é uma imagem válida e tente novamente.',
       };
     }
 
@@ -648,7 +649,99 @@ export const uploadFotoPerfil = async (
     console.error('Erro no upload:', erro);
     return {
       sucesso: false,
-      erro: 'Erro ao fazer upload da foto',
+      erro: 'Não foi possível enviar a foto. Verifique se o arquivo é uma imagem válida e tente novamente.',
+    };
+  }
+};
+
+/**
+ * Busca as configurações de privacidade do usuário
+ */
+export const buscarConfiguracoes = async (
+  usuarioId: string
+): Promise<ResultadoAuth<ConfiguracoesPrivacidade>> => {
+  try {
+    const { data, error } = await supabase
+      .from('configuracoes_privacidade')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .single();
+
+    if (error) {
+      // Se não existe, retornar valores padrão
+      if (error.code === 'PGRST116') {
+        return {
+          sucesso: true,
+          dados: {
+            id: '',
+            usuario_id: usuarioId,
+            compartilhar_diario_psicologo: false,
+            mostrar_perfil_comunidade: true,
+            receber_notificacoes_push: true,
+            receber_notificacoes_email: true,
+            perfil_anonimo_comunidade: false,
+            created_at: null,
+            updated_at: null,
+          },
+        };
+      }
+
+      console.error('Erro ao buscar configurações:', error);
+      return {
+        sucesso: false,
+        erro: 'Não foi possível carregar as configurações.',
+      };
+    }
+
+    return {
+      sucesso: true,
+      dados: data as ConfiguracoesPrivacidade,
+    };
+  } catch (erro) {
+    console.error('Erro inesperado ao buscar configurações:', erro);
+    return {
+      sucesso: false,
+      erro: 'Erro inesperado ao carregar configurações. Verifique sua conexão.',
+    };
+  }
+};
+
+/**
+ * Atualiza as configurações de privacidade do usuário (cria se não existir)
+ */
+export const atualizarConfiguracoes = async (
+  usuarioId: string,
+  dados: Partial<ConfiguracoesPrivacidade>
+): Promise<ResultadoAuth<ConfiguracoesPrivacidade>> => {
+  try {
+    const { id, created_at, updated_at, ...dadosAtualizaveis } = dados;
+
+    const { data, error } = await supabase
+      .from('configuracoes_privacidade')
+      .upsert(
+        { usuario_id: usuarioId, ...dadosAtualizaveis },
+        { onConflict: 'usuario_id' }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar configurações:', error);
+      return {
+        sucesso: false,
+        erro: 'Não foi possível salvar as configurações.',
+      };
+    }
+
+    return {
+      sucesso: true,
+      dados: data as ConfiguracoesPrivacidade,
+    };
+  } catch (erro) {
+    console.error('Erro inesperado ao atualizar configurações:', erro);
+    return {
+      sucesso: false,
+      erro: 'Erro inesperado ao salvar configurações. Verifique sua conexão.',
     };
   }
 };

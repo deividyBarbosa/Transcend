@@ -4,9 +4,8 @@
 // Tipos enumerados
 export type TipoUsuario = 'pessoa_trans' | 'psicologo' | 'moderador' | 'admin';
 export type Genero = 'mulher_trans' | 'homem_trans' | 'nao_binario' | 'outro';
-export type ViaAdministracao = 'injetavel' | 'gel' | 'adesivo' | 'oral' | 'sublingual';
-export type TipoHormonio = 'estradiol' | 'testosterona' | 'progesterona' | 'bloqueador';
 export type NivelHumor = 'feliz' | 'triste' | 'neutro' | 'ansioso' | 'irritado';
+export type StatusAplicacao = 'aplicado' | 'atrasado' | 'pendente';
 export type StatusSessao = 'agendada' | 'confirmada' | 'realizada' | 'cancelada' | 'remarcada';
 export type TipoNotificacao = 'lembrete_hormonio' | 'sessao_psicologo' | 'comunidade' | 'sistema' | 'conquista';
 
@@ -85,16 +84,13 @@ export interface Database {
           id: string;
           usuario_id: string;
           nome: string;
-          tipo_hormonio: TipoHormonio;
-          medicamento: string;
           dosagem: string;
-          via_administracao: ViaAdministracao;
-          frequencia_dias: number;
+          unidade_dosagem: string;
+          frequencia: string;
+          modo_aplicacao: string;
           horario_preferencial: string | null;
+          dias_semana: number[] | null;
           data_inicio: string;
-          data_fim: string | null;
-          medico_responsavel: string | null;
-          crm_medico: string | null;
           observacoes: string | null;
           ativo: boolean;
           created_at: string;
@@ -111,14 +107,14 @@ export interface Database {
           plano_id: string;
           usuario_id: string;
           data_aplicacao: string;
-          dosagem_aplicada: string | null;
+          horario_previsto: string | null;
+          horario_aplicado: string | null;
+          status: StatusAplicacao;
+          atraso: number;
           local_aplicacao: string | null;
-          lote_medicamento: string | null;
-          efeitos_colaterais: string | null;
-          nivel_dor: number | null;
-          humor_pos_aplicacao: NivelHumor | null;
-          notas: string | null;
-          foto_comprovante_url: string | null;
+          efeitos_colaterais: string[] | null;
+          humor: number | null;
+          observacoes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -151,15 +147,10 @@ export interface Database {
           id: string;
           usuario_id: string;
           data_entrada: string;
-          titulo: string | null;
           conteudo: string;
           humor: NivelHumor | null;
-          energia: number | null;
-          ansiedade: number | null;
-          disforia: number | null;
-          euforia: number | null;
-          qualidade_sono: number | null;
           tags: string[] | null;
+          foto_url: string | null;
           compartilhado_psicologo: boolean;
           privado: boolean;
           created_at: string;
@@ -167,24 +158,6 @@ export interface Database {
         };
         Insert: Omit<Database['public']['Tables']['diario_entradas']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['diario_entradas']['Insert']>;
-      };
-
-      // Fotos do diário
-      diario_fotos: {
-        Row: {
-          id: string;
-          entrada_id: string | null;
-          usuario_id: string;
-          foto_url: string;
-          foto_url_encrypted: string | null;
-          descricao: string | null;
-          categoria: string | null;
-          data_foto: string;
-          privado: boolean;
-          created_at: string;
-        };
-        Insert: Omit<Database['public']['Tables']['diario_fotos']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['diario_fotos']['Insert']>;
       };
 
       // Sessões psicológicas

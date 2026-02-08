@@ -1,207 +1,255 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import Header from '@/components/Header';
 import ProfileOption from '@/components/ProfileOption';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { ConfiguracoesPrivacidade } from '@/types/auth';
+import {
+  obterUsuarioAtual,
+  buscarConfiguracoes,
+  atualizarConfiguracoes,
+  recuperarSenha,
+} from '@/services/auth';
+
+interface ToggleItemProps {
+  label: string;
+  valor: boolean;
+  onChange: (novoValor: boolean) => void;
+}
+
+function ToggleItem({ label, valor, onChange }: ToggleItemProps) {
+  return (
+    <View style={styles.toggleItem}>
+      <Text style={styles.toggleLabel}>{label}</Text>
+      <Switch
+        value={valor}
+        onValueChange={onChange}
+        trackColor={{ false: '#D0D0D0', true: colors.primary }}
+        thumbColor={colors.white}
+      />
+    </View>
+  );
+}
 
 export default function ConfiguracoesScreen() {
-  const router = useRouter();
+  const [carregando, setCarregando] = useState(true);
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [emailUsuario, setEmailUsuario] = useState('');
+  const [config, setConfig] = useState<ConfiguracoesPrivacidade>({
+    id: '',
+    usuario_id: '',
+    compartilhar_diario_psicologo: false,
+    mostrar_perfil_comunidade: true,
+    receber_notificacoes_push: true,
+    receber_notificacoes_email: true,
+    perfil_anonimo_comunidade: false,
+    created_at: null,
+    updated_at: null,
+  });
 
-  // Estados das configurações
-  const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
-  const [lembreteAplicacao, setLembreteAplicacao] = useState(true);
-  const [lembreteConsulta, setLembreteConsulta] = useState(true);
-  const [lembreteDiario, setLembreteDiario] = useState(false);
+  useEffect(() => {
+    const carregar = async () => {
+      const usuario = await obterUsuarioAtual();
+      if (usuario) {
+        setUsuarioId(usuario.id);
+        setEmailUsuario(usuario.email);
 
-  const handleAntecedenciaLembrete = () => {
+        const resultado = await buscarConfiguracoes(usuario.id);
+        if (resultado.sucesso && resultado.dados) {
+          setConfig(resultado.dados);
+        }
+      }
+      setCarregando(false);
+    };
+    carregar();
+  }, []);
+
+  const atualizarToggle = useCallback(
+    async (campo: keyof ConfiguracoesPrivacidade, valor: boolean) => {
+      if (!usuarioId) return;
+
+      setConfig(prev => ({ ...prev, [campo]: valor }));
+
+      const resultado = await atualizarConfiguracoes(usuarioId, {
+        [campo]: valor,
+      });
+
+      if (!resultado.sucesso) {
+        // Reverter em caso de erro
+        setConfig(prev => ({ ...prev, [campo]: !valor }));
+        Alert.alert('Erro', resultado.erro || 'Não foi possível salvar.');
+      }
+    },
+    [usuarioId]
+  );
+
+  const handleAlterarSenha = useCallback(async () => {
+    if (!emailUsuario) return;
+
     Alert.alert(
-      'Antecedência do Lembrete',
-      'Escolha com quanto tempo de antecedência deseja ser lembrado',
+      'Alterar Senha',
+      `Enviaremos um email de recuperação para ${emailUsuario}. Deseja continuar?`,
       [
-        { text: '15 minutos', onPress: () => console.log('15min') },
-        { text: '30 minutos', onPress: () => console.log('30min') },
-        { text: '1 hora', onPress: () => console.log('1h') },
         { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Enviar',
+          onPress: async () => {
+            const resultado = await recuperarSenha(emailUsuario);
+            if (resultado.sucesso) {
+              Alert.alert(
+                'Email enviado',
+                'Verifique sua caixa de entrada para redefinir a senha.'
+              );
+            } else {
+              Alert.alert('Erro', resultado.erro || 'Falha ao enviar email.');
+            }
+          },
+        },
       ]
     );
-  };
+  }, [emailUsuario]);
 
-  const handleExportarDados = () => {
+  const handleExcluirConta = useCallback(() => {
     Alert.alert(
-      'Exportar Dados',
-      'Seus dados serão exportados em formato PDF',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Exportar',
-          onPress: () => Alert.alert('Sucesso', 'Funcionalidade em desenvolvimento'),
-        },
-      ]
-    );
-  };
-
-  const handleApagarHistorico = () => {
-    Alert.alert(
-      'Apagar Histórico',
-      'Tem certeza? Esta ação não pode ser desfeita.',
+      'Excluir Conta',
+      'Tem certeza que deseja excluir sua conta? Essa ação é irreversível e todos os seus dados serão perdidos.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Apagar',
+          text: 'Excluir',
           style: 'destructive',
-          onPress: () => Alert.alert('Histórico apagado', 'Funcionalidade em desenvolvimento'),
+          onPress: () => {
+            Alert.alert(
+              'Confirmar Exclusão',
+              'Esta é sua última chance. Deseja realmente excluir sua conta permanentemente?',
+              [
+                { text: 'Não, manter conta', style: 'cancel' },
+                {
+                  text: 'Sim, excluir',
+                  style: 'destructive',
+                  onPress: () => {
+                    Alert.alert(
+                      'Em desenvolvimento',
+                      'A exclusão de conta será implementada em breve.'
+                    );
+                  },
+                },
+              ]
+            );
+          },
         },
       ]
     );
-  };
+  }, []);
 
-//   const handleBiometria = () => {
-//     Alert.alert('Biometria', 'Funcionalidade em desenvolvimento');
-//   };
+  const handleTema = useCallback(() => {
+    Alert.alert('Em desenvolvimento', 'O tema escuro será implementado em breve!');
+  }, []);
+
+  if (carregando) {
+    return (
+      <View style={styles.container}>
+        <Header title="Configurações" showBackButton />
+        <View style={styles.carregandoContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <View style={styles.container}>
       <Header title="Configurações" showBackButton />
 
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Notificações */}
-        <Text style={styles.sectionTitle}>Notificações</Text>
-
+        {/* Privacidade */}
+        <Text style={styles.sectionTitle}>Privacidade</Text>
         <View style={styles.card}>
-          <View style={styles.switchRow}>
-            <View style={styles.switchLeft}>
-              <Ionicons name="notifications-outline" size={20} color={colors.text} />
-              <Text style={styles.switchLabel}>Notificações</Text>
-            </View>
-            <Switch
-              value={notificacoesAtivas}
-              onValueChange={setNotificacoesAtivas}
-              trackColor={{ false: '#E0E0E0', true: colors.primary + '80' }}
-              thumbColor={notificacoesAtivas ? colors.primary : '#f4f3f4'}
-            />
-          </View>
-
-          {notificacoesAtivas && (
-            <>
-              <View style={styles.divider} />
-
-              <View style={styles.switchRow}>
-                <View style={styles.switchLeft}>
-                  <Ionicons name="medical-outline" size={20} color={colors.text} />
-                  <Text style={styles.switchLabel}>Lembrete de aplicação</Text>
-                </View>
-                <Switch
-                  value={lembreteAplicacao}
-                  onValueChange={setLembreteAplicacao}
-                  trackColor={{ false: '#E0E0E0', true: colors.primary + '80' }}
-                  thumbColor={lembreteAplicacao ? colors.primary : '#f4f3f4'}
-                />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.switchRow}>
-                <View style={styles.switchLeft}>
-                  <Ionicons name="calendar-outline" size={20} color={colors.text} />
-                  <Text style={styles.switchLabel}>Lembrete de consulta</Text>
-                </View>
-                <Switch
-                  value={lembreteConsulta}
-                  onValueChange={setLembreteConsulta}
-                  trackColor={{ false: '#E0E0E0', true: colors.primary + '80' }}
-                  thumbColor={lembreteConsulta ? colors.primary : '#f4f3f4'}
-                />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.switchRow}>
-                <View style={styles.switchLeft}>
-                  <Ionicons name="book-outline" size={20} color={colors.text} />
-                  <Text style={styles.switchLabel}>Lembrete de diário</Text>
-                </View>
-                <Switch
-                  value={lembreteDiario}
-                  onValueChange={setLembreteDiario}
-                  trackColor={{ false: '#E0E0E0', true: colors.primary + '80' }}
-                  thumbColor={lembreteDiario ? colors.primary : '#f4f3f4'}
-                />
-              </View>
-
-              <View style={styles.divider} />
-
-              <TouchableOpacity
-                style={styles.optionRow}
-                onPress={handleAntecedenciaLembrete}
-              >
-                <View style={styles.switchLeft}>
-                  <Ionicons name="time-outline" size={20} color={colors.text} />
-                  <Text style={styles.switchLabel}>Antecedência do lembrete</Text>
-                </View>
-                <View style={styles.optionRight}>
-                  <Text style={styles.optionValue}>30 min</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
+          <ToggleItem
+            label="Compartilhar diário com psicólogo"
+            valor={config.compartilhar_diario_psicologo ?? false}
+            onChange={(v) => atualizarToggle('compartilhar_diario_psicologo', v)}
+          />
+          <ToggleItem
+            label="Mostrar perfil na comunidade"
+            valor={config.mostrar_perfil_comunidade ?? true}
+            onChange={(v) => atualizarToggle('mostrar_perfil_comunidade', v)}
+          />
+          <ToggleItem
+            label="Perfil anônimo na comunidade"
+            valor={config.perfil_anonimo_comunidade ?? false}
+            onChange={(v) => atualizarToggle('perfil_anonimo_comunidade', v)}
+          />
         </View>
 
-        {/* acho que não vai dar tempo mas vou deixar aqui */
-        
-        /* Privacidade
-        <Text style={styles.sectionTitle}>Privacidade</Text>
+        {/* Notificações */}
+        <Text style={styles.sectionTitle}>Notificações</Text>
+        <View style={styles.card}>
+          <ToggleItem
+            label="Notificações push"
+            valor={config.receber_notificacoes_push ?? true}
+            onChange={(v) => atualizarToggle('receber_notificacoes_push', v)}
+          />
+          <ToggleItem
+            label="Notificações por email"
+            valor={config.receber_notificacoes_email ?? true}
+            onChange={(v) => atualizarToggle('receber_notificacoes_email', v)}
+          />
+        </View>
 
+        {/* Conta */}
+        <Text style={styles.sectionTitle}>Conta</Text>
         <ProfileOption
           icon="lock-closed-outline"
-          title="Bloquear com Biometria"
-          subtitle="Use digital ou Face ID para desbloquear"
-          onPress={handleBiometria}
-        /> */}
-
-        {/* Dados */}
-        <Text style={styles.sectionTitle}>Dados</Text>
-
+          title="Alterar Senha"
+          subtitle="Enviar email de recuperação"
+          onPress={handleAlterarSenha}
+        />
         <ProfileOption
           icon="trash-outline"
-          title="Apagar Histórico"
-          subtitle="Remove todo o histórico de aplicações"
-          onPress={handleApagarHistorico}
+          title="Excluir Conta"
+          subtitle="Remover permanentemente sua conta"
+          onPress={handleExcluirConta}
           color="#F44336"
         />
 
-        {/* Sobre */}
-        <Text style={styles.sectionTitle}>Sobre</Text>
-
+        {/* Aparência */}
+        <Text style={styles.sectionTitle}>Aparência</Text>
         <ProfileOption
-          icon="information-circle-outline"
-          title="Versão do App"
-          subtitle="1.0.0"
-          onPress={() => {}}
-          showChevron={false}
+          icon="color-palette-outline"
+          title="Tema"
+          subtitle="Claro"
+          onPress={handleTema}
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  container: {
+  carregandoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollView: {
     flex: 1,
   },
   content: {
@@ -219,44 +267,22 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  switchRow: {
+  toggleItem: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  switchLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  switchLabel: {
-    fontFamily: fonts.regular,
+  toggleLabel: {
+    fontFamily: fonts.medium,
     fontSize: 15,
     color: colors.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-    marginVertical: 8,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  optionRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  optionValue: {
-    fontFamily: fonts.medium,
-    fontSize: 14,
-    color: colors.muted,
+    flex: 1,
+    marginRight: 12,
   },
 });

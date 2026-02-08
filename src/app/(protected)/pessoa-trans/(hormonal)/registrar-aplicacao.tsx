@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,9 @@ import Button from '@/components/Button';
 import SelectModal from '@/components/SelectModal';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
+import { supabase } from '@/utils/supabase';
+import { registrarAplicacao, buscarPlanosAtivos } from '@/services/planoHormonal';
+import type { PlanoHormonal } from '@/types/planoHormonal';
 
 // Opções para os selects
 const EFEITOS_COLATERAIS = [
@@ -42,7 +45,33 @@ export default function RegistrarAplicacaoScreen() {
   const data = params.data as string || new Date().toISOString().split('T')[0];
   const horario = params.horario as string || '08:00';
   const modoAplicacao = params.modoAplicacao as string || 'Oral';
-  
+
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [planoIdResolvido, setPlanoIdResolvido] = useState(params.planoId as string || '');
+  const [planosAtivos, setPlanosAtivos] = useState<PlanoHormonal[]>([]);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    const inicializar = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+
+      setUsuarioId(data.user.id);
+
+      // Se planoId não veio como param, buscar planos ativos
+      if (!params.planoId) {
+        const resultado = await buscarPlanosAtivos(data.user.id);
+        if (resultado.sucesso && resultado.dados) {
+          setPlanosAtivos(resultado.dados);
+          if (resultado.dados.length === 1) {
+            setPlanoIdResolvido(resultado.dados[0].id);
+          }
+        }
+      }
+    };
+    inicializar();
+  }, []);
+
   // Estados
   const [horarioReal, setHorarioReal] = useState('');
   const [localAplicacao, setLocalAplicacao] = useState('');
@@ -56,30 +85,84 @@ export default function RegistrarAplicacaoScreen() {
   
   const mostrarCampoLocal = modoAplicacao === 'Injetável';
   
-  const handleAplicadoAgora = () => {
+  const salvarAplicacao = async (planoId: string, uid?: string) => {
+    const userId = uid || usuarioId;
+    if (!userId) return;
+
     const agora = new Date();
     const horarioAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
-    
-    const registro = {
-      hormonio,
-      data,
-      horarioPrevisto: horario,
-      horarioReal: horarioAtual,
-      localAplicacao,
-      efeitosColaterais,
+    const horarioAplicado = horarioReal || horarioAtual;
+
+    setSalvando(true);
+
+    const resultado = await registrarAplicacao({
+      plano_id: planoId,
+      usuario_id: userId,
+      data_aplicacao: data,
+      horario_previsto: horario,
+      horario_aplicado: horarioAplicado,
+      status: 'aplicado',
+      local_aplicacao: localAplicacao || null,
+      efeitos_colaterais: efeitosColaterais.length > 0 ? efeitosColaterais : null,
       humor,
-      observacoes,
-      aplicado: true,
-    };
-    
-    // TO-DO: Salvar no Supabase
-    console.log('Aplicação registrada:', registro);
-    
+      observacoes: observacoes || null,
+    });
+
+    setSalvando(false);
+
+    if (!resultado.sucesso) {
+      Alert.alert('Erro', resultado.erro || 'Não foi possível registrar a aplicação.');
+      return;
+    }
+
     Alert.alert(
       'Aplicação Registrada!',
-      `${hormonio} aplicado às ${horarioAtual}`,
+      `${hormonio} aplicado às ${horarioAplicado}`,
       [{ text: 'OK', onPress: () => router.back() }]
     );
+  };
+
+  const handleAplicadoAgora = async () => {
+    // Buscar usuário se ainda não temos
+    let uid = usuarioId;
+    if (!uid) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        Alert.alert('Erro', 'Você precisa estar autenticado. Faça login novamente.');
+        return;
+      }
+      uid = userData.user.id;
+      setUsuarioId(uid);
+    }
+
+    // Se já temos o planoId resolvido, salvar direto
+    if (planoIdResolvido) {
+      await salvarAplicacao(planoIdResolvido, uid);
+      return;
+    }
+
+    // Buscar planos ativos agora (não depender do useEffect)
+    const resultado = await buscarPlanosAtivos(uid);
+    if (!resultado.sucesso || !resultado.dados || resultado.dados.length === 0) {
+      Alert.alert('Erro', 'Nenhum plano hormonal ativo encontrado. Adicione um medicamento primeiro.');
+      return;
+    }
+
+    const planos = resultado.dados;
+
+    if (planos.length === 1) {
+      setPlanoIdResolvido(planos[0].id);
+      await salvarAplicacao(planos[0].id, uid);
+      return;
+    }
+
+    // Múltiplos planos ativos: deixar o usuário escolher
+    const botoes = planos.map(plano => ({
+      text: `${plano.nome} (${plano.dosagem}${plano.unidade_dosagem})`,
+      onPress: () => salvarAplicacao(plano.id, uid),
+    }));
+    botoes.push({ text: 'Cancelar', onPress: () => {} });
+    Alert.alert('Qual medicamento?', 'Selecione o plano para esta aplicação', botoes);
   };
   
   const handleAplicarDepois = () => {
@@ -248,8 +331,9 @@ export default function RegistrarAplicacaoScreen() {
             {/* Botões de Ação */}
             <View style={styles.buttonContainer}>
               <Button
-                title="✓ Aplicado Agora"
+                title={salvando ? 'Registrando...' : '✓ Aplicado Agora'}
                 onPress={handleAplicadoAgora}
+                disabled={salvando}
               />
               
               <View style={{ marginTop: 12 }}>

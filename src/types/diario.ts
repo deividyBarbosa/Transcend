@@ -19,11 +19,9 @@ export interface EntradaDiario {
   data_entrada: string;
   conteudo: string;
   humor: NivelHumor | null;
-  tipo: TipoEntrada;
-  is_importante: boolean;
+  foto_url: string | null;
   privado: boolean | null;
   compartilhado_psicologo: boolean | null;
-  compartilhado_em: string | null;
   tags: string[] | null;
   created_at: string | null;
   updated_at: string | null;
@@ -35,9 +33,8 @@ export interface DadosCriarEntrada {
   data_entrada: string;
   conteudo: string;
   humor?: NivelHumor | null;
-  tipo?: TipoEntrada;
-  is_importante?: boolean;
   tags?: string[] | null;
+  foto_url?: string | null;
   compartilhado_psicologo?: boolean;
   privado?: boolean;
 }
@@ -46,48 +43,25 @@ export interface DadosCriarEntrada {
 export interface DadosAtualizarEntrada {
   conteudo?: string;
   humor?: NivelHumor | null;
-  tipo?: TipoEntrada;
-  is_importante?: boolean;
   tags?: string[] | null;
+  foto_url?: string | null;
   compartilhado_psicologo?: boolean;
   privado?: boolean;
-}
-
-// Foto do diário (tabela diario_fotos)
-export interface FotoDiario {
-  id: string;
-  entrada_id: string | null;
-  usuario_id: string;
-  foto_url: string;
-  foto_url_encrypted: string | null;
-  descricao: string | null;
-  categoria: string | null;
-  data_foto: string;
-  privado: boolean | null;
-  created_at: string;
-}
-
-// Dados para upload de foto do diário
-export interface DadosUploadFoto {
-  usuario_id: string;
-  entrada_id?: string | null;
-  descricao?: string | null;
-  categoria?: string | null;
-  data_foto: string;
-  privado?: boolean;
-}
-
-// Arquivo de foto para upload via Storage
-export interface ArquivoFoto {
-  uri: string;
-  name: string;
-  type: string;
 }
 
 // Médias emocionais para relatório (baseado em campos disponíveis)
 export interface MediasEmocionais {
   humor_contagem: Record<NivelHumor, number>;
   humor_predominante: NivelHumor | null;
+}
+
+// Tendência emocional (comparação entre períodos)
+export interface TendenciaEmocional {
+  campo: string;
+  valor_atual: number | null;
+  valor_anterior: number | null;
+  variacao: number | null;
+  direcao: 'melhorou' | 'piorou' | 'estavel' | 'sem_dados';
 }
 
 // Relatório emocional

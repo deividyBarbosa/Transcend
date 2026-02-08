@@ -8,15 +8,15 @@ interface DetalhesAplicacaoModalProps {
   visible: boolean;
   onClose: () => void;
   aplicacao: {
-    data: string;
-    horarioPrevisto: string;
-    horarioAplicado: string;
+    data_aplicacao: string;
+    horario_previsto: string | null;
+    horario_aplicado: string | null;
     status: string;
     atraso: number;
-    localAplicacao?: string;
-    efeitosColaterais?: string[];
-    humor?: number;
-    observacoes?: string;
+    local_aplicacao?: string | null;
+    efeitos_colaterais?: string[] | null;
+    humor?: number | null;
+    observacoes?: string | null;
   } | null;
 }
 
@@ -67,7 +67,7 @@ export default function DetalhesAplicacaoModal({
             {/* Data */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Data</Text>
-              <Text style={styles.sectionValue}>{formatarData(aplicacao.data)}</Text>
+              <Text style={styles.sectionValue}>{formatarData(aplicacao.data_aplicacao)}</Text>
             </View>
 
             {/* Horários */}
@@ -76,12 +76,12 @@ export default function DetalhesAplicacaoModal({
               <View style={styles.horarioRow}>
                 <View style={styles.horarioItem}>
                   <Text style={styles.horarioLabel}>Previsto</Text>
-                  <Text style={styles.horarioValue}>{aplicacao.horarioPrevisto}</Text>
+                  <Text style={styles.horarioValue}>{aplicacao.horario_previsto || '--:--'}</Text>
                 </View>
                 <View style={styles.horarioItem}>
                   <Text style={styles.horarioLabel}>Aplicado</Text>
                   <Text style={[styles.horarioValue, { color: getStatusColor(aplicacao.status) }]}>
-                    {aplicacao.horarioAplicado}
+                    {aplicacao.horario_aplicado || '--:--'}
                   </Text>
                 </View>
               </View>
@@ -91,10 +91,10 @@ export default function DetalhesAplicacaoModal({
             </View>
 
             {/* Local de Aplicação */}
-            {aplicacao.localAplicacao && (
+            {aplicacao.local_aplicacao && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Local de Aplicação</Text>
-                <Text style={styles.sectionValue}>{aplicacao.localAplicacao}</Text>
+                <Text style={styles.sectionValue}>{aplicacao.local_aplicacao}</Text>
               </View>
             )}
 
@@ -103,7 +103,7 @@ export default function DetalhesAplicacaoModal({
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Humor</Text>
                 <View style={styles.humorContainer}>
-                  <Ionicons 
+                  <Ionicons
                     name={getHumorEmoji(aplicacao.humor) as any}
                     size={32}
                     color={colors.primary}
@@ -113,10 +113,10 @@ export default function DetalhesAplicacaoModal({
             )}
 
             {/* Efeitos Colaterais */}
-            {aplicacao.efeitosColaterais && aplicacao.efeitosColaterais.length > 0 && (
+            {aplicacao.efeitos_colaterais && aplicacao.efeitos_colaterais.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Efeitos Colaterais</Text>
-                {aplicacao.efeitosColaterais.map((efeito, index) => (
+                {aplicacao.efeitos_colaterais.map((efeito, index) => (
                   <View key={index} style={styles.efeitoItem}>
                     <Ionicons name="alert-circle-outline" size={16} color={colors.primary} />
                     <Text style={styles.efeitoText}>{efeito}</Text>

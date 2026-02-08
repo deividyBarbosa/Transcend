@@ -68,6 +68,7 @@ export type Database = {
           humor: number | null
           id: string
           local_aplicacao: string | null
+          observacoes: string | null
           plano_id: string
           status: Database["public"]["Enums"]["status_aplicacao"]
           updated_at: string | null
@@ -84,6 +85,7 @@ export type Database = {
           humor?: number | null
           id?: string
           local_aplicacao?: string | null
+          observacoes?: string | null
           plano_id: string
           status?: Database["public"]["Enums"]["status_aplicacao"]
           updated_at?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           humor?: number | null
           id?: string
           local_aplicacao?: string | null
+          observacoes?: string | null
           plano_id?: string
           status?: Database["public"]["Enums"]["status_aplicacao"]
           updated_at?: string | null
@@ -396,6 +399,7 @@ export type Database = {
           conteudo: string
           created_at: string | null
           data_entrada: string
+          foto_url: string | null
           humor: Database["public"]["Enums"]["nivel_humor"] | null
           id: string
           is_importante: boolean
@@ -411,6 +415,7 @@ export type Database = {
           conteudo: string
           created_at?: string | null
           data_entrada?: string
+          foto_url?: string | null
           humor?: Database["public"]["Enums"]["nivel_humor"] | null
           id?: string
           is_importante?: boolean
@@ -426,6 +431,7 @@ export type Database = {
           conteudo?: string
           created_at?: string | null
           data_entrada?: string
+          foto_url?: string | null
           humor?: Database["public"]["Enums"]["nivel_humor"] | null
           id?: string
           is_importante?: boolean
@@ -445,67 +451,6 @@ export type Database = {
           },
           {
             foreignKeyName: "diario_entradas_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "perfis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      diario_fotos: {
-        Row: {
-          categoria: string | null
-          created_at: string
-          data_foto: string
-          descricao: string | null
-          entrada_id: string | null
-          foto_url: string
-          foto_url_encrypted: string | null
-          id: string
-          privado: boolean | null
-          usuario_id: string
-        }
-        Insert: {
-          categoria?: string | null
-          created_at?: string
-          data_foto?: string
-          descricao?: string | null
-          entrada_id?: string | null
-          foto_url: string
-          foto_url_encrypted?: string | null
-          id?: string
-          privado?: boolean | null
-          usuario_id: string
-        }
-        Update: {
-          categoria?: string | null
-          created_at?: string
-          data_foto?: string
-          descricao?: string | null
-          entrada_id?: string | null
-          foto_url?: string
-          foto_url_encrypted?: string | null
-          id?: string
-          privado?: boolean | null
-          usuario_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "diario_fotos_entrada_id_fkey1"
-            columns: ["entrada_id"]
-            isOneToOne: false
-            referencedRelation: "diario_entradas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "diario_fotos_usuario_id_fkey1"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "bem_estar_hoje"
-            referencedColumns: ["usuario_id"]
-          },
-          {
-            foreignKeyName: "diario_fotos_usuario_id_fkey1"
             columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "perfis"
@@ -817,8 +762,6 @@ export type Database = {
           frequencia: string
           horario_preferencial: string | null
           id: string
-          local_aplicacao: string | null
-          medico_responsavel: string | null
           modo_aplicacao: string
           nome: string
           observacoes: string | null
@@ -835,8 +778,6 @@ export type Database = {
           frequencia?: string
           horario_preferencial?: string | null
           id?: string
-          local_aplicacao?: string | null
-          medico_responsavel?: string | null
           modo_aplicacao?: string
           nome: string
           observacoes?: string | null
@@ -853,8 +794,6 @@ export type Database = {
           frequencia?: string
           horario_preferencial?: string | null
           id?: string
-          local_aplicacao?: string | null
-          medico_responsavel?: string | null
           modo_aplicacao?: string
           nome?: string
           observacoes?: string | null
@@ -1160,6 +1099,16 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_diario_criptografado: {
+        Args: {
+          p_conteudo?: string
+          p_entrada_id: string
+          p_humor?: string
+          p_is_importante?: boolean
+          p_tags?: string[]
+        }
+        Returns: boolean
+      }
       atualizar_perfil_psicologo: {
         Args: {
           p_anos_experiencia?: number
@@ -1171,9 +1120,36 @@ export type Database = {
         }
         Returns: Json
       }
+      buscar_anotacoes_psicologo: {
+        Args: { p_sessao_id: string }
+        Returns: {
+          conteudo: string
+          created_at: string
+          id: string
+          sessao_id: string
+          updated_at: string
+        }[]
+      }
       buscar_dados_tela_inicial: {
         Args: { p_usuario_id: string }
         Returns: Json
+      }
+      buscar_diario_descriptografado: {
+        Args: { p_data_fim?: string; p_data_inicio?: string; p_limite?: number }
+        Returns: {
+          compartilhado_em: string
+          compartilhado_psicologo: boolean
+          conteudo: string
+          created_at: string
+          data_entrada: string
+          humor: string
+          id: string
+          is_importante: boolean
+          privado: boolean
+          tags: string[]
+          tipo: string
+          updated_at: string
+        }[]
       }
       buscar_historico_chats_paciente: {
         Args: { p_paciente_id: string }
@@ -1200,6 +1176,19 @@ export type Database = {
         }
         Returns: Json
       }
+      buscar_mensagens_descriptografadas: {
+        Args: { p_conversa_id: string; p_limite?: number; p_offset?: number }
+        Returns: {
+          conteudo: string
+          conversa_id: string
+          created_at: string
+          id: string
+          lida: boolean
+          lida_em: string
+          remetente_id: string
+          tipo: string
+        }[]
+      }
       buscar_meu_perfil_psicologo: {
         Args: { p_usuario_id: string }
         Returns: Json
@@ -1221,10 +1210,40 @@ export type Database = {
         }
         Returns: Json
       }
+      enviar_mensagem_criptografada: {
+        Args: { p_conteudo: string; p_conversa_id: string; p_tipo?: string }
+        Returns: string
+      }
+      excluir_diario: { Args: { p_entrada_id: string }; Returns: boolean }
       get_encryption_key: { Args: never; Returns: string }
       marcar_mensagens_lidas: {
         Args: { p_conversa_id: string; p_usuario_id: string }
         Returns: undefined
+      }
+      migrar_diario_para_criptografado: {
+        Args: never
+        Returns: {
+          migrados: number
+        }[]
+      }
+      salvar_anotacao_psicologo: {
+        Args: { p_conteudo: string; p_sessao_id: string }
+        Returns: string
+      }
+      salvar_diario_criptografado: {
+        Args: {
+          p_conteudo: string
+          p_data_entrada: string
+          p_humor?: string
+          p_privado?: boolean
+          p_tags?: string[]
+          p_tipo?: string
+        }
+        Returns: string
+      }
+      salvar_nota_paciente_sessao: {
+        Args: { p_notas: string; p_sessao_id: string }
+        Returns: boolean
       }
     }
     Enums: {

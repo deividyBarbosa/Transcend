@@ -32,7 +32,7 @@ interface Perfil {
 const MOCK_PERFIL: Perfil = {
   id: "1",
   nome: "Dra. Valéria Almeida",
-  foto: require("../../../assets/val-almeida.png"),
+  foto: require("@/assets/val-almeida.png"),
   crp: "CRP 06/123456",
   titulo: "PSICÓLOGA CLÍNICA",
   descricao:
