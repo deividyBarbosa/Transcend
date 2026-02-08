@@ -10,6 +10,13 @@ import {
   Resultado,
 } from '../types/planoHormonal';
 
+const FREQUENCIA_PARA_DIAS: Record<string, number> = {
+  'Diária': 1,
+  'Semanal': 7,
+  'Quinzenal': 15,
+  'Mensal': 30,
+};
+
 /**
  * Cria um novo plano hormonal
  */
@@ -23,38 +30,37 @@ export const criarPlano = async (
       return { sucesso: false, erro: 'Preencha o nome do plano para identificá-lo no seu histórico.' };
     }
 
-    if (!dados.medicamento || dados.medicamento.trim().length === 0) {
-      return { sucesso: false, erro: 'Informe o nome do medicamento que você utiliza.' };
-    }
-
     if (!dados.dosagem || dados.dosagem.trim().length === 0) {
-      return { sucesso: false, erro: 'Informe a dosagem do medicamento (ex: 20mg).' };
+      return { sucesso: false, erro: 'Informe a dosagem do medicamento (ex: 20).' };
     }
 
-    if (dados.frequencia_dias <= 0) {
-      return { sucesso: false, erro: 'A frequência de aplicação deve ser de pelo menos 1 dia. Verifique o valor informado.' };
+    if (!dados.frequencia || dados.frequencia.trim().length === 0) {
+      return { sucesso: false, erro: 'Informe a frequência de aplicação.' };
     }
+
+    const payloadPlano = {
+      usuario_id: dados.usuario_id,
+      nome: dados.nome,
+      dosagem: dados.dosagem,
+      unidade_dosagem: dados.unidade_dosagem,
+      frequencia: dados.frequencia,
+      modo_aplicacao: dados.modo_aplicacao,
+      horario_preferencial: dados.horario_preferencial ?? null,
+      dias_semana: dados.dias_semana ?? null,
+      data_inicio: dados.data_inicio,
+      observacoes: dados.observacoes ?? null,
+      ativo: true,
+    };
+
+    console.log('payload inserir plano:', payloadPlano);
 
     const { data, error } = await supabase
       .from('planos_hormonais')
-      .insert({
-        usuario_id: dados.usuario_id,
-        nome: dados.nome,
-        tipo_hormonio: dados.tipo_hormonio,
-        medicamento: dados.medicamento,
-        dosagem: dados.dosagem,
-        via_administracao: dados.via_administracao,
-        frequencia_dias: dados.frequencia_dias,
-        horario_preferencial: dados.horario_preferencial ?? null,
-        data_inicio: dados.data_inicio,
-        data_fim: dados.data_fim ?? null,
-        medico_responsavel: dados.medico_responsavel ?? null,
-        crm_medico: dados.crm_medico ?? null,
-        observacoes: dados.observacoes ?? null,
-        ativo: true,
-      })
+      .insert(payloadPlano)
       .select()
       .single();
+
+    console.log('supabase response criarPlano:', { data, error });
 
     if (error) {
       console.error('Erro ao criar plano hormonal:', error);
@@ -112,10 +118,6 @@ export const atualizarPlano = async (
       return { sucesso: false, erro: 'Nenhuma alteração foi detectada. Modifique ao menos um campo antes de salvar.' };
     }
 
-    if (dados.frequencia_dias !== undefined && dados.frequencia_dias <= 0) {
-      return { sucesso: false, erro: 'A frequência de aplicação deve ser de pelo menos 1 dia. Verifique o valor informado.' };
-    }
-
     const { data, error } = await supabase
       .from('planos_hormonais')
       .update(dados)
@@ -141,7 +143,7 @@ export const atualizarPlano = async (
 };
 
 /**
- * Desativa um plano hormonal (define ativo=false e data_fim=hoje)
+ * Desativa um plano hormonal (define ativo=false)
  */
 export const desativarPlano = async (
   planoId: string,
@@ -150,11 +152,9 @@ export const desativarPlano = async (
   try {
     console.log('Desativando plano hormonal:', planoId);
 
-    const hoje = new Date().toISOString().split('T')[0];
-
     const { data, error } = await supabase
       .from('planos_hormonais')
-      .update({ ativo: false, data_fim: hoje })
+      .update({ ativo: false })
       .eq('id', planoId)
       .eq('usuario_id', usuarioId)
       .select()
@@ -211,7 +211,7 @@ export const adicionarHormonio = async (
   dados: DadosCriarPlano
 ): Promise<Resultado<PlanoHormonal>> => {
   try {
-    console.log('Adicionando hormônio ao plano:', dados.medicamento);
+    console.log('Adicionando hormônio ao plano:', dados.nome);
     return await criarPlano(dados);
   } catch (erro) {
     console.error('Erro ao adicionar hormônio:', erro);
@@ -252,29 +252,28 @@ export const registrarAplicacao = async (
   try {
     console.log('Registrando aplicação hormonal:', dados.plano_id);
 
-    if (dados.nivel_dor !== undefined && dados.nivel_dor !== null) {
-      if (dados.nivel_dor < 0 || dados.nivel_dor > 10) {
-        return { sucesso: false, erro: 'O nível de dor deve ser um valor entre 0 (sem dor) e 10 (dor máxima).' };
-      }
-    }
+    const payloadAplicacao = {
+      plano_id: dados.plano_id,
+      usuario_id: dados.usuario_id,
+      data_aplicacao: dados.data_aplicacao,
+      horario_previsto: dados.horario_previsto ?? null,
+      horario_aplicado: dados.horario_aplicado ?? null,
+      status: dados.status ?? 'aplicado',
+      local_aplicacao: dados.local_aplicacao ?? null,
+      efeitos_colaterais: dados.efeitos_colaterais ?? null,
+      humor: dados.humor ?? null,
+      observacoes: dados.observacoes ?? null,
+    };
+
+    console.log('payload inserir aplicacao:', payloadAplicacao);
 
     const { data, error } = await supabase
       .from('aplicacoes_hormonais')
-      .insert({
-        plano_id: dados.plano_id,
-        usuario_id: dados.usuario_id,
-        data_aplicacao: dados.data_aplicacao,
-        dosagem_aplicada: dados.dosagem_aplicada ?? null,
-        local_aplicacao: dados.local_aplicacao ?? null,
-        lote_medicamento: dados.lote_medicamento ?? null,
-        efeitos_colaterais: dados.efeitos_colaterais ?? null,
-        nivel_dor: dados.nivel_dor ?? null,
-        humor_pos_aplicacao: dados.humor_pos_aplicacao ?? null,
-        notas: dados.notas ?? null,
-        foto_comprovante_url: dados.foto_comprovante_url ?? null,
-      })
+      .insert(payloadAplicacao)
       .select()
       .single();
+
+    console.log('supabase response registrarAplicacao:', { data, error });
 
     if (error) {
       console.error('Erro ao registrar aplicação:', error);
@@ -330,12 +329,13 @@ export const buscarProximasAplicacoes = async (
         .limit(1)
         .single();
 
+      const frequenciaDias = FREQUENCIA_PARA_DIAS[plano.frequencia] || 1;
       let proximaData: Date;
 
       if (ultimaAplicacao) {
         // Próxima = última aplicação + frequência em dias
         proximaData = new Date(ultimaAplicacao.data_aplicacao);
-        proximaData.setDate(proximaData.getDate() + plano.frequencia_dias);
+        proximaData.setDate(proximaData.getDate() + frequenciaDias);
       } else {
         // Sem aplicações: próxima = data de início do plano
         proximaData = new Date(plano.data_inicio);
@@ -417,12 +417,6 @@ export const marcarAplicacaoRealizada = async (
 ): Promise<Resultado<AplicacaoHormonal>> => {
   try {
     console.log('Marcando aplicação como realizada:', aplicacaoId);
-
-    if (dados.nivel_dor !== undefined && dados.nivel_dor !== null) {
-      if (dados.nivel_dor < 0 || dados.nivel_dor > 10) {
-        return { sucesso: false, erro: 'O nível de dor deve ser um valor entre 0 (sem dor) e 10 (dor máxima).' };
-      }
-    }
 
     const { data, error } = await supabase
       .from('aplicacoes_hormonais')

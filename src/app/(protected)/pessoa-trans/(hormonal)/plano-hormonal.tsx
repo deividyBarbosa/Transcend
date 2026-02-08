@@ -1,8 +1,9 @@
 // to-do: arrumar isso, acho que dá pra deixar mais legível
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
@@ -12,8 +13,11 @@ import MedicationCard from '@/components/MedicationCard';
 import Calendar from '@/components/Calendar';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HORMONIOS_MOCK, APLICACOES_MOCK, calcularEstatisticas, EVOLUCAO_MOCK } from '@/mocks/mockPlanoHormonal';
+import { APLICACOES_MOCK, calcularEstatisticas, EVOLUCAO_MOCK } from '@/mocks/mockPlanoHormonal';
 import EvolutionChart from '@/components/EvolutionChart';
+import { supabase } from '@/utils/supabase';
+import { buscarPlanosAtivos } from '@/services/planoHormonal';
+import type { PlanoHormonal } from '@/types/planoHormonal';
 
 const getMarkedDatesStatus = () => {
   const status: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } = {};
@@ -43,15 +47,33 @@ const getMarkedDatesStatus = () => {
 export default function PlanoHormonalScreen() {
   const router = useRouter();
 
-  const [planoAtual] = useState(HORMONIOS_MOCK);
+  const [planoAtual, setPlanoAtual] = useState<PlanoHormonal[]>([]);
+  const [carregando, setCarregando] = useState(true);
   const stats = calcularEstatisticas();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  // Função para buscar hormônio por ID
+  useFocusEffect(
+    useCallback(() => {
+      const carregar = async () => {
+        setCarregando(true);
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+          const resultado = await buscarPlanosAtivos(data.user.id);
+          if (resultado.sucesso && resultado.dados) {
+            setPlanoAtual(resultado.dados);
+          }
+        }
+        setCarregando(false);
+      };
+      carregar();
+    }, [])
+  );
+
+  // Função para buscar hormônio por ID (mock, para o calendário)
   const getHormonioPorId = (hormonioId: string) => {
-    return HORMONIOS_MOCK.find(h => h.id === hormonioId);
+    return planoAtual.find((h: PlanoHormonal) => h.id === hormonioId);
   };
 
   // Obter datas com aplicações para marcar no calendário
@@ -88,18 +110,19 @@ export default function PlanoHormonalScreen() {
       return h?.nome === nomeHormonio;
     });
     
-    const hormonio = HORMONIOS_MOCK.find(h => h.nome === nomeHormonio);
+    const hormonio = planoAtual.find(h => h.nome === nomeHormonio);
     
     if (!aplicacao || !hormonio) return;
     
     router.push({
       pathname: '/pessoa-trans/registrar-aplicacao',
       params: {
+        planoId: hormonio.id,
         hormonio: nomeHormonio,
         data: aplicacao.data,
         horario: aplicacao.horarioPrevisto,
-        dosagem: hormonio.dosagem + hormonio.unidadeDosagem,
-        modoAplicacao: hormonio.modoAplicacao,
+        dosagem: hormonio.dosagem + hormonio.unidade_dosagem,
+        modoAplicacao: hormonio.modo_aplicacao,
       }
     });
   };
@@ -155,7 +178,7 @@ export default function PlanoHormonalScreen() {
                   <MedicationCard
                     icon="medical-outline"
                     title={item.nome}
-                    subtitle={`${item.dosagem}${item.unidadeDosagem}/${item.frequencia.toLowerCase()}`}
+                    subtitle={`${item.dosagem}${item.unidade_dosagem}/${item.frequencia.toLowerCase()}`}
                   />
                   <View style={styles.cardActions}>
                     <TouchableOpacity onPress={() => router.push(`/pessoa-trans/detalhes-hormonio?id=${item.id}`)}>
@@ -163,15 +186,15 @@ export default function PlanoHormonalScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => router.push({
                       pathname: '/pessoa-trans/editar-medicamento',
-                      params: { 
-                        id: item.id, 
+                      params: {
+                        id: item.id,
                         nome: item.nome,
                         dosagem: item.dosagem,
-                        unidadeDosagem: item.unidadeDosagem,
+                        unidadeDosagem: item.unidade_dosagem,
                         frequencia: item.frequencia,
-                        modoAplicacao: item.modoAplicacao,
-                        horarioPreferencial: item.horarioPreferencial,
-                        observacoesMedicas: item.observacoesMedicas,
+                        modoAplicacao: item.modo_aplicacao,
+                        horarioPreferencial: item.horario_preferencial ?? '',
+                        observacoesMedicas: item.observacoes ?? '',
                       }
                     })}>
                       <Ionicons name="create-outline" size={20} color={colors.primary} />
@@ -230,7 +253,7 @@ export default function PlanoHormonalScreen() {
                       </View>
 
                       <Text style={styles.aplicacaoDosagem}>
-                        {hormonio.dosagem}{hormonio.unidadeDosagem}
+                        {hormonio.dosagem}{hormonio.unidade_dosagem}
                       </Text>
                       
                       <View style={styles.aplicacaoStatus}>
