@@ -11,6 +11,7 @@ interface CalendarProps {
   markedDates?: string[];
   selectedDay?: number;
   markedDatesStatus?: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' };
+  disableFutureDates?: boolean;
 }
 
 export default function Calendar({
@@ -21,6 +22,7 @@ export default function Calendar({
   markedDates = [],
   selectedDay,  
   markedDatesStatus,
+  disableFutureDates = false,
 }: CalendarProps) {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -52,7 +54,7 @@ export default function Calendar({
       const dateStr = formatDate(currentMonth.getFullYear(), currentMonth.getMonth(), day);
       const isToday = dateStr === todayStr;
       const hasEntry = isMarked(dateStr);
-      const isFuture = dateStr > todayStr;
+      const isFuture = disableFutureDates && (dateStr > todayStr);
 
       days.push(
         <TouchableOpacity

@@ -226,6 +226,7 @@ export default function DiarioScreen() {
           onNextMonth={handleNextMonth}
           onDayPress={handleDayPress}
           markedDates={Object.keys(entries)}
+          disableFutureDates={true}
         /> 
 
         <View style={styles.checkInSection}>
