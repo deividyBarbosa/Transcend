@@ -16,6 +16,7 @@ export interface PlanoHormonal {
   dosagem: string;
   unidade_dosagem: string;
   frequencia: string;
+  frequencia_dias?: number;
   modo_aplicacao: string;
   horario_preferencial: string | null;
   dias_semana: number[] | null;

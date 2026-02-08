@@ -14,12 +14,22 @@ import DetalhesAplicacaoModal from '@/components/DetalhesAplicacaoModal';
 import { supabase } from '@/utils/supabase';
 import { buscarHistoricoAplicacoes, buscarProximasAplicacoes } from '@/services/planoHormonal';
 import type { PlanoHormonal, AplicacaoHormonal, ProximaAplicacao } from '@/types/planoHormonal';
+import { dataLocalFormatada } from '@/utils/dataLocal';
 
 const FREQUENCIA_PARA_DIAS: Record<string, number> = {
   'Diária': 1,
   'Semanal': 7,
   'Quinzenal': 15,
   'Mensal': 30,
+};
+
+const parseDateUTC = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(s => parseInt(s, 10));
+    return new Date(Date.UTC(y, m - 1, d));
+  }
+  return new Date(dateStr);
 };
 
 export default function DetalhesHormonioScreen() {
@@ -77,7 +87,7 @@ export default function DetalhesHormonioScreen() {
         if (planoData) {
           const freqDias = FREQUENCIA_PARA_DIAS[planoData.frequencia] || 1;
           const hoje = new Date();
-          hoje.setHours(0, 0, 0, 0);
+          const hojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
 
           let proximaData: Date;
 
@@ -92,18 +102,18 @@ export default function DetalhesHormonioScreen() {
             .single();
 
           if (ultimaApp) {
-            proximaData = new Date(ultimaApp.data_aplicacao);
-            proximaData.setDate(proximaData.getDate() + freqDias);
+            proximaData = parseDateUTC(ultimaApp.data_aplicacao);
+            proximaData.setUTCDate(proximaData.getUTCDate() + freqDias);
           } else {
-            proximaData = new Date(planoData.data_inicio);
+            proximaData = parseDateUTC(planoData.data_inicio);
           }
-          proximaData.setHours(0, 0, 0, 0);
+          proximaData.setUTCHours(0, 0, 0, 0);
 
-          const diffMs = proximaData.getTime() - hoje.getTime();
+          const diffMs = proximaData.getTime() - hojeUTC.getTime();
           const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
           setProximaAplicacao({
-            data: proximaData.toISOString().split('T')[0],
+            data: dataLocalFormatada(proximaData),
             diasRestantes,
           });
         }
@@ -138,7 +148,7 @@ export default function DetalhesHormonioScreen() {
       params: {
         planoId: hormonio.id,
         hormonio: hormonio.nome,
-        data: proximaAplicacao?.data || new Date().toISOString().split('T')[0],
+        data: proximaAplicacao?.data || dataLocalFormatada(),
         horario: hormonio.horario_preferencial || '08:00',
         modoAplicacao: hormonio.modo_aplicacao,
       }

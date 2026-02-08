@@ -13,6 +13,7 @@ import {
   Resultado,
 } from '../types/diario';
 import { criptografar, descriptografar } from './crypto';
+import { dataLocalFormatada } from '../utils/dataLocal';
 
 /**
  * Criptografa o conteúdo e retorna o texto criptografado.
@@ -534,8 +535,8 @@ export const gerarRelatorioEmocional = async (
       .from('diario_entradas')
       .select('*')
       .eq('usuario_id', usuarioId)
-      .gte('data_entrada', inicioAnterior.toISOString().split('T')[0])
-      .lte('data_entrada', fimAnterior.toISOString().split('T')[0])
+      .gte('data_entrada', dataLocalFormatada(inicioAnterior))
+      .lte('data_entrada', dataLocalFormatada(fimAnterior))
       .order('data_entrada', { ascending: true });
 
     const anteriores = (entradasAnteriores || []) as EntradaDiario[];

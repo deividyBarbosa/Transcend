@@ -113,12 +113,12 @@ export const calcularEstatisticas = () => {
 // Função para obter próxima aplicação
 export const getProximaAplicacao = () => {
   const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  
-  // Mock: próxima aplicação em 3 dias
-  const proxima = new Date(hoje);
-  proxima.setDate(proxima.getDate() + 3);
-  
+  const hojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+
+  // Mock: próxima aplicação em 3 dias (UTC-safe)
+  const proxima = new Date(hojeUTC);
+  proxima.setUTCDate(proxima.getUTCDate() + 3);
+
   return {
     data: proxima.toISOString().split('T')[0],
     diasRestantes: 3,
@@ -129,7 +129,15 @@ export const getProximaAplicacao = () => {
 
 // Função para obter aplicações de hoje
 export const getAplicacoesHoje = () => {
-  const hoje = new Date().toISOString().split('T')[0];
+  const getLocalDateYYYYMMDD = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const hoje = getLocalDateYYYYMMDD();
   return APLICACOES_MOCK.filter(a => a.data === hoje);
 };
 

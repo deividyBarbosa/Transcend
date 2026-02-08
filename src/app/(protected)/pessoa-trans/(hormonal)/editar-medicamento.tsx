@@ -11,6 +11,7 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import { supabase } from '@/utils/supabase';
 import { criarPlano, atualizarPlano, removerHormonio } from '@/services/planoHormonal';
+import { dataLocalFormatada } from '@/utils/dataLocal';
 
 // Opções para os selects
 const MODOS_APLICACAO = [
@@ -160,7 +161,7 @@ export default function EditarMedicamentoScreen() {
         frequencia,
         horario_preferencial: horarioPreferencial || null,
         dias_semana: diasSemana.length > 0 ? diasSemana : null,
-        data_inicio: new Date().toISOString().split('T')[0],
+        data_inicio: dataLocalFormatada(),
         observacoes: observacoesMedicas || null,
       });
 

@@ -9,12 +9,22 @@ import {
   ProximaAplicacao,
   Resultado,
 } from '../types/planoHormonal';
+import { dataLocalFormatada } from '../utils/dataLocal';
 
 const FREQUENCIA_PARA_DIAS: Record<string, number> = {
   'Diária': 1,
   'Semanal': 7,
   'Quinzenal': 15,
   'Mensal': 30,
+};
+
+const parseDateUTC = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(s => parseInt(s, 10));
+    return new Date(Date.UTC(y, m - 1, d));
+  }
+  return new Date(dateStr);
 };
 
 /**
@@ -314,7 +324,7 @@ export const buscarProximasAplicacoes = async (
     }
 
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    const hojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
 
     const proximasAplicacoes: ProximaAplicacao[] = [];
 
@@ -333,22 +343,22 @@ export const buscarProximasAplicacoes = async (
       let proximaData: Date;
 
       if (ultimaAplicacao) {
-        // Próxima = última aplicação + frequência em dias
-        proximaData = new Date(ultimaAplicacao.data_aplicacao);
-        proximaData.setDate(proximaData.getDate() + frequenciaDias);
+        // Próxima = última aplicação + frequência em dias (parse UTC)
+        proximaData = parseDateUTC(ultimaAplicacao.data_aplicacao);
+        proximaData.setUTCDate(proximaData.getUTCDate() + frequenciaDias);
       } else {
         // Sem aplicações: próxima = data de início do plano
-        proximaData = new Date(plano.data_inicio);
+        proximaData = parseDateUTC(plano.data_inicio);
       }
 
-      proximaData.setHours(0, 0, 0, 0);
+      proximaData.setUTCHours(0, 0, 0, 0);
 
-      const diffMs = proximaData.getTime() - hoje.getTime();
+      const diffMs = proximaData.getTime() - hojeUTC.getTime();
       const diasRestantes = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
       proximasAplicacoes.push({
         plano: plano as PlanoHormonal,
-        proxima_data: proximaData.toISOString().split('T')[0],
+        proxima_data: dataLocalFormatada(proximaData),
         dias_restantes: diasRestantes,
         atrasada: diasRestantes < 0,
       });

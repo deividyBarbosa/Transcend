@@ -1,55 +1,27 @@
 // to-do: arrumar isso, acho que dá pra deixar mais legível
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import Header from '@/components/Header';
-import Button from '@/components/Button';
 import MedicationCard from '@/components/MedicationCard';
 import Calendar from '@/components/Calendar';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APLICACOES_MOCK, calcularEstatisticas, EVOLUCAO_MOCK } from '@/mocks/mockPlanoHormonal';
-import EvolutionChart from '@/components/EvolutionChart';
-import { supabase } from '@/utils/supabase';
-import { buscarPlanosAtivos } from '@/services/planoHormonal';
-import type { PlanoHormonal } from '@/types/planoHormonal';
-
-const getMarkedDatesStatus = () => {
-  const status: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } = {};
-  
-  // Agrupar aplicações por data
-  const porData = APLICACOES_MOCK.reduce((acc, app) => {
-    if (!acc[app.data]) acc[app.data] = [];
-    acc[app.data].push(app);
-    return acc;
-  }, {} as { [data: string]: typeof APLICACOES_MOCK });
-  
-  // Determinar status de cada dia
-  Object.keys(porData).forEach(data => {
-    const apps = porData[data];
-    if (apps.every(a => a.status === 'aplicado')) {
-      status[data] = 'aplicado';
-    } else if (apps.some(a => a.status === 'atrasado')) {
-      status[data] = 'atrasado';
-    } else {
-      status[data] = 'pendente';
-    }
-  });
-  
-  return status;
-};
+import { obterUsuarioAtual } from '@/services/auth';
+import { buscarPlanosAtivos, buscarHistoricoAplicacoes } from '@/services/planoHormonal';
+import type { PlanoHormonal, AplicacaoHormonal } from '@/types/planoHormonal';
 
 export default function PlanoHormonalScreen() {
   const router = useRouter();
 
   const [planoAtual, setPlanoAtual] = useState<PlanoHormonal[]>([]);
+  const [aplicacoes, setAplicacoes] = useState<AplicacaoHormonal[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const stats = calcularEstatisticas();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -58,36 +30,87 @@ export default function PlanoHormonalScreen() {
     useCallback(() => {
       const carregar = async () => {
         setCarregando(true);
-        const { data } = await supabase.auth.getUser();
-        if (data.user) {
-          const resultado = await buscarPlanosAtivos(data.user.id);
-          if (resultado.sucesso && resultado.dados) {
-            setPlanoAtual(resultado.dados);
-          }
+        const usuario = await obterUsuarioAtual();
+        if (!usuario) {
+          setCarregando(false);
+          return;
         }
+
+        const [planosRes, aplicacoesRes] = await Promise.all([
+          buscarPlanosAtivos(usuario.id),
+          buscarHistoricoAplicacoes(usuario.id),
+        ]);
+
+        if (planosRes.sucesso && planosRes.dados) {
+          setPlanoAtual(planosRes.dados);
+        }
+
+        if (aplicacoesRes.sucesso && aplicacoesRes.dados) {
+          setAplicacoes(aplicacoesRes.dados);
+        }
+
         setCarregando(false);
       };
       carregar();
     }, [])
   );
 
-  // Função para buscar hormônio por ID (mock, para o calendário)
-  const getHormonioPorId = (hormonioId: string) => {
-    return planoAtual.find((h: PlanoHormonal) => h.id === hormonioId);
+  // Extrair apenas a parte YYYY-MM-DD de data_aplicacao
+  const extrairData = (dataAplicacao: string): string => {
+    return dataAplicacao.substring(0, 10);
   };
 
   // Obter datas com aplicações para marcar no calendário
-  const getMarkedDates = () => {
-    return APLICACOES_MOCK.map(app => app.data);
+  const getMarkedDates = (): string[] => {
+    const datas = new Set<string>();
+    for (const app of aplicacoes) {
+      if (app.data_aplicacao) {
+        datas.add(extrairData(app.data_aplicacao));
+      }
+    }
+    return Array.from(datas);
+  };
+
+  // Obter status por data para colorir marcações no calendário
+  const getMarkedDatesStatus = (): { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } => {
+    const status: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } = {};
+
+    // Agrupar aplicações por data
+    const porData: { [data: string]: AplicacaoHormonal[] } = {};
+    for (const app of aplicacoes) {
+      if (!app.data_aplicacao) continue;
+      const data = extrairData(app.data_aplicacao);
+      if (!porData[data]) porData[data] = [];
+      porData[data].push(app);
+    }
+
+    // Determinar status de cada dia
+    Object.keys(porData).forEach(data => {
+      const apps = porData[data];
+      if (apps.every(a => a.status === 'aplicado')) {
+        status[data] = 'aplicado';
+      } else if (apps.some(a => a.status === 'atrasado')) {
+        status[data] = 'atrasado';
+      } else {
+        status[data] = 'pendente';
+      }
+    });
+
+    return status;
   };
 
   // Obter aplicações de um dia específico
-  const getAplicacoesDoDia = (day: number) => {
+  const getAplicacoesDoDia = (day: number): AplicacaoHormonal[] => {
     const ano = currentMonth.getFullYear();
     const mes = currentMonth.getMonth();
     const dataStr = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    return APLICACOES_MOCK.filter(app => app.data === dataStr);
+
+    return aplicacoes.filter(app => app.data_aplicacao?.startsWith(dataStr));
+  };
+
+  // Função para buscar plano por ID
+  const getPlanoPorId = (planoId: string): PlanoHormonal | undefined => {
+    return planoAtual.find(p => p.id === planoId);
   };
 
   const handlePreviousMonth = () => {
@@ -104,25 +127,27 @@ export default function PlanoHormonalScreen() {
     setSelectedDay(day);
   };
 
-  const handleRegistrarAplicacao = (nomeHormonio: string) => {
-    const aplicacao = aplicacoesDoDia.find(app => {
-      const h = getHormonioPorId(app.hormonioId);
-      return h?.nome === nomeHormonio;
-    });
-    
-    const hormonio = planoAtual.find(h => h.nome === nomeHormonio);
-    
-    if (!aplicacao || !hormonio) return;
-    
+  const handleRegistrarAplicacao = (planoId: string) => {
+    const aplicacao = aplicacoesDoDia.find(app => app.plano_id === planoId);
+    const plano = planoAtual.find(p => p.id === planoId);
+
+    if (!plano) return;
+
+    const ano = currentMonth.getFullYear();
+    const mes = currentMonth.getMonth();
+    const dataStr = selectedDay
+      ? `${ano}-${String(mes + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
+      : '';
+
     router.push({
       pathname: '/pessoa-trans/registrar-aplicacao',
       params: {
-        planoId: hormonio.id,
-        hormonio: nomeHormonio,
-        data: aplicacao.data,
-        horario: aplicacao.horarioPrevisto,
-        dosagem: hormonio.dosagem + hormonio.unidade_dosagem,
-        modoAplicacao: hormonio.modo_aplicacao,
+        planoId: plano.id,
+        hormonio: plano.nome,
+        data: aplicacao ? extrairData(aplicacao.data_aplicacao) : dataStr,
+        horario: aplicacao?.horario_previsto ?? plano.horario_preferencial ?? '',
+        dosagem: plano.dosagem + plano.unidade_dosagem,
+        modoAplicacao: plano.modo_aplicacao,
       }
     });
   };
@@ -159,13 +184,23 @@ export default function PlanoHormonalScreen() {
 
   const aplicacoesDoDia = selectedDay ? getAplicacoesDoDia(selectedDay) : [];
 
+  if (carregando) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
       <DismissKeyboard>
         <View style={styles.container}>
           <Header title="Meu Plano Hormonal" showBackButton />
 
-          <ScrollView 
+          <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
           >
@@ -210,7 +245,7 @@ export default function PlanoHormonalScreen() {
               onPress={() => router.push('/pessoa-trans/editar-medicamento')}
             />
 
-            {/* Histórico - Agora com Calendário */}
+            {/* Histórico - Calendário */}
             <Text style={styles.sectionTitle}>Histórico de Aplicações</Text>
 
             <Calendar
@@ -232,30 +267,32 @@ export default function PlanoHormonalScreen() {
 
                 {aplicacoesDoDia.map((app, index) => {
                   const statusIcon = getStatusIcon(app.status);
-                  const hormonio = getHormonioPorId(app.hormonioId);
-                  
-                  if (!hormonio) return null;
-                  
+                  const plano = getPlanoPorId(app.plano_id);
+
+                  if (!plano) return null;
+
                   return (
-                    <View key={index} style={styles.aplicacaoItem}>
+                    <View key={app.id || index} style={styles.aplicacaoItem}>
                       <View style={styles.aplicacaoHeader}>
                         <View style={styles.aplicacaoInfo}>
-                          <Ionicons 
-                            name={statusIcon.name as any} 
-                            size={20} 
-                            color={statusIcon.color} 
+                          <Ionicons
+                            name={statusIcon.name as any}
+                            size={20}
+                            color={statusIcon.color}
                           />
                           <Text style={styles.aplicacaoHormonio}>
-                            {hormonio.nome}
+                            {plano.nome}
                           </Text>
                         </View>
-                        <Text style={styles.aplicacaoHorario}>{app.horarioPrevisto}</Text>
+                        <Text style={styles.aplicacaoHorario}>
+                          {app.horario_previsto ?? ''}
+                        </Text>
                       </View>
 
                       <Text style={styles.aplicacaoDosagem}>
-                        {hormonio.dosagem}{hormonio.unidade_dosagem}
+                        {plano.dosagem}{plano.unidade_dosagem}
                       </Text>
-                      
+
                       <View style={styles.aplicacaoStatus}>
                         <Text style={[
                           styles.aplicacaoStatusText,
@@ -263,20 +300,20 @@ export default function PlanoHormonalScreen() {
                         ]}>
                           {getStatusText(app.status)}
                         </Text>
-                        
+
                         {app.status === 'pendente' && (
                           <TouchableOpacity
                             style={styles.registrarButton}
-                            onPress={() => handleRegistrarAplicacao(hormonio.nome)}
+                            onPress={() => handleRegistrarAplicacao(plano.id)}
                           >
                             <Text style={styles.registrarButtonText}>Registrar</Text>
                           </TouchableOpacity>
                         )}
                       </View>
 
-                      {app.horarioAplicado && (
+                      {app.horario_aplicado && (
                         <Text style={styles.aplicacaoDetalhe}>
-                          Aplicado às {app.horarioAplicado}
+                          Aplicado às {app.horario_aplicado}
                         </Text>
                       )}
                     </View>
@@ -292,18 +329,6 @@ export default function PlanoHormonalScreen() {
                 </Text>
               </View>
             )}
-
-            {/* Evolução */}
-
-            <Text style={styles.sectionTitle}>Evolução</Text>
-
-            <EvolutionChart
-              currentLevel={EVOLUCAO_MOCK.testosterona.nivelAtual}
-              percentageChange={EVOLUCAO_MOCK.testosterona.percentualMudanca}
-              data={EVOLUCAO_MOCK.testosterona.dados}
-              labels={EVOLUCAO_MOCK.testosterona.labels}
-              onViewDetails={() => router.push('/pessoa-trans/estatisticas')} 
-            />
           </ScrollView>
         </View>
       </DismissKeyboard>

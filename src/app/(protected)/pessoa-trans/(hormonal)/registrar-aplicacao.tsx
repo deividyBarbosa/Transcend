@@ -13,6 +13,16 @@ import { fonts } from '@/theme/fonts';
 import { supabase } from '@/utils/supabase';
 import { registrarAplicacao, buscarPlanosAtivos } from '@/services/planoHormonal';
 import type { PlanoHormonal } from '@/types/planoHormonal';
+import { dataLocalFormatada } from '@/utils/dataLocal';
+
+const parseDateUTC = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(s => parseInt(s, 10));
+    return new Date(Date.UTC(y, m - 1, d));
+  }
+  return new Date(dateStr);
+};
 
 // Opções para os selects
 const EFEITOS_COLATERAIS = [
@@ -42,7 +52,7 @@ export default function RegistrarAplicacaoScreen() {
   const formScrollRef = useRef<ScrollView>(null);
   
   const hormonio = params.hormonio as string || 'Hormônio';
-  const data = params.data as string || new Date().toISOString().split('T')[0];
+  const data = params.data as string || dataLocalFormatada();
   const horario = params.horario as string || '08:00';
   const modoAplicacao = params.modoAplicacao as string || 'Oral';
 
@@ -161,7 +171,7 @@ export default function RegistrarAplicacaoScreen() {
       text: `${plano.nome} (${plano.dosagem}${plano.unidade_dosagem})`,
       onPress: () => salvarAplicacao(plano.id, uid),
     }));
-    botoes.push({ text: 'Cancelar', onPress: () => {} });
+    botoes.push({ text: 'Cancelar', onPress: async () => {} });
     Alert.alert('Qual medicamento?', 'Selecione o plano para esta aplicação', botoes);
   };
   
@@ -248,7 +258,7 @@ export default function RegistrarAplicacaoScreen() {
               <View style={styles.infoRow}>
                 <Ionicons name="calendar-outline" size={20} color={colors.primary} />
                 <Text style={styles.infoText}>
-                  {new Date(data).toLocaleDateString('pt-BR')}
+                  {parseDateUTC(data).toLocaleDateString('pt-BR')}
                 </Text>
               </View>
               <View style={styles.infoRow}>
