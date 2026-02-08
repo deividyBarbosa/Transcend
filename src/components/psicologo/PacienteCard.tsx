@@ -30,7 +30,7 @@ export function PacienteCard({
   const router = useRouter();
 
   const handleChatPress = useCallback(() => {
-    router.push(`/chat/${pacientId}`);
+    router.push(`/paciente-chat/${pacientId}`);
   }, [router, pacientId]);
 
   const handleReportsPress = useCallback(() => {
@@ -122,16 +122,18 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     gap: 5,
-    
+    marginBottom: 20,
   },
   chatButton: {
     width: 84,
-    height: 26,
+    height: 30,
     backgroundColor: "#d68fa1",
+
   },
   reportsButton: {
     width: 84,
-    height: 26,
+    height: 30,
     backgroundColor: "#D65C73",
+
   },
 });

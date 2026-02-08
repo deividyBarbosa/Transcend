@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Text } from "react-native";
 import { colors } from "@/theme/colors";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Entypo } from "@expo/vector-icons";
 
 export default function TabLayout() {
   return (
@@ -42,6 +42,19 @@ export default function TabLayout() {
           ),
         }}
       />
+<<<<<<< HEAD
+=======
+
+      <Tabs.Screen
+        name="historico-chat"
+        options={{
+          title: "Chat",
+          tabBarIcon: ({ color, size }) => (
+            <Entypo name="chat" size={size} color={color} />
+          ),
+        }}
+      />
+>>>>>>> origin/feature/home-psicologo
       <Tabs.Screen
         name="perfil"
         options={{
@@ -49,6 +62,27 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="solicitacoes"
+        options={{
+          href: null, 
+          title: "Solicitações",
+        }}
+      />
+      <Tabs.Screen
+        name="consultas/consultas"
+        options={{
+          href: null,
+
+        }}
+      />
+      <Tabs.Screen
+        name="consultas/detalhes-consulta"
+        options={{
+          href: null, 
         }}
       />
     </Tabs>
