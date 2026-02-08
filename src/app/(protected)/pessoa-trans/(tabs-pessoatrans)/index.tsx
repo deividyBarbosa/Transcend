@@ -77,7 +77,7 @@ export default function InicioScreen() {
         <Text style={styles.headerTitle}>Início</Text>
         <TouchableOpacity 
           style={styles.settingsButton}
-          onPress={() => router.push('/pessoa-trans/(tabs-pessoatrans)/perfil')}
+          onPress={() => router.push('/pessoa-trans/configuracoes')}
         >
           <Ionicons name="settings-outline" size={22} color={colors.text} />
         </TouchableOpacity>

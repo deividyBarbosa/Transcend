@@ -1,16 +1,29 @@
+// to-do: o circulo de mensagens não lidas está meio cortado, tem que arrumar isso depois 
+
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
 import ConsultaItem from '@/components/ConsultaItem';
-import ConversaItem from '@/components/ConversaItem';
+import { PacienteChatCard } from '@/components/psicologo/PacienteChatCard';
+import { SearchInput } from '@/components/Input/SearchInput';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-import { getConsultasAgendadas, getConsultasRealizadas } from '@/mocks/mockConsultas';
-import { CONVERSAS_MOCK } from '@/mocks/mockChat';
+import {
+  getConsultasAgendadas,
+  getConsultasRealizadas,
+} from '@/mocks/mockConsultas';
+import { CONVERSAS_MOCK, isRecente } from '@/mocks/mockChat';
 
 type TabType = 'agendadas' | 'realizadas' | 'mensagens';
 
@@ -18,9 +31,25 @@ export default function ConsultasScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('agendadas');
   const [bannerVisivel, setBannerVisivel] = useState(true);
+  const [searchText, setSearchText] = useState('');
+  const [filteredConversas, setFilteredConversas] = useState(CONVERSAS_MOCK);
 
   const consultasAgendadas = getConsultasAgendadas();
   const consultasRealizadas = getConsultasRealizadas();
+
+  const handleSearch = (text: string) => {
+    setSearchText(text);
+    if (text.trim() === '') {
+      setFilteredConversas(CONVERSAS_MOCK);
+      return;
+    }
+    const filtered = CONVERSAS_MOCK.filter(c =>
+      c.psicologoNome.toLowerCase().includes(text.toLowerCase())
+    );
+    setFilteredConversas(filtered);
+  };
+
+  const getTotalUnread = () => CONVERSAS_MOCK.reduce((sum, c) => sum + c.naoLidas, 0);
 
   const EmptyStateConsultas = () => (
     <View style={styles.emptyState}>
@@ -48,8 +77,7 @@ export default function ConsultasScreen() {
   );
 
   const renderMensagensTab = () => (
-    <>
-      {/* Banner de aviso */}
+    <View style={{ flex: 1 }}>
       {bannerVisivel && (
         <View style={styles.banner}>
           <View style={styles.bannerContent}>
@@ -57,8 +85,7 @@ export default function ConsultasScreen() {
             <View style={styles.bannerText}>
               <Text style={styles.bannerTitle}>Pagamentos e honorários</Text>
               <Text style={styles.bannerSubtitle}>
-                Os pagamentos são tratados diretamente com seu psicólogo, fora da plataforma
-                Transcend.
+                Os pagamentos são tratados diretamente com seu psicólogo, fora da plataforma Transcend.
               </Text>
             </View>
           </View>
@@ -68,20 +95,40 @@ export default function ConsultasScreen() {
         </View>
       )}
 
-      {/* Lista de conversas */}
+      <View style={styles.searchWrapper}>
+        <SearchInput value={searchText} onChangeText={handleSearch} placeholder="Buscar psicólogo..." />
+      </View>
+
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsText}>{filteredConversas.length} conversa(s)</Text>
+        {getTotalUnread() > 0 && (
+          <>
+            <View style={styles.statsDot} />
+            <Text style={styles.statsUnread}>{getTotalUnread()} não lida(s)</Text>
+          </>
+        )}
+      </View>
+
       <FlatList
-        data={CONVERSAS_MOCK}
+        data={filteredConversas}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ConversaItem
-            conversa={item}
+          <PacienteChatCard
+            pacientId={item.psicologoId}
+            pacientName={item.psicologoNome}
+            pacientPhoto={{ uri: item.psicologoFoto }}
+            lastMessage={item.ultimaMensagem}
+            lastMessageTime="Hoje"
+            unreadCount={item.naoLidas}
+            isActive={new Date(item.timestampUltimaMensagem).getTime() > Date.now() - 86400000}
             onPress={() => router.push(`/pessoa-trans/chat?conversaId=${item.id}`)}
           />
         )}
+        contentContainerStyle={styles.listContentMensagens}
         ListEmptyComponent={<EmptyStateMensagens />}
-        contentContainerStyle={CONVERSAS_MOCK.length === 0 ? { flex: 1 } : {}}
+        showsVerticalScrollIndicator={false}
       />
-    </>
+    </View>
   );
 
   return (
@@ -223,11 +270,12 @@ const styles = StyleSheet.create({
   banner: {
     backgroundColor: '#FFE8ED',
     padding: 16,
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   bannerContent: {
     flexDirection: 'row',
@@ -249,5 +297,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text,
     lineHeight: 16,
+  },
+  searchWrapper: {
+    marginBottom: 12,
+    paddingHorizontal: 20,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  statsText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  statsDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginHorizontal: 8,
+  },
+  statsUnread: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  listContentMensagens: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
 });

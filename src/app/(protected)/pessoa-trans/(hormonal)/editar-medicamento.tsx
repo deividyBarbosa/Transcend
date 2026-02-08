@@ -111,7 +111,7 @@ export default function EditarMedicamentoScreen() {
       return false;
     }
     // Se for injetável e frequência não for diária, precisa selecionar dias
-    if (modoAplicacao === 'Injetável' && frequencia !== 'Diária' && diasSemana.length === 0) {
+    if ( modoAplicacao === 'Injetável' && (frequencia === 'Semanal' || frequencia === 'Quinzenal') && diasSemana.length === 0 ) {
       Alert.alert('Atenção', 'Selecione os dias da semana para aplicação');
       return false;
     }
