@@ -46,16 +46,6 @@ export default function TabLayout() {
               ),
           }}
           />
-
-          <Tabs.Screen
-          name="comunidade"
-          options={{
-              title: 'Comunidade',
-              tabBarIcon: ({ color, size }) => (
-              <Ionicons name="people-outline" size={size} color={color} />
-              ),
-          }}
-          />
           <Tabs.Screen
           name="perfil"
           options={{

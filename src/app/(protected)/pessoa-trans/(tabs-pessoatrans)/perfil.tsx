@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textTransform: 'uppercase',
     marginBottom: 12,
-    marginTop: 24,
+    marginTop: 1,
   },
   logoutContainer: {
     marginTop: 24,

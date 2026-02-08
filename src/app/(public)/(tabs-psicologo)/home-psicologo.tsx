@@ -27,14 +27,14 @@ const MOCK_CONSULTAS: Consulta[] = [
   {
     id: "1",
     pacientName: "Lucas Silva",
-    dataConsulta: new Date(2026, 0, 31),
+    dataConsulta: new Date(2026, 2, 31),
     horaInicio: "10:00",
     horaFim: "11:00",
   },
   {
     id: "2",
     pacientName: "Sofia Oliveira",
-    dataConsulta: new Date(2026, 0, 31),
+    dataConsulta: new Date(2026, 1, 1),
     horaInicio: "14:00",
     horaFim: "15:00",
   },
@@ -124,7 +124,7 @@ export default function PsicologoHome() {
   }, [router]);
 
   const handleVerMaisPress = useCallback(() => {
-    router.push("/consultas");
+    router.push("/consultas/consultas");
   }, [router]);
 
   const handleListaCompletaPress = useCallback(() => {
@@ -136,10 +136,6 @@ export default function PsicologoHome() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     setIsRefreshing(false);
   }, []);
-  console.log("proximasConsultas para renderizar:", proximasConsultas.length);
-  proximasConsultas.forEach((c) => {
-    console.log("- ", c.pacientName, c.dataConsulta);
-  });
 
   return (
     <View style={styles.container}>
@@ -228,11 +224,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    zIndex: 12,
   },
   scrollContent: {
     paddingBottom: 24,
-    zIndex: 20,
   },
   actionsSection: {
     paddingHorizontal: 16,
