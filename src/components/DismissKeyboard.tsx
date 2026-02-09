@@ -12,7 +12,7 @@ export default function DismissKeyboard({ children }: { children: React.ReactNod
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'height' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
       >
         {children}
@@ -24,6 +24,6 @@ export default function DismissKeyboard({ children }: { children: React.ReactNod
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2E8EB',
+    backgroundColor: 'transparent',
   },
 });

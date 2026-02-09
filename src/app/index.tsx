@@ -92,10 +92,10 @@ return (
         />
 
         {/* Link Esqueceu a senha */}
-        <TouchableOpacity onPress={() => Alert.alert('Em breve', 'Funcionalidade em desenvolvimento')}>
-          <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+        <TouchableOpacity onPress={() => router.push('/esqueci-senha')}>
+          <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
         </TouchableOpacity>
-
+        
         {/* Botão Entrar */}
         <Button 
           title="ENTRAR" 

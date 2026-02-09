@@ -55,6 +55,17 @@ export default function EditarMedicamentoScreen() {
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
+  const formatarHorario = (text: string) => {
+  // Remove tudo que não é número
+  const numeros = text.replace(/\D/g, '');
+  
+  // Aplica máscara HH:MM
+  if (numeros.length <= 2) {
+    return numeros;
+  }
+  return `${numeros.slice(0, 2)}:${numeros.slice(2, 4)}`;
+  };
+
   useEffect(() => {
     const obterUsuario = async () => {
       const { data } = await supabase.auth.getUser();
@@ -240,6 +251,7 @@ export default function EditarMedicamentoScreen() {
             ref={formScrollRef}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
           >
             {/* Seção: Informações Básicas */}
             <Text style={styles.sectionTitle}>Informações Básicas</Text>
@@ -320,10 +332,16 @@ export default function EditarMedicamentoScreen() {
 
             <Input
               label="Horário preferencial *"
-              placeholder="Ex: 08:00 ou 22:00"
+              placeholder="08:00"
               value={horarioPreferencial}
-              onChangeText={setHorarioPreferencial}
-              keyboardType="numbers-and-punctuation"
+              onChangeText={(text) => {
+                const formatado = formatarHorario(text);
+                if (formatado.length <= 5) {  // Limita a HH:MM
+                  setHorarioPreferencial(formatado);
+                }
+              }}
+              keyboardType="number-pad"
+              maxLength={5}
             />
 
             {/* Seção: Aplicação Injetável */}
@@ -420,7 +438,7 @@ export default function EditarMedicamentoScreen() {
             onClose={() => setShowDiasSemanaModal(false)}
           />
         </View>
-      </DismissKeyboard>
+        </DismissKeyboard>
     </SafeAreaView>
   );
 }

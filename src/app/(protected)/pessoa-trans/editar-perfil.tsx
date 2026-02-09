@@ -26,6 +26,7 @@ import {
   atualizarPerfil,
   uploadFotoPerfil,
 } from '@/services/auth';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const GENEROS: { valor: Genero; label: string }[] = [
   { valor: 'mulher_trans', label: 'Mulher Trans' },
@@ -159,6 +160,7 @@ export default function EditarPerfilScreen() {
   }
 
   return (
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
     <DismissKeyboard>
       <View style={styles.container}>
         <Header title="Editar Perfil" showBackButton />
@@ -260,10 +262,15 @@ export default function EditarPerfilScreen() {
         />
       </View>
     </DismissKeyboard>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

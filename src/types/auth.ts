@@ -106,10 +106,8 @@ export interface ConfiguracoesPrivacidade {
   id: string;
   usuario_id: string;
   compartilhar_diario_psicologo: boolean | null;
-  mostrar_perfil_comunidade: boolean | null;
   receber_notificacoes_push: boolean | null;
   receber_notificacoes_email: boolean | null;
-  perfil_anonimo_comunidade: boolean | null;
   created_at: string | null;
   updated_at: string | null;
 }
