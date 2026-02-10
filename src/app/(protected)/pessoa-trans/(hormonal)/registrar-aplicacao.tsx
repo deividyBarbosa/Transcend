@@ -16,7 +16,6 @@ import type { PlanoHormonal } from '@/types/planoHormonal';
 
 // Opções para os selects
 const EFEITOS_COLATERAIS = [
-  'Nenhum',
   'Dor de cabeça',
   'Náusea',
   'Tontura',
@@ -81,7 +80,6 @@ export default function RegistrarAplicacaoScreen() {
   
   // Modais
   const [showLocalModal, setShowLocalModal] = useState(false);
-  const [showEfeitosModal, setShowEfeitosModal] = useState(false);
   
   const mostrarCampoLocal = modoAplicacao === 'Injetável';
   
@@ -92,13 +90,14 @@ export default function RegistrarAplicacaoScreen() {
     const agora = new Date();
     const horarioAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
     const horarioAplicado = horarioReal || horarioAtual;
+    const dataAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 
     setSalvando(true);
 
     const resultado = await registrarAplicacao({
       plano_id: planoId,
       usuario_id: userId,
-      data_aplicacao: data,
+      data_aplicacao: dataAtual,
       horario_previsto: horario,
       horario_aplicado: horarioAplicado,
       status: 'aplicado',
@@ -200,10 +199,6 @@ export default function RegistrarAplicacaoScreen() {
     );
   };
   
-  const getEfeitosTexto = () => {
-    if (efeitosColaterais.length === 0) return 'Nenhum';
-    return efeitosColaterais.join(', ');
-  };
   
   const renderHumorButton = (valor: number, emoji: string, label: string) => (
     <TouchableOpacity
@@ -253,7 +248,7 @@ export default function RegistrarAplicacaoScreen() {
               </View>
               <View style={styles.infoRow}>
                 <Ionicons name="time-outline" size={20} color={colors.primary} />
-                <Text style={styles.infoText}>Horário previsto: {horario}</Text>
+                <Text style={styles.infoText}>Horário previsto: {horario.split(':').slice(0, 2).join(':')}</Text>
               </View>
             </View>
             
@@ -292,14 +287,23 @@ export default function RegistrarAplicacaoScreen() {
             {/* Efeitos Colaterais */}
             <Text style={styles.sectionTitle}>Como você se sentiu?</Text>
             <Text style={styles.label}>Efeitos colaterais</Text>
-            <TouchableOpacity
-              style={styles.selectInput}
-              onPress={() => setShowEfeitosModal(true)}
-            >
-              <Text style={efeitosColaterais.length > 0 ? styles.selectText : styles.selectPlaceholder}>
-                {getEfeitosTexto()}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.efeitosContainer}>
+              {EFEITOS_COLATERAIS.map((efeito) => {
+                const selecionado = efeitosColaterais.includes(efeito);
+                return (
+                  <TouchableOpacity
+                    key={efeito}
+                    style={[styles.efeitoChip, selecionado && styles.efeitoChipSelecionado]}
+                    onPress={() => toggleEfeitoColateral(efeito)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.efeitoChipTexto, selecionado && styles.efeitoChipTextoSelecionado]}>
+                      {efeito}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
             
             {/* Humor */}
             <Text style={styles.label}>Como está seu humor?</Text>
@@ -363,21 +367,6 @@ export default function RegistrarAplicacaoScreen() {
             onClose={() => setShowLocalModal(false)}
           />
           
-          {/* Modal de Efeitos - Multi-select */}
-          <SelectModal
-            visible={showEfeitosModal}
-            title="Efeitos Colaterais"
-            options={EFEITOS_COLATERAIS}
-            selectedValue=""
-            onSelect={(efeito) => {
-              if (efeito === 'Nenhum') {
-                setEfeitosColaterais([]);
-              } else {
-                toggleEfeitoColateral(efeito);
-              }
-            }}
-            onClose={() => setShowEfeitosModal(false)}
-          />
         </View>
       </DismissKeyboard>
     </SafeAreaView>
@@ -456,6 +445,32 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 8,
     fontStyle: 'italic',
+  },
+  efeitosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  efeitoChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  efeitoChipSelecionado: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  efeitoChipTexto: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.text,
+  },
+  efeitoChipTextoSelecionado: {
+    color: colors.white,
   },
   humorContainer: {
     flexDirection: 'row',

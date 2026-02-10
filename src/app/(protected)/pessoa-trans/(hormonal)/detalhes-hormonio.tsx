@@ -245,7 +245,7 @@ return (
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="time-outline" size={16} color={colors.muted} />
-                <Text style={styles.infoText}>{hormonio.horario_preferencial || '--:--'}</Text>
+                <Text style={styles.infoText}>{hormonio.horario_preferencial?.split(':').slice(0, 2).join(':') || '--:--'}</Text>
               </View>
             </View>
           </View>
@@ -267,7 +267,7 @@ return (
                         : `Em ${proximaAplicacao.diasRestantes} dias`}
                   </Text>
                   <Text style={styles.nextReminder}>
-                    Prepare sua dose para as {hormonio.horario_preferencial || '08:00'}
+                    Prepare sua dose para as {hormonio.horario_preferencial?.split(':').slice(0, 2).join(':') || '08:00'}
                   </Text>
                 </View>
                 <Button
@@ -354,7 +354,7 @@ return (
                 <View style={styles.historicoContent}>
                   <Text style={styles.historicoData}>{formatarData(item.data_aplicacao)}</Text>
                   <Text style={styles.historicoDetalhe}>
-                    {item.horario_aplicado || item.horario_previsto || '--:--'} • {formatarAtraso(item.atraso)}
+                    {(item.horario_aplicado || item.horario_previsto || '--:--').split(':').slice(0, 2).join(':')} • {formatarAtraso(item.atraso)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.muted} />
