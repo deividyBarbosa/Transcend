@@ -146,13 +146,15 @@ export default function DetalhesHormonioScreen() {
   };
 
   const formatarData = (dataStr: string) => {
-    const [ano, mes, dia] = dataStr.split('-');
+    const dataParte = dataStr.split('T')[0];
+    const [ano, mes, dia] = dataParte.split('-');
     const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
     return `${dia} ${meses[parseInt(mes) - 1]}`;
   };
 
   const formatarDataCompleta = (dataStr: string) => {
-    const [ano, mes, dia] = dataStr.split('-');
+    const dataParte = dataStr.split('T')[0];
+    const [ano, mes, dia] = dataParte.split('-');
     const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
     return data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
   };
