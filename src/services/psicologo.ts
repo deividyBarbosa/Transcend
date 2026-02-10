@@ -22,29 +22,15 @@ interface Resultado<T> {
 }
 
 /**
- * Busca o perfil do psicólogo logado consultando as tabelas psicologos e perfis
+ * Busca o perfil do psicólogo logado via RPC (contorna RLS que referencia colunas antigas)
  */
 export const buscarMeuPerfilPsicologo = async (
   usuarioId: string
 ): Promise<Resultado<PerfilPsicologoData>> => {
   try {
-    const { data, error } = await supabase
-      .from('psicologos')
-      .select(`
-        id,
-        usuario_id,
-        crp,
-        titulo,
-        descricao,
-        especialidades,
-        foto_url,
-        total_pacientes,
-        avaliacao_media,
-        anos_experiencia,
-        perfis!psicologos_usuario_id_fkey ( nome )
-      `)
-      .eq('usuario_id', usuarioId)
-      .single();
+    const { data, error } = await supabase.rpc('buscar_meu_perfil_psicologo', {
+      p_usuario_id: usuarioId,
+    });
 
     if (error) {
       console.error('Erro ao buscar perfil do psicólogo:', error);
@@ -62,20 +48,20 @@ export const buscarMeuPerfilPsicologo = async (
       };
     }
 
-    const perfilRelacionado = data.perfis as unknown as { nome: string } | null;
+    const resultado = data as Record<string, unknown>;
 
     const perfil: PerfilPsicologoData = {
-      id: data.id,
-      usuario_id: data.usuario_id,
-      nome: perfilRelacionado?.nome ?? '',
-      foto_url: data.foto_url,
-      crp: data.crp,
-      titulo: data.titulo,
-      descricao: data.descricao,
-      especialidades: data.especialidades,
-      total_pacientes: data.total_pacientes,
-      avaliacao_media: data.avaliacao_media,
-      anos_experiencia: data.anos_experiencia,
+      id: (resultado.id as string) ?? '',
+      usuario_id: (resultado.usuario_id as string) ?? usuarioId,
+      nome: (resultado.nome as string) ?? '',
+      foto_url: (resultado.foto_url as string | null) ?? null,
+      crp: (resultado.crp as string) ?? '',
+      titulo: (resultado.titulo as string | null) ?? null,
+      descricao: (resultado.descricao as string | null) ?? null,
+      especialidades: (resultado.especialidades as string[] | null) ?? null,
+      total_pacientes: (resultado.total_pacientes as number | null) ?? null,
+      avaliacao_media: (resultado.avaliacao_media as number | null) ?? null,
+      anos_experiencia: (resultado.anos_experiencia as number | null) ?? null,
     };
 
     return {

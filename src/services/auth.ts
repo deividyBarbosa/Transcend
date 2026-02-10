@@ -230,6 +230,15 @@ export const fazerLogin = async (
       };
     }
 
+    // Psicólogo precisa estar verificado para acessar o app
+    if (perfil.tipo === 'psicologo' && !perfil.psicologo?.verificado) {
+      await supabase.auth.signOut();
+      return {
+        sucesso: false,
+        erro: 'Seu cadastro ainda está em análise. Você será notificado quando sua conta for aprovada.',
+      };
+    }
+
     return {
       sucesso: true,
       dados: perfil,

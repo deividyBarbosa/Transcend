@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 type PacienteChatCardProps = {
   pacientId?: string;
   pacientName: string;
-  pacientPhoto: ImageSourcePropType;
+  pacientPhoto: ImageSourcePropType | string | null;
   lastMessage: string;
   lastMessageTime?: string;
   unreadCount?: number;
@@ -32,6 +32,11 @@ export function PacienteChatCard({
   onPress,
 }: PacienteChatCardProps) {
   const router = useRouter();
+
+  const fotoSource: ImageSourcePropType =
+    typeof pacientPhoto === "string"
+      ? { uri: pacientPhoto }
+      : pacientPhoto ?? require("@/assets/avatar-man.png");
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(isActive ? 1 : 0.6)).current;
@@ -117,7 +122,7 @@ export function PacienteChatCard({
           <Animated.View
             style={[styles.avatarContainer, { opacity: opacityAnim }]}
           >
-            <Image source={pacientPhoto} style={styles.image} />
+            <Image source={fotoSource} style={styles.image} />
           </Animated.View>
 
           <View style={styles.cardTextContainer}>
