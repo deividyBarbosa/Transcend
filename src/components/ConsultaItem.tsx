@@ -14,6 +14,25 @@ interface ConsultaItemProps {
 
 export default function ConsultaItem({ consulta, onPress, onEntrarConsulta }: ConsultaItemProps) {
   const isAgendada = consulta.status === 'agendada';
+  const badgeLabel =
+    consulta.statusLabel ||
+    (consulta.status === 'agendada'
+      ? 'Agendada'
+      : consulta.status === 'realizada'
+        ? 'Realizada'
+        : 'Cancelada');
+  const badgeStyle =
+    consulta.status === 'agendada'
+      ? styles.badgeWarning
+      : consulta.status === 'realizada'
+        ? styles.badgeSuccess
+        : styles.badgeDanger;
+  const badgeTextStyle =
+    consulta.status === 'agendada'
+      ? styles.badgeWarningText
+      : consulta.status === 'realizada'
+        ? styles.badgeSuccessText
+        : styles.badgeDangerText;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
@@ -45,6 +64,10 @@ export default function ConsultaItem({ consulta, onPress, onEntrarConsulta }: Co
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+      </View>
+
+      <View style={[styles.statusBadge, badgeStyle]}>
+        <Text style={[styles.statusBadgeText, badgeTextStyle]}>{badgeLabel}</Text>
       </View>
 
       {isAgendada && consulta.link && onEntrarConsulta && (
@@ -128,6 +151,35 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  statusBadgeText: {
+    fontFamily: fonts.semibold,
+    fontSize: 11,
+  },
+  badgeWarning: {
+    backgroundColor: '#FFF4E5',
+  },
+  badgeWarningText: {
+    color: '#B26A00',
+  },
+  badgeSuccess: {
+    backgroundColor: '#E8F5E9',
+  },
+  badgeSuccessText: {
+    color: '#2E7D32',
+  },
+  badgeDanger: {
+    backgroundColor: '#FDECEC',
+  },
+  badgeDangerText: {
+    color: '#B71C1C',
   },
   entrarButton: {
     backgroundColor: colors.primary,

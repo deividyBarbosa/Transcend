@@ -8,13 +8,13 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { colors } from "@/theme/colors";
 import { ProfilePhoto } from "@/components/psicologo/ProfilePicture";
 import { ProfileStats } from "@/components/psicologo/ProfileStats";
-import { obterUsuarioAtual } from "@/services/auth";
+import { fazerLogout, obterUsuarioAtual } from "@/services/auth";
 import {
   buscarMeuPerfilPsicologo,
   PerfilPsicologoData,
@@ -48,9 +48,11 @@ export default function PerfilPsicologo() {
     setCarregando(false);
   }, []);
 
-  useEffect(() => {
-    carregarPerfil();
-  }, [carregarPerfil]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarPerfil();
+    }, [carregarPerfil])
+  );
 
   const handleEditPhoto = useCallback(() => {
     Alert.alert(
@@ -80,6 +82,28 @@ export default function PerfilPsicologo() {
 
   const handleSettings = useCallback(() => {
     router.push("/configuracoes");
+  }, [router]);
+
+  const handleSair = useCallback(() => {
+    Alert.alert(
+      "Sair da Conta",
+      "Tem certeza que deseja sair?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            const resultado = await fazerLogout();
+            if (resultado.sucesso) {
+              router.replace("/");
+            } else {
+              Alert.alert("Erro", resultado.erro || "Não foi possível sair.");
+            }
+          },
+        },
+      ]
+    );
   }, [router]);
 
   if (carregando) {
@@ -183,6 +207,15 @@ export default function PerfilPsicologo() {
           >
             <Ionicons name="settings-outline" size={20} color={colors.primary} />
             <Text style={styles.settingsButtonText}>Configurações</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleSair}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#F44336" />
+            <Text style={styles.logoutButtonText}>Sair da conta</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -345,5 +378,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#D65C73",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#F44336",
   },
 });

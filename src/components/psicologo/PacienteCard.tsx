@@ -14,8 +14,8 @@ import { colors } from "@/theme/colors";
 
 type PacienteCardProps = {
   pacientName: string;
-  pacientPhoto: ImageSourcePropType;
-  pacientAge: number;
+  pacientPhoto: ImageSourcePropType | string | null;
+  pacientAge?: number | null;
   pacientId?: string;
   onPress?: () => void;
 };
@@ -28,6 +28,10 @@ export function PacienteCard({
   onPress,
 }: PacienteCardProps) {
   const router = useRouter();
+  const fotoSource: ImageSourcePropType =
+    typeof pacientPhoto === "string"
+      ? { uri: pacientPhoto }
+      : pacientPhoto ?? require("@/assets/avatar-man.png");
 
   const handleChatPress = useCallback(() => {
     router.push(`/paciente-chat/${pacientId}`);
@@ -39,13 +43,15 @@ export function PacienteCard({
 
   const CardContent = (
     <View style={styles.card}>
-      <Image source={pacientPhoto} style={styles.image} />
+      <Image source={fotoSource} style={styles.image} />
 
       <View style={styles.cardTextContainer}>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {pacientName}
         </Text>
-        <Text style={styles.cardDescription}>{pacientAge} anos</Text>
+        <Text style={styles.cardDescription}>
+          {typeof pacientAge === "number" ? `${pacientAge} anos` : "Idade nao informada"}
+        </Text>
       </View>
 
       <View style={styles.buttonContainer}>

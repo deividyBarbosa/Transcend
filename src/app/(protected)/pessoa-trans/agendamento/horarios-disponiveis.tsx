@@ -1,109 +1,110 @@
-// acho que dá pra deixar essa tela mais bonita, fora que precisamos pensar no que vem depois de confirmar consulta... e o pagamento?
-// to-do: o que marina mandou sobre o pagamento
-
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
 import CheckBox from '@/components/CheckBox';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-
-// Mock de horários disponíveis
-const HORARIOS_MOCK = [
-  { id: '1', horario: '09:00', tipo: 'Online', disponivel: true },
-  { id: '2', horario: '10:00', tipo: 'Online', disponivel: true },
-  { id: '3', horario: '11:00', tipo: 'Online', disponivel: true },
-  { id: '4', horario: '14:00', tipo: 'Online', disponivel: false }, // indisponivel
-  { id: '5', horario: '15:00', tipo: 'Online', disponivel: true },
-  { id: '6', horario: '16:00', tipo: 'Online', disponivel: true },
-  { id: '7', horario: '17:30', tipo: 'Online', disponivel: true },
-  { id: '8', horario: '18:30', tipo: 'Online', disponivel: true },
-];
-
-interface Horario {
-  id: string;
-  horario: string;
-  tipo: string;
-  disponivel: boolean;
-}
+import { supabase } from '@/utils/supabase';
+import {
+  agendarSessaoPsicologica,
+  buscarHorariosDisponiveisPsicologo,
+  type HorarioDisponivel,
+} from '@/services/agendamento';
 
 export default function HorariosDisponiveisScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   const psicologoId = params.psicologoId as string;
   const data = params.data as string;
-  const nomePsicologo = params.nome as string;
-  
+
+  const [horarios, setHorarios] = useState<HorarioDisponivel[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
   const [horarioSelecionado, setHorarioSelecionado] = useState<string | null>(null);
 
-  // Formatar data para exibição
+  useFocusEffect(
+    useCallback(() => {
+      const carregar = async () => {
+        if (!psicologoId || !data) {
+          setCarregando(false);
+          return;
+        }
+
+        setCarregando(true);
+        const res = await buscarHorariosDisponiveisPsicologo(psicologoId, data);
+        setHorarios(res.sucesso && res.dados ? res.dados : []);
+        setCarregando(false);
+      };
+
+      carregar();
+    }, [psicologoId, data])
+  );
+
   const formatarData = (dataISO: string) => {
     const [ano, mes, dia] = dataISO.split('-');
     const dataObj = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-    return dataObj.toLocaleDateString('pt-BR', { 
-      day: '2-digit', 
-      month: 'long', 
-      year: 'numeric' 
+    return dataObj.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
     });
   };
 
-  const handleConfirmarAgendamento = () => {
+  const handleConfirmarAgendamento = async () => {
     if (!horarioSelecionado) {
-      Alert.alert('Atenção', 'Por favor, selecione um horário');
+      Alert.alert('Atencao', 'Por favor, selecione um horario');
       return;
     }
 
-    const horario = HORARIOS_MOCK.find(h => h.id === horarioSelecionado);
-    
-    Alert.alert(
-      'Agendamento Confirmado',
-      `Consulta agendada com ${nomePsicologo} para ${formatarData(data)} às ${horario?.horario}`,
-      [
-        {
-          text: 'OK',
-          onPress: () => router.push('/pessoa-trans/(tabs-pessoatrans)'),
-        },
-      ]
-    );
+    const { data: auth } = await supabase.auth.getUser();
+    const pacienteId = auth.user?.id;
+    if (!pacienteId) {
+      Alert.alert('Erro', 'Usuario nao autenticado. Faca login novamente.');
+      return;
+    }
+
+    setSalvando(true);
+    const resultado = await agendarSessaoPsicologica(pacienteId, psicologoId, data, horarioSelecionado);
+    setSalvando(false);
+
+    if (!resultado.sucesso) {
+      Alert.alert('Erro', resultado.erro || 'Nao foi possivel agendar a consulta.');
+      return;
+    }
+
+    Alert.alert('Solicitacao enviada', 'A consulta foi solicitada. Aguarde a confirmacao do psicologo.', [
+      {
+        text: 'OK',
+        onPress: () => router.push('/pessoa-trans/(tabs-pessoatrans)'),
+      },
+    ]);
   };
 
-  const renderHorarioCard = (horario: Horario) => {
-    const isSelecionado = horarioSelecionado === horario.id;
+  const renderHorarioCard = (horario: HorarioDisponivel) => {
+    const isSelecionado = horarioSelecionado === horario.horario;
     const isDisponivel = horario.disponivel;
 
     return (
       <TouchableOpacity
         key={horario.id}
-        style={[
-          styles.horarioCard,
-          !isDisponivel && styles.horarioCardDisabled,
-        ]}
-        onPress={() => isDisponivel && setHorarioSelecionado(horario.id)}
+        style={[styles.horarioCard, !isDisponivel && styles.horarioCardDisabled]}
+        onPress={() => isDisponivel && setHorarioSelecionado(horario.horario)}
         disabled={!isDisponivel}
       >
         <View style={styles.horarioInfo}>
-          <Text style={[
-            styles.horarioTexto,
-            !isDisponivel && styles.horarioTextoDisabled
-          ]}>
-            {horario.horario}
-          </Text>
-          <Text style={[
-            styles.tipoTexto,
-            !isDisponivel && styles.horarioTextoDisabled
-          ]}>
-            {horario.tipo}
-          </Text>
+          <Text style={[styles.horarioTexto, !isDisponivel && styles.horarioTextoDisabled]}>{horario.horario}</Text>
+          <Text style={[styles.tipoTexto, !isDisponivel && styles.horarioTextoDisabled]}>{horario.tipo}</Text>
         </View>
-        
+
         <CheckBox
-            label=""
-            checked={isSelecionado}
-            onPress={() => isDisponivel && setHorarioSelecionado(horario.id)}
+          label=""
+          checked={isSelecionado}
+          onPress={() => isDisponivel && setHorarioSelecionado(horario.horario)}
         />
       </TouchableOpacity>
     );
@@ -114,30 +115,40 @@ export default function HorariosDisponiveisScreen() {
       <View style={styles.container}>
         <Header title="Selecione o dia" showBackButton />
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Título */}
-          <Text style={styles.titulo}>Horários disponíveis</Text>
-          <Text style={styles.subtitulo}>
-            {formatarData(data)}
-          </Text>
+          <Text style={styles.titulo}>Horarios disponiveis</Text>
+          <Text style={styles.subtitulo}>{formatarData(data)}</Text>
 
-          {/* Lista de Horários */}
-          <View style={styles.horariosContainer}>
-            {HORARIOS_MOCK.map(renderHorarioCard)}
-          </View>
+          {carregando ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : (
+            <>
+              <View style={styles.horariosContainer}>
+                {horarios.length > 0 ? (
+                  horarios.map(renderHorarioCard)
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Sem horarios disponiveis para esta data.</Text>
+                  </View>
+                )}
+              </View>
 
-          {/* Botão Confirmar */}
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Confirmar Agendamento"
-              onPress={handleConfirmarAgendamento}
-              disabled={!horarioSelecionado}
-            />
-          </View>
+              <View style={styles.buttonContainer}>
+                <Button
+                  title="Confirmar Agendamento"
+                  onPress={handleConfirmarAgendamento}
+                  disabled={!horarioSelecionado || salvando}
+                  loading={salvando}
+                />
+              </View>
+            </>
+          )}
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -171,6 +182,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     marginBottom: 24,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
   },
   horariosContainer: {
     gap: 12,
@@ -209,6 +225,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 13,
     color: colors.muted,
+  },
+  emptyContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+  },
+  emptyText: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.muted,
+    textAlign: 'center',
   },
   buttonContainer: {
     paddingTop: 8,

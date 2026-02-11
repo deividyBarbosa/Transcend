@@ -90,7 +90,7 @@ export function PacienteChatCard({
     if (onPress) {
       onPress();
     } else if (pacientId) {
-      router.push(`/chat/${pacientId}`);
+      router.push(`/paciente-chat/${pacientId}`);
     }
   }, [router, pacientId, onPress, isActive]);
 

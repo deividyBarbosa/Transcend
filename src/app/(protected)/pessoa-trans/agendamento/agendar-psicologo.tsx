@@ -1,37 +1,72 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/Header';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-import { getMeuPsicologo, getOutrosPsicologos, Psicologo } from '@/mocks/mockPsicologos';
+import { supabase } from '@/utils/supabase';
+import {
+  buscarPsicologoPrincipalDoPaciente,
+  listarPsicologosParaAgendamento,
+  type PsicologoAgenda,
+} from '@/services/agendamento';
 
 export default function AgendarPsicologoScreen() {
   const router = useRouter();
-  const meuPsicologo = getMeuPsicologo();
-  const outrosPsicologos = getOutrosPsicologos();
+  const [carregando, setCarregando] = useState(true);
+  const [psicologos, setPsicologos] = useState<PsicologoAgenda[]>([]);
+  const [psicologoPrincipalId, setPsicologoPrincipalId] = useState<string | null>(null);
 
-  const handleVerDisponibilidade = (psicologo: Psicologo) => {
+  useFocusEffect(
+    useCallback(() => {
+      const carregar = async () => {
+        setCarregando(true);
+        const { data: auth } = await supabase.auth.getUser();
+        const userId = auth.user?.id;
+
+        if (!userId) {
+          setPsicologos([]);
+          setPsicologoPrincipalId(null);
+          setCarregando(false);
+          return;
+        }
+
+        const [listaRes, principalRes] = await Promise.all([
+          listarPsicologosParaAgendamento(),
+          buscarPsicologoPrincipalDoPaciente(userId),
+        ]);
+
+        setPsicologos(listaRes.sucesso && listaRes.dados ? listaRes.dados : []);
+        setPsicologoPrincipalId(principalRes.sucesso ? principalRes.dados || null : null);
+        setCarregando(false);
+      };
+
+      carregar();
+    }, [])
+  );
+
+  const handleVerDisponibilidade = (psicologo: PsicologoAgenda) => {
     const params = new URLSearchParams({
       psicologoId: psicologo.id,
       nome: psicologo.nome,
       foto: psicologo.foto,
     }).toString();
-    
+
     router.push(`/pessoa-trans/agendamento/agendar-consulta?${params}`);
   };
 
-  const renderPsicologoCard = (psicologo: Psicologo, isPrincipal: boolean = false) => (
+  const renderPsicologoCard = (psicologo: PsicologoAgenda, isPrincipal = false) => (
     <View key={psicologo.id} style={styles.card}>
       {isPrincipal && <Text style={styles.badge}>Seu Psicólogo</Text>}
-      
+
       <View style={styles.cardContent}>
         <View style={styles.infoContainer}>
           <Text style={styles.tipoAtendimento}>{psicologo.tipo}</Text>
           <Text style={styles.nomePsicologo}>{psicologo.nome}</Text>
           <Text style={styles.especialidade}>{psicologo.especialidade}</Text>
-          
+
           <TouchableOpacity
             style={styles.disponibilidadeButton}
             onPress={() => handleVerDisponibilidade(psicologo)}
@@ -40,33 +75,48 @@ export default function AgendarPsicologoScreen() {
           </TouchableOpacity>
         </View>
 
-        <Image
-          source={{ uri: psicologo.foto }}
-          style={styles.fotoPsicologo}
-        />
+        <Image source={{ uri: psicologo.foto }} style={styles.fotoPsicologo} />
       </View>
     </View>
   );
+
+  const psicologoPrincipal = psicologos.find(p => p.id === psicologoPrincipalId) || null;
+  const outrosPsicologos = psicologos.filter(p => p.id !== psicologoPrincipalId);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
         <Header title="Agendar Psicólogo" showBackButton />
 
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Meu Psicólogo */}
-          {renderPsicologoCard(meuPsicologo, true)}
-
-          {/* Outros Psicólogos */}
-          <Text style={styles.sectionTitle}>Outros Psicólogos</Text>
-          {outrosPsicologos.map(psicologo => 
-            renderPsicologoCard(psicologo, false)
-          )}
-        </ScrollView>
+        {carregando ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {psicologos.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Nenhum psicólogo disponível no momento.</Text>
+              </View>
+            ) : (
+              <>
+                {psicologoPrincipal && renderPsicologoCard(psicologoPrincipal, true)}
+                {outrosPsicologos.length > 0 && (
+                  <>
+                    <Text style={styles.sectionTitle}>
+                      {psicologoPrincipal ? 'Outros Psicólogos' : 'Psicólogos'}
+                    </Text>
+                    {outrosPsicologos.map(psicologo => renderPsicologoCard(psicologo, false))}
+                  </>
+                )}
+              </>
+            )}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -80,6 +130,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
@@ -158,5 +213,15 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 45,
     backgroundColor: '#E0E0E0',
+  },
+  emptyContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+  },
+  emptyText: {
+    fontFamily: fonts.regular,
+    color: colors.muted,
+    textAlign: 'center',
   },
 });

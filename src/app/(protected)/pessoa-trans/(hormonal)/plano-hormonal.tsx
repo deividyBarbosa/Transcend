@@ -226,6 +226,7 @@ export default function PlanoHormonalScreen() {
                   aplicacoesDoDia.map((app) => {
                     const statusIcon = getStatusIcon(app.status);
                     const hormonio = getPlanoPorId(app.plano_id);
+                    const hormonioInativo = !hormonio || !hormonio.ativo;
                     const horario = app.horario_aplicado || app.horario_previsto;
                     const horarioExibicao = horario
                       ? horario.split(':').slice(0, 2).join(':')
@@ -234,13 +235,18 @@ export default function PlanoHormonalScreen() {
                     return (
                       <TouchableOpacity
                         key={app.id}
-                        style={styles.historicoItem}
+                        style={[styles.historicoItem, hormonioInativo && styles.historicoItemInativo]}
                         onPress={() => {
-                          if (hormonio) {
+                          if (hormonio && hormonio.ativo) {
                             router.push(`/pessoa-trans/detalhes-hormonio?id=${hormonio.id}`);
+                            return;
                           }
+                          Alert.alert(
+                            'Hormônio inativo',
+                            'Este hormônio foi removido do seu plano e não pode mais ser editado.'
+                          );
                         }}
-                        activeOpacity={0.7}
+                        activeOpacity={hormonioInativo ? 1 : 0.7}
                       >
                         <View style={[
                           styles.historicoIcon,
@@ -256,11 +262,18 @@ export default function PlanoHormonalScreen() {
                           <Text style={styles.historicoNome}>
                             {hormonio?.nome ?? 'Hormônio removido'}
                           </Text>
+                          {hormonioInativo && (
+                            <View style={styles.inativoBadge}>
+                              <Text style={styles.inativoBadgeText}>Inativo</Text>
+                            </View>
+                          )}
                           <Text style={styles.historicoDetalhe}>
                             {horarioExibicao} • {formatarAtraso(app.atraso)}
                           </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+                        {!hormonioInativo && (
+                          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+                        )}
                       </TouchableOpacity>
                     );
                   })
@@ -321,6 +334,9 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
   },
+  historicoItemInativo: {
+    opacity: 0.75,
+  },
   historicoIcon: {
     width: 48,
     height: 48,
@@ -337,6 +353,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     marginBottom: 2,
+  },
+  inativoBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginBottom: 4,
+  },
+  inativoBadgeText: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.muted,
   },
   historicoDetalhe: {
     fontFamily: fonts.regular,
@@ -358,3 +387,4 @@ const styles = StyleSheet.create({
     top: 16,
   },
 });
+

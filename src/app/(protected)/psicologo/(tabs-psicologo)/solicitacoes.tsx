@@ -1,76 +1,133 @@
-import React, { useState, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  FlatList,
-  ActivityIndicator,
-} from "react-native";
-import { useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { StyleSheet, View, Text, FlatList, ActivityIndicator, Alert } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { colors } from "@/theme/colors";
 import { SolicitacaoAtendimentoCard } from "@/components/psicologo/SolicitacaoAtendimentoCard";
+import { obterUsuarioAtual } from "@/services/auth";
+import {
+  listarSolicitacoesPsicologo,
+  responderSolicitacaoPsicologo,
+  type SolicitacaoPsicologoAgenda,
+} from "@/services/agendamento";
 
-interface Solicitacao {
+interface SolicitacaoItem {
   id: string;
   name: string;
   photo: any;
   scheduledTime: string;
-   
 }
 
-// dados mockados p dps vcs pegarem da api
-const MOCK_PACIENTES: Solicitacao[] = [
-  {
-    id: "1",
-    name: "Jorge Pietro",
-    photo: require("@/assets/avatar-man.png"),
-    scheduledTime: "quarta-feira às 17h30",
-  },
-  {
-    id: "2",
-    name: "Priscila Lima",
-    photo: require("@/assets/avatar-woman.png"),
-    scheduledTime: "quarta-feira às 18h30",
-  },
-];
+const formatarDataHora = (dataSessao: string) => {
+  const data = new Date(dataSessao);
+  return data.toLocaleString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 export default function Solicitacoes() {
-  const router = useRouter();
-  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>(MOCK_PACIENTES);
+  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [respondendoId, setRespondendoId] = useState<string | null>(null);
 
+  const carregarSolicitacoes = useCallback(async () => {
+    setIsLoading(true);
+    const usuario = await obterUsuarioAtual();
+    if (!usuario?.id) {
+      setSolicitacoes([]);
+      setIsLoading(false);
+      return;
+    }
 
-  const handleSolicitacaoPress = useCallback(
-    (pacienteId: string) => {
-      router.push(`/paciente/${pacienteId}`);
+    const resultado = await listarSolicitacoesPsicologo(usuario.id);
+    if (!resultado.sucesso || !resultado.dados) {
+      setSolicitacoes([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const lista = (resultado.dados as SolicitacaoPsicologoAgenda[]).map(item => ({
+      id: item.id,
+      name: item.paciente_nome,
+      photo: item.paciente_foto
+        ? { uri: item.paciente_foto }
+        : require("@/assets/avatar-man.png"),
+      scheduledTime: formatarDataHora(item.data_sessao),
+    }));
+
+    setSolicitacoes(lista);
+    setIsLoading(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarSolicitacoes();
+    }, [carregarSolicitacoes])
+  );
+
+  const responder = useCallback(
+    async (sessaoId: string, aceitar: boolean) => {
+      const usuario = await obterUsuarioAtual();
+      if (!usuario?.id) {
+        Alert.alert("Erro", "Usuario nao autenticado.");
+        return;
+      }
+
+      setRespondendoId(sessaoId);
+      const resultado = await responderSolicitacaoPsicologo(usuario.id, sessaoId, aceitar);
+      setRespondendoId(null);
+
+      if (!resultado.sucesso) {
+        Alert.alert("Erro", resultado.erro || "Nao foi possivel responder a solicitacao.");
+        return;
+      }
+
+      await carregarSolicitacoes();
     },
-    [router],
+    [carregarSolicitacoes]
+  );
+
+  const handleRecusar = useCallback(
+    (sessaoId: string) => {
+      Alert.alert("Recusar solicitacao", "Deseja recusar esta solicitacao de consulta?", [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Recusar",
+          style: "destructive",
+          onPress: () => responder(sessaoId, false),
+        },
+      ]);
+    },
+    [responder]
   );
 
   const renderSolicitacaoCard = useCallback(
-    ({ item }: { item: Solicitacao }) => (
+    ({ item }: { item: SolicitacaoItem }) => (
       <SolicitacaoAtendimentoCard
         patientName={item.name}
         patientPhoto={item.photo}
         scheduledTime={item.scheduledTime}
-        onReject={() => console.log("Solicitação recusada")}
-        onAccept={() => console.log("Solicitação aceita")}
+        onReject={() => handleRecusar(item.id)}
+        onAccept={() => responder(item.id, true)}
       />
     ),
-    [handleSolicitacaoPress],
+    [handleRecusar, responder]
   );
 
   const renderEmptyList = useCallback(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Nenhuma solicitação pendente</Text>
+        <Text style={styles.emptyText}>Nenhuma solicitacao pendente</Text>
       </View>
     ),
-    [],
+    []
   );
 
-  const keyExtractor = useCallback((item: Solicitacao) => item.id, []);
+  const keyExtractor = useCallback((item: SolicitacaoItem) => item.id, []);
 
   if (isLoading) {
     return (
@@ -83,8 +140,9 @@ export default function Solicitacoes() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Pacientes</Text>
-        <Text style={styles.subtitle}>{solicitacoes.length} paciente(s)</Text>
+        <Text style={styles.title}>Solicitacoes</Text>
+        <Text style={styles.subtitle}>{solicitacoes.length} pendente(s)</Text>
+        {respondendoId ? <Text style={styles.processingText}>Processando resposta...</Text> : null}
       </View>
 
       <FlatList
@@ -109,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 16,
-    alignSelf: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
@@ -122,6 +180,12 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "black",
     alignSelf: "center",
+  },
+  processingText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: "600",
   },
   listContent: {
     paddingHorizontal: 16,

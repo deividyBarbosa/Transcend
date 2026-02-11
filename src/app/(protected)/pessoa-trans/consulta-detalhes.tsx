@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -7,28 +7,132 @@ import Header from '@/components/Header';
 import Button from '@/components/Button';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-import { CONSULTAS_MOCK, formatarData } from '@/mocks/mockConsultas';
+import { CONSULTAS_MOCK } from '@/mocks/mockConsultas';
+import { supabase } from '@/utils/supabase';
+
+type ConsultaDetalhe = {
+  id: string;
+  psicologoNome: string;
+  data: string;
+  horario: string;
+  tipo: 'online' | 'presencial';
+  status: 'agendada' | 'realizada' | 'cancelada';
+  statusLabel?: string;
+  link?: string;
+  observacoes?: string;
+};
+
+const normalizarStatus = (status: string | null | undefined): ConsultaDetalhe['status'] => {
+  const valor = (status || '').toLowerCase();
+  if (valor === 'realizada') return 'realizada';
+  if (valor === 'cancelada') return 'cancelada';
+  return 'agendada';
+};
+
+const statusLabel = (status: string | null | undefined) => {
+  const valor = (status || '').toLowerCase();
+  if (valor === 'agendada') return 'Aguardando confirmacao do psicologo';
+  if (valor === 'confirmada') return 'Confirmada';
+  if (valor === 'remarcada') return 'Remarcada';
+  if (valor === 'realizada') return 'Realizada';
+  if (valor === 'cancelada') return 'Cancelada';
+  return undefined;
+};
 
 export default function ConsultaDetalhesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const consultaId = params.id as string;
+  const [consulta, setConsulta] = useState<ConsultaDetalhe | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [cancelando, setCancelando] = useState(false);
 
-  const consulta = CONSULTAS_MOCK.find(c => c.id === consultaId);
+  const carregarConsulta = useCallback(async () => {
+    setCarregando(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
 
-  if (!consulta) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <Header title="Consulta" showBackButton />
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Consulta não encontrada</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+      if (userId) {
+        const { data: sessao } = await supabase
+          .from('sessoes_psicologicas')
+          .select('id, paciente_id, psicologo_id, data_sessao, status, modalidade, link_videochamada, notas_paciente')
+          .eq('id', consultaId)
+          .eq('paciente_id', userId)
+          .maybeSingle();
 
-  const isAgendada = consulta.status === 'agendada';
-  const isRealizada = consulta.status === 'realizada';
+        if (sessao) {
+          let psicologoNome = 'Psicologo(a)';
+          const { data: psicologo } = await supabase
+            .from('psicologos')
+            .select('usuario_id')
+            .eq('id', (sessao as any).psicologo_id)
+            .maybeSingle();
+
+          if (psicologo?.usuario_id) {
+            const { data: perfil } = await supabase
+              .from('perfis')
+              .select('*')
+              .eq('id', psicologo.usuario_id)
+              .maybeSingle();
+
+            if (perfil) {
+              psicologoNome = perfil.nome_social || perfil.nome || perfil.nome_civil || 'Psicologo(a)';
+            }
+          }
+
+          const dataSessao = new Date((sessao as any).data_sessao);
+          const data = `${dataSessao.getFullYear()}-${String(dataSessao.getMonth() + 1).padStart(2, '0')}-${String(
+            dataSessao.getDate()
+          ).padStart(2, '0')}`;
+          const horario = `${String(dataSessao.getHours()).padStart(2, '0')}:${String(dataSessao.getMinutes()).padStart(2, '0')}`;
+          const statusRaw = (sessao as any).status as string | null;
+
+          setConsulta({
+            id: (sessao as any).id,
+            psicologoNome,
+            data,
+            horario,
+            tipo: (sessao as any).modalidade === 'presencial' ? 'presencial' : 'online',
+            status: normalizarStatus(statusRaw),
+            statusLabel: statusLabel(statusRaw),
+            link: (sessao as any).link_videochamada || undefined,
+            observacoes: (sessao as any).notas_paciente || undefined,
+          });
+          setCarregando(false);
+          return;
+        }
+      }
+
+      const fallback = CONSULTAS_MOCK.find(c => c.id === consultaId) || null;
+      if (fallback) {
+        setConsulta({
+          id: fallback.id,
+          psicologoNome: fallback.psicologoNome,
+          data: fallback.data,
+          horario: fallback.horario,
+          tipo: fallback.tipo,
+          status: fallback.status,
+          statusLabel: fallback.statusLabel,
+          link: fallback.link,
+          observacoes: fallback.observacoes,
+        });
+      } else {
+        setConsulta(null);
+      }
+    } catch {
+      setConsulta(null);
+    } finally {
+      setCarregando(false);
+    }
+  }, [consultaId]);
+
+  useEffect(() => {
+    carregarConsulta();
+  }, [carregarConsulta]);
+
+  const isAgendada = useMemo(() => consulta?.status === 'agendada', [consulta?.status]);
+  const isRealizada = useMemo(() => consulta?.status === 'realizada', [consulta?.status]);
 
   const formatarDataCompleta = (dataStr: string) => {
     const [ano, mes, dia] = dataStr.split('-');
@@ -42,81 +146,112 @@ export default function ConsultaDetalhesScreen() {
   };
 
   const handleEntrarConsulta = () => {
-    if (consulta.link) {
+    if (consulta?.link) {
       Linking.openURL(consulta.link).catch(() => {
-        Alert.alert('Erro', 'Não foi possível abrir o link da consulta');
+        Alert.alert('Erro', 'Nao foi possivel abrir o link da consulta');
       });
     }
   };
 
   const handleCancelarConsulta = () => {
-    Alert.alert(
-      'Cancelar Consulta',
-      'Tem certeza que deseja cancelar esta consulta?',
-      [
-        { text: 'Não', style: 'cancel' },
-        {
-          text: 'Sim, cancelar',
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Integrar com backend
-            Alert.alert('Cancelada', 'Consulta cancelada com sucesso', [
-              { text: 'OK', onPress: () => router.back() },
-            ]);
-          },
+    if (!consulta) return;
+    Alert.alert('Cancelar Consulta', 'Tem certeza que deseja cancelar esta consulta?', [
+      { text: 'Nao', style: 'cancel' },
+      {
+        text: 'Sim, cancelar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setCancelando(true);
+            const { data: auth } = await supabase.auth.getUser();
+            const userId = auth.user?.id;
+            if (!userId) {
+              Alert.alert('Erro', 'Usuario nao autenticado.');
+              setCancelando(false);
+              return;
+            }
+
+            const { error } = await supabase
+              .from('sessoes_psicologicas')
+              .update({
+                status: 'cancelada',
+                cancelado_por: userId,
+                motivo_cancelamento: 'Cancelada pela pessoa trans',
+              })
+              .eq('id', consulta.id)
+              .eq('paciente_id', userId)
+              .in('status', ['agendada', 'confirmada', 'remarcada']);
+
+            setCancelando(false);
+            if (error) {
+              Alert.alert('Erro', error.message);
+              return;
+            }
+
+            Alert.alert('Cancelada', 'Consulta cancelada com sucesso', [{ text: 'OK', onPress: () => router.back() }]);
+          } catch {
+            setCancelando(false);
+            Alert.alert('Erro', 'Nao foi possivel cancelar a consulta.');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleReagendar = () => {
     router.push('/pessoa-trans/agendamento/agendar-psicologo');
   };
 
+  if (carregando) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Header title="Consulta" showBackButton />
+        <View style={styles.errorContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!consulta) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <Header title="Consulta" showBackButton />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Consulta nao encontrada</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <Header title="Detalhes da Consulta" showBackButton />
 
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Status Badge */}
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.statusContainer}>
           <View
             style={[
               styles.statusBadge,
-              {
-                backgroundColor: isAgendada ? '#E8F5E9' : isRealizada ? '#E3F2FD' : '#FFEBEE',
-              },
+              { backgroundColor: isAgendada ? '#FFF4E5' : isRealizada ? '#E3F2FD' : '#FFEBEE' },
             ]}
           >
             <Ionicons
-              name={
-                isAgendada
-                  ? 'calendar-outline'
-                  : isRealizada
-                  ? 'checkmark-circle-outline'
-                  : 'close-circle-outline'
-              }
+              name={isAgendada ? 'calendar-outline' : isRealizada ? 'checkmark-circle-outline' : 'close-circle-outline'}
               size={18}
-              color={isAgendada ? '#4CAF50' : isRealizada ? '#2196F3' : '#F44336'}
+              color={isAgendada ? '#B26A00' : isRealizada ? '#2196F3' : '#F44336'}
             />
             <Text
               style={[
                 styles.statusText,
-                {
-                  color: isAgendada ? '#4CAF50' : isRealizada ? '#2196F3' : '#F44336',
-                },
+                { color: isAgendada ? '#B26A00' : isRealizada ? '#2196F3' : '#F44336' },
               ]}
             >
-              {isAgendada ? 'Agendada' : isRealizada ? 'Realizada' : 'Cancelada'}
+              {consulta.statusLabel || (isAgendada ? 'Agendada' : isRealizada ? 'Realizada' : 'Cancelada')}
             </Text>
           </View>
         </View>
 
-        {/* Card do Psicólogo */}
         <View style={styles.card}>
           <View style={styles.psicologoHeader}>
             <View style={styles.iconContainer}>
@@ -124,14 +259,13 @@ export default function ConsultaDetalhesScreen() {
             </View>
             <View style={styles.psicologoInfo}>
               <Text style={styles.psicologoNome}>{consulta.psicologoNome}</Text>
-              <Text style={styles.psicologoLabel}>Psicólogo(a)</Text>
+              <Text style={styles.psicologoLabel}>Psicologo(a)</Text>
             </View>
           </View>
         </View>
 
-        {/* Informações da Consulta */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informações</Text>
+          <Text style={styles.cardTitle}>Informacoes</Text>
 
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
@@ -146,7 +280,7 @@ export default function ConsultaDetalhesScreen() {
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={20} color={colors.primary} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Horário</Text>
+              <Text style={styles.infoLabel}>Horario</Text>
               <Text style={styles.infoValue}>{consulta.horario}</Text>
             </View>
           </View>
@@ -161,24 +295,20 @@ export default function ConsultaDetalhesScreen() {
             />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Tipo</Text>
-              <Text style={styles.infoValue}>
-                {consulta.tipo === 'online' ? 'Consulta Online' : 'Consulta Presencial'}
-              </Text>
+              <Text style={styles.infoValue}>{consulta.tipo === 'online' ? 'Consulta Online' : 'Consulta Presencial'}</Text>
             </View>
           </View>
         </View>
 
-        {/* Observações do Psicólogo (se realizada) */}
         {isRealizada && consulta.observacoes && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Observações do Psicólogo</Text>
+            <Text style={styles.cardTitle}>Observacoes</Text>
             <View style={styles.observacoesBox}>
               <Text style={styles.observacoesText}>{consulta.observacoes}</Text>
             </View>
           </View>
         )}
 
-        {/* Link da Consulta (se agendada e tem link) */}
         {isAgendada && consulta.link && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Link da Consulta</Text>
@@ -192,33 +322,21 @@ export default function ConsultaDetalhesScreen() {
           </View>
         )}
 
-        {/* Botões de Ação */}
         {isAgendada && (
           <View style={styles.actionsContainer}>
-            {consulta.link && (
-              <Button
-                title="Entrar na Consulta"
-                onPress={handleEntrarConsulta}
-                style={styles.actionButton}
-              />
-            )}
+            {consulta.link && <Button title="Entrar na Consulta" onPress={handleEntrarConsulta} style={styles.actionButton} />}
 
             <Button
-              title="Cancelar Consulta"
+              title={cancelando ? 'Cancelando...' : 'Cancelar Consulta'}
               onPress={handleCancelarConsulta}
               variant="outline"
               style={styles.actionButton}
+              disabled={cancelando}
             />
           </View>
         )}
 
-        {isRealizada && (
-          <Button
-            title="Agendar Nova Consulta"
-            onPress={handleReagendar}
-            style={styles.actionButton}
-          />
-        )}
+        {isRealizada && <Button title="Agendar Nova Consulta" onPress={handleReagendar} style={styles.actionButton} />}
       </ScrollView>
     </SafeAreaView>
   );

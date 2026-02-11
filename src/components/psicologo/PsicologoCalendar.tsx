@@ -122,8 +122,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderRadius: 20,
     padding: 12,
-    width: 300,
-    height: 280,
     alignSelf: "center",
   },
   monthHeader: {
@@ -165,10 +163,9 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: "14.28%",
-    aspectRatio: 1,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 2,
   },
   dayNumber: {
     width: 28,

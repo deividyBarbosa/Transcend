@@ -1,17 +1,11 @@
-// to-do: o circulo de mensagens não lidas está meio cortado, tem que arrumar isso depois 
+// to-do: o circulo de mensagens nao lidas esta meio cortado, tem que arrumar isso depois
 
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
 import ConsultaItem from '@/components/ConsultaItem';
@@ -19,13 +13,56 @@ import { PacienteChatCard } from '@/components/psicologo/PacienteChatCard';
 import { SearchInput } from '@/components/Input/SearchInput';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
-import {
-  getConsultasAgendadas,
-  getConsultasRealizadas,
-} from '@/mocks/mockConsultas';
-import { CONVERSAS_MOCK, isRecente } from '@/mocks/mockChat';
+import type { Consulta } from '@/mocks/mockConsultas';
+import { CONVERSAS_MOCK } from '@/mocks/mockChat';
+import { obterUsuarioAtual } from '@/services/auth';
+import { listarSessoesPaciente, type SessaoPacienteAgenda } from '@/services/agendamento';
 
 type TabType = 'agendadas' | 'realizadas' | 'mensagens';
+
+const dataISO = (valor: string) => {
+  const d = new Date(valor);
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+};
+
+const horaBR = (valor: string) => {
+  const d = new Date(valor);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+const mapearConsulta = (sessao: SessaoPacienteAgenda): Consulta => {
+  const status = (sessao.status || 'agendada').toLowerCase();
+  const statusNormalizado: Consulta['status'] =
+    status === 'realizada' ? 'realizada' : status === 'cancelada' ? 'cancelada' : 'agendada';
+
+  const statusLabel =
+    status === 'agendada'
+      ? 'Aguardando confirmacao do psicologo'
+      : status === 'confirmada'
+        ? 'Confirmada'
+        : status === 'remarcada'
+          ? 'Remarcada'
+          : status === 'cancelada'
+            ? 'Cancelada'
+            : status === 'realizada'
+              ? 'Realizada'
+              : undefined;
+
+  return {
+    id: sessao.id,
+    psicologoId: sessao.psicologo_id,
+    psicologoNome: sessao.psicologo_nome,
+    data: dataISO(sessao.data_sessao),
+    horario: horaBR(sessao.data_sessao),
+    status: statusNormalizado,
+    tipo: sessao.modalidade === 'presencial' ? 'presencial' : 'online',
+    link: sessao.link_videochamada || undefined,
+    statusLabel,
+  };
+};
 
 export default function ConsultasScreen() {
   const router = useRouter();
@@ -33,9 +70,43 @@ export default function ConsultasScreen() {
   const [bannerVisivel, setBannerVisivel] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [filteredConversas, setFilteredConversas] = useState(CONVERSAS_MOCK);
+  const [consultasTodas, setConsultasTodas] = useState<Consulta[]>([]);
+  const [carregandoConsultas, setCarregandoConsultas] = useState(false);
 
-  const consultasAgendadas = getConsultasAgendadas();
-  const consultasRealizadas = getConsultasRealizadas();
+  const consultasAgendadas = useMemo(
+    () => consultasTodas.filter(c => c.status === 'agendada'),
+    [consultasTodas]
+  );
+  const consultasRealizadas = useMemo(
+    () => consultasTodas.filter(c => c.status === 'realizada' || c.status === 'cancelada'),
+    [consultasTodas]
+  );
+
+  const carregarConsultas = useCallback(async () => {
+    setCarregandoConsultas(true);
+    const usuario = await obterUsuarioAtual();
+    if (!usuario?.id) {
+      setConsultasTodas([]);
+      setCarregandoConsultas(false);
+      return;
+    }
+
+    const resultado = await listarSessoesPaciente(usuario.id);
+    if (!resultado.sucesso || !resultado.dados) {
+      setConsultasTodas([]);
+      setCarregandoConsultas(false);
+      return;
+    }
+
+    setConsultasTodas(resultado.dados.map(mapearConsulta));
+    setCarregandoConsultas(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarConsultas();
+    }, [carregarConsultas])
+  );
 
   const handleSearch = (text: string) => {
     setSearchText(text);
@@ -43,9 +114,7 @@ export default function ConsultasScreen() {
       setFilteredConversas(CONVERSAS_MOCK);
       return;
     }
-    const filtered = CONVERSAS_MOCK.filter(c =>
-      c.psicologoNome.toLowerCase().includes(text.toLowerCase())
-    );
+    const filtered = CONVERSAS_MOCK.filter(c => c.psicologoNome.toLowerCase().includes(text.toLowerCase()));
     setFilteredConversas(filtered);
   };
 
@@ -55,9 +124,7 @@ export default function ConsultasScreen() {
     <View style={styles.emptyState}>
       <Ionicons name="calendar-outline" size={64} color={colors.muted} style={{ opacity: 0.3 }} />
       <Text style={styles.emptyText}>
-        {activeTab === 'agendadas'
-          ? 'Você não tem consultas agendadas'
-          : 'Nenhuma consulta realizada ainda'}
+        {activeTab === 'agendadas' ? 'Voce nao tem consultas agendadas' : 'Nenhuma consulta realizada ainda'}
       </Text>
       {activeTab === 'agendadas' && (
         <Button
@@ -83,9 +150,9 @@ export default function ConsultasScreen() {
           <View style={styles.bannerContent}>
             <Ionicons name="information-circle" size={20} color={colors.primary} />
             <View style={styles.bannerText}>
-              <Text style={styles.bannerTitle}>Pagamentos e honorários</Text>
+              <Text style={styles.bannerTitle}>Pagamentos e honorarios</Text>
               <Text style={styles.bannerSubtitle}>
-                Os pagamentos são tratados diretamente com seu psicólogo, fora da plataforma Transcend.
+                Os pagamentos sao tratados diretamente com seu psicologo, fora da plataforma Transcend.
               </Text>
             </View>
           </View>
@@ -96,7 +163,7 @@ export default function ConsultasScreen() {
       )}
 
       <View style={styles.searchWrapper}>
-        <SearchInput value={searchText} onChangeText={handleSearch} placeholder="Buscar psicólogo..." />
+        <SearchInput value={searchText} onChangeText={handleSearch} placeholder="Buscar psicologo..." />
       </View>
 
       <View style={styles.statsContainer}>
@@ -104,14 +171,14 @@ export default function ConsultasScreen() {
         {getTotalUnread() > 0 && (
           <>
             <View style={styles.statsDot} />
-            <Text style={styles.statsUnread}>{getTotalUnread()} não lida(s)</Text>
+            <Text style={styles.statsUnread}>{getTotalUnread()} nao lida(s)</Text>
           </>
         )}
       </View>
 
       <FlatList
         data={filteredConversas}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <PacienteChatCard
             pacientId={item.psicologoId}
@@ -135,7 +202,6 @@ export default function ConsultasScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <Header title="Minhas Consultas" showBackButton />
 
-      {/* Tabs */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'agendadas' && styles.tabActive]}
@@ -150,7 +216,7 @@ export default function ConsultasScreen() {
           onPress={() => setActiveTab('realizadas')}
         >
           <Text style={[styles.tabText, activeTab === 'realizadas' && styles.tabTextActive]}>
-            Realizadas ({consultasRealizadas.length})
+            Historico ({consultasRealizadas.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -163,15 +229,14 @@ export default function ConsultasScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo das tabs */}
       {activeTab === 'mensagens' ? (
         renderMensagensTab()
+      ) : carregandoConsultas ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       ) : (
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {activeTab === 'agendadas' && (
             <>
               {consultasAgendadas.length > 0 ? (
@@ -181,7 +246,6 @@ export default function ConsultasScreen() {
                       key={consulta.id}
                       consulta={consulta}
                       onPress={() => router.push(`/pessoa-trans/consulta-detalhes?id=${consulta.id}`)}
-                      onEntrarConsulta={() => console.log('Entrar:', consulta.link)}
                     />
                   ))}
                   <Button
@@ -259,6 +323,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
+  },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     fontFamily: fonts.regular,
