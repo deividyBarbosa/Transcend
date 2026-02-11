@@ -141,6 +141,10 @@ export default function PsicologoHome() {
     router.push('/psicologo/solicitacoes');
   }, [router]);
 
+  const handleDisponibilidadePress = useCallback(() => {
+    router.push('/psicologo/disponibilidade');
+  }, [router]);
+
   const handleVerMaisPress = useCallback(() => {
     router.push('/psicologo/consultas/consultas');
   }, [router]);
@@ -170,6 +174,11 @@ export default function PsicologoHome() {
             onPress={handleSolicitacoesPress}
             loading={isLoading}
             style={styles.primaryButton}
+          />
+          <Button
+            title="Gerenciar disponibilidade"
+            onPress={handleDisponibilidadePress}
+            style={styles.secondaryButton}
           />
         </View>
 
@@ -244,6 +253,7 @@ const styles = StyleSheet.create({
   actionsSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    gap: 12,
   },
   primaryButton: {
     height: 48,

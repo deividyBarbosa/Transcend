@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DismissKeyboard from '@/components/DismissKeyboard';
+import ErrorMessage from '@/components/ErrorMessage';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import Button from '@/components/Button';
@@ -60,6 +61,7 @@ export default function DiarioScreen() {
   const [entries, setEntries] = useState<Record<string, EntradaDiario>>({});
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   // Estado do formulário
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
@@ -99,6 +101,9 @@ export default function DiarioScreen() {
         mapa[entrada.data_entrada] = entrada;
       }
       setEntries(mapa);
+      setErro(null);
+    } else {
+      setErro(resultado.erro || 'Nao foi possivel carregar as entradas do diario.');
     }
   }, [usuarioId, currentMonth]);
 
@@ -116,6 +121,7 @@ export default function DiarioScreen() {
 
   const handleDayPress = (day: number) => {
     const dateStr = formatDate(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    setErro(null);
     setSelectedDate(dateStr);
     setFotoSelecionada(null); // Resetar foto ao trocar de data
     setFotoUrl(null);
@@ -139,7 +145,6 @@ export default function DiarioScreen() {
 
   const handleRegisterToday = () => {
     const today = new Date();
-    const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
     handleDayPress(today.getDate());
   };
 
@@ -235,6 +240,7 @@ export default function DiarioScreen() {
   }, [usuarioId]);
 
   const handleSave = async () => {
+    setErro(null);
     if (selectedMoods.length === 0) {
       Alert.alert('Atenção', 'Selecione pelo menos um humor');
       return;
@@ -281,16 +287,17 @@ export default function DiarioScreen() {
 
       if (resultado.sucesso && resultado.dados) {
         setEntries(prev => ({ ...prev, [selectedDate]: resultado.dados! }));
+        setErro(null);
         Alert.alert('Sucesso', 'Registro salvo!');
         setSelectedDate(null);
         setFotoSelecionada(null);
         setFotoUrl(null);
       } else {
-        Alert.alert('Erro', resultado.erro || 'Erro ao salvar registro');
+        setErro(resultado.erro || 'Erro ao salvar registro');
       }
     } catch (erro) {
       console.error('Erro ao salvar:', erro);
-      Alert.alert('Erro', 'Ocorreu um erro ao salvar o registro');
+      setErro('Ocorreu um erro ao salvar o registro');
     } finally {
       setCarregando(false);
     }
@@ -312,6 +319,7 @@ export default function DiarioScreen() {
           <Text style={styles.title}>Meu diário</Text>
         </View>
 
+        <ErrorMessage message={erro} />
         <Calendar
           currentMonth={currentMonth}
           onPreviousMonth={handlePreviousMonth}
@@ -361,6 +369,7 @@ export default function DiarioScreen() {
             <Text style={styles.formTitle}>Como você está se sentindo hoje?</Text>
           </View>
 
+          <ErrorMessage message={erro} />
           <View style={styles.formSection}>
             <Text style={styles.formLabel}>Registro de Humor</Text>
             <View style={styles.moodsContainer}>

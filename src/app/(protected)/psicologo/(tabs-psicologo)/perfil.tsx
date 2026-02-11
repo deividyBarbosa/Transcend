@@ -84,6 +84,10 @@ export default function PerfilPsicologo() {
     router.push("/configuracoes");
   }, [router]);
 
+  const handleDisponibilidade = useCallback(() => {
+    router.push("/psicologo/disponibilidade");
+  }, [router]);
+
   const handleSair = useCallback(() => {
     Alert.alert(
       "Sair da Conta",
@@ -207,6 +211,15 @@ export default function PerfilPsicologo() {
           >
             <Ionicons name="settings-outline" size={20} color={colors.primary} />
             <Text style={styles.settingsButtonText}>Configurações</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={handleDisponibilidade}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+            <Text style={styles.settingsButtonText}>Disponibilidade</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

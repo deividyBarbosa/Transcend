@@ -5,6 +5,7 @@ import { colors } from '@/theme/colors';
 import { supabase } from '@/utils/supabase';
 import { buscarOuCriarConversa } from '@/services/chat';
 import { obterUsuarioAtual } from '@/services/auth';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function PacienteScreen() {
   const { id } = useLocalSearchParams();
@@ -14,6 +15,7 @@ export default function PacienteScreen() {
   const [perfil, setPerfil] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [startingChat, setStartingChat] = useState(false);
+  const [erroConversa, setErroConversa] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -45,10 +47,12 @@ export default function PacienteScreen() {
 
   const handleStartChat = useCallback(async () => {
     setStartingChat(true);
+    setErroConversa(null);
     try {
       const usuario = await obterUsuarioAtual();
       if (!usuario) {
         console.warn('Usuário não autenticado');
+        setErroConversa('Erro ao obter/ criar conversa: Usuario nao autenticado.');
         return;
       }
 
@@ -58,9 +62,11 @@ export default function PacienteScreen() {
         router.push(`/pessoa-trans/chat?conversaId=${conversaId}`);
       } else {
         console.error('Erro ao iniciar conversa:', resultado.erro);
+        setErroConversa(`Erro ao obter/ criar conversa: ${resultado.erro || 'Nao foi possivel iniciar a conversa'}`);
       }
     } catch (e) {
       console.error('Erro ao iniciar chat:', e);
+      setErroConversa('Erro ao obter/ criar conversa: Nao foi possivel iniciar a conversa');
     } finally {
       setStartingChat(false);
     }
@@ -87,6 +93,9 @@ export default function PacienteScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.errorWrap}>
+        <ErrorMessage message={erroConversa} />
+      </View>
       {perfil.foto_url ? (
         <Image source={{ uri: perfil.foto_url }} style={styles.avatar} />
       ) : null}
@@ -107,6 +116,7 @@ export default function PacienteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  errorWrap: { width: '100%' },
   avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: '700', color: colors.text },
   subtitle: { marginTop: 8, color: '#6B7280' },

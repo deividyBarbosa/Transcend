@@ -5,6 +5,7 @@ import { colors } from '@/theme/colors';
 import { supabase } from '@/utils/supabase';
 import { obterUsuarioAtual } from '@/services/auth';
 import { buscarOuCriarConversa } from '@/services/chat';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function PacienteChatScreen() {
   const { id } = useLocalSearchParams();
@@ -14,6 +15,7 @@ export default function PacienteChatScreen() {
   const [paciente, setPaciente] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
+  const [erroConversa, setErroConversa] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -35,18 +37,24 @@ export default function PacienteChatScreen() {
 
   const handleOpenChat = async () => {
     setStarting(true);
+    setErroConversa(null);
     try {
       const usuario = await obterUsuarioAtual();
-      if (!usuario) throw new Error('Usuário não autenticado');
+      if (!usuario) {
+        setErroConversa('Erro ao obter/ criar conversa: Usuario nao autenticado.');
+        return;
+      }
 
       const resultado = await buscarOuCriarConversa(pacienteId, usuario.id);
       if (resultado.sucesso && resultado.dados) {
         router.push(`/pessoa-trans/chat?conversaId=${(resultado.dados as any).id}`);
       } else {
         console.error('Erro ao obter/ criar conversa:', resultado.erro);
+        setErroConversa(`Erro ao obter/ criar conversa: ${resultado.erro || 'Nao foi possivel iniciar a conversa'}`);
       }
     } catch (e) {
       console.error(e);
+      setErroConversa('Erro ao obter/ criar conversa: Nao foi possivel iniciar a conversa');
     } finally {
       setStarting(false);
     }
@@ -62,6 +70,9 @@ export default function PacienteChatScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.errorWrap}>
+        <ErrorMessage message={erroConversa} />
+      </View>
       <Text style={styles.title}>{paciente.nome}</Text>
       <Text style={styles.subtitle}>{paciente.email}</Text>
 
@@ -78,6 +89,7 @@ export default function PacienteChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  errorWrap: { width: '100%' },
   title: { fontSize: 20, fontWeight: '700', color: colors.text },
   subtitle: { marginTop: 8, color: '#6B7280' },
   button: { marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
