@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -6,166 +6,233 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 import { colors } from "@/theme/colors";
 import { PacienteChatCard } from "@/components/psicologo/PacienteChatCard";
 import { SearchInput } from "@/components/Input/SearchInput";
+import { obterUsuarioAtual } from "@/services/auth";
+import {
+  buscarConversasPsicologo,
+  escutarConversas,
+  pararEscuta,
+} from "@/services/chat";
+import { ConversaHistorico, Conversa } from "@/types/chat";
 
-interface Chat {
-  id: string;
-  paciente: {
-    id: string;
-    nome: string;
-    foto: any;
-  };
-  ultimaMensagem: {
-    texto: string;
-    horario: string;
-  };
-  naoLidas: number;
-}
-
-const MOCK_CHATS: Chat[] = [
-  {
-    id: "1",
-    paciente: {
-      id: "p1",
-      nome: "Sophia Duarte",
-      foto: require("@/assets/avatar-woman.png"),
-    },
-    ultimaMensagem: {
-      texto: "Obrigada pela sessão de hoje, me senti bem melhor.",
-      horario: "10:45",
-    },
-    naoLidas: 2,
-  },
-  {
-    id: "2",
-    paciente: {
-      id: "p2",
-      nome: "Alex Moreno",
-      foto: require("@/assets/avatar-man.png"),
-    },
-    ultimaMensagem: {
-      texto: "Podemos remarcar para quinta-feira?",
-      horario: "Ontem",
-    },
-    naoLidas: 0,
-  },
-  {
-    id: "3",
-    paciente: {
-      id: "p3",
-      nome: "Lucas Ribeiro",
-      foto: require("@/assets/avatar-man.png"),
-    },
-    ultimaMensagem: {
-      texto: "Já realizei o pagamento da mensalidade.",
-      horario: "Terça",
-    },
-    naoLidas: 0,
-  },
-  {
-    id: "4",
-    paciente: {
-      id: "p4",
-      nome: "Beatriz Silva",
-      foto: require("@/assets/avatar-woman.png"),
-    },
-    ultimaMensagem: {
-      texto: "Até a próxima semana, doutora!",
-      horario: "22 Jan",
-    },
-    naoLidas: 0,
-  },
-  {
-    id: "5",
-    paciente: {
-      id: "p5",
-      nome: "Gabriel Santos",
-      foto: require("@/assets/avatar-man.png"),
-    },
-    ultimaMensagem: {
-      texto: "Você enviou um arquivo.",
-      horario: "15 Jan",
-    },
-    naoLidas: 0,
-  },
-  {
-    id: "6",
-    paciente: {
-      id: "p6",
-      nome: "Mariana Lima",
-      foto: require("@/assets/avatar-woman.png"),
-    },
-    ultimaMensagem: {
-      texto: "Obrigado pela indicação do livro.",
-      horario: "10 Jan",
-    },
-    naoLidas: 0,
-  },
+const DIAS_SEMANA = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
 ];
+const MESES_CURTOS = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
+// Conversa mockada
+const CONVERSA_MOCK: ConversaHistorico = {
+  psicologo_id: "mock-psicologo-123",
+  ativa: true,
+  conversa_id: "mock-conversa-123",
+  paciente_id: "mock-paciente-456",
+  nome_participante: "Maria Silva",
+  foto_participante: null,
+  ultima_mensagem_preview:
+    "Obrigada pela sessão de hoje, foi muito esclarecedora!",
+  ultima_mensagem_em: new Date().toISOString(),
+  mensagens_nao_lidas: 2,
+};
+
+function formatarHorario(dataISO: string | null): string {
+  if (!dataISO) return "";
+
+  const data = new Date(dataISO);
+  const agora = new Date();
+
+  const diffMs = agora.getTime() - data.getTime();
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Mesmo dia — mostra hora
+  if (
+    data.getDate() === agora.getDate() &&
+    data.getMonth() === agora.getMonth() &&
+    data.getFullYear() === agora.getFullYear()
+  ) {
+    return `${data.getHours().toString().padStart(2, "0")}:${data.getMinutes().toString().padStart(2, "0")}`;
+  }
+
+  // Ontem
+  if (diffDias === 1) return "Ontem";
+
+  // Dentro da mesma semana
+  if (diffDias < 7) return DIAS_SEMANA[data.getDay()];
+
+  // Mais antigo — dia e mês
+  return `${data.getDate()} ${MESES_CURTOS[data.getMonth()]}`;
+}
 
 export default function HistoricoChat() {
   const router = useRouter();
-  const [chats, setChats] = useState<Chat[]>(MOCK_CHATS);
-  const [filteredChats, setFilteredChats] = useState<Chat[]>(MOCK_CHATS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [conversas, setConversas] = useState<ConversaHistorico[]>([]);
+  const [conversasFiltradas, setConversasFiltradas] = useState<
+    ConversaHistorico[]
+  >([]);
+  const [carregando, setCarregando] = useState(true);
   const [searchText, setSearchText] = useState("");
-  const [activeChatId, setActiveChatId] = useState<string | null>("1");
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const fetchChats = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setChats(MOCK_CHATS);
-      setFilteredChats(MOCK_CHATS);
-    } catch (error) {
-      console.error("Erro ao buscar chats:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const carregarConversas = useCallback(
+    async (idUsuario: string) => {
+      setCarregando(true);
+      try {
+        const resultado = await buscarConversasPsicologo(idUsuario);
 
-  const handleSearch = useCallback(
-    (text: string) => {
-      setSearchText(text);
-
-      if (text.trim() === "") {
-        setFilteredChats(chats);
-        return;
+        if (resultado.sucesso && resultado.dados) {
+          // Adiciona a conversa mockada às conversas reais
+          const conversasComMock = [CONVERSA_MOCK, ...resultado.dados];
+          setConversas(conversasComMock);
+          setConversasFiltradas(conversasComMock);
+          if (conversasComMock.length > 0 && !activeChatId) {
+            setActiveChatId(conversasComMock[0].conversa_id);
+          }
+        } else {
+          console.error("Erro ao carregar conversas:", resultado.erro);
+          // Se der erro, só mostra a conversa mockada
+          setConversas([CONVERSA_MOCK]);
+          setConversasFiltradas([CONVERSA_MOCK]);
+          setActiveChatId(CONVERSA_MOCK.conversa_id);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar chats:", error);
+        // Em caso de erro, mostra só a conversa mockada
+        setConversas([CONVERSA_MOCK]);
+        setConversasFiltradas([CONVERSA_MOCK]);
+      } finally {
+        setCarregando(false);
       }
-
-      const filtered = chats.filter((chat) =>
-        chat.paciente.nome.toLowerCase().includes(text.toLowerCase()),
-      );
-      setFilteredChats(filtered);
     },
-    [chats],
+    [activeChatId],
   );
 
+  useEffect(() => {
+    let montado = true;
+
+    async function inicializar() {
+      const usuario = await obterUsuarioAtual();
+      if (!montado || !usuario) return;
+
+      setUsuarioId(usuario.id);
+      await carregarConversas(usuario.id);
+
+      // Escutar atualizações em tempo real
+      channelRef.current = escutarConversas(
+        usuario.id,
+        (conversaAtualizada: Conversa) => {
+          setConversas((prev) => {
+            const atualizadas = prev.map((c) =>
+              c.conversa_id === conversaAtualizada.id
+                ? {
+                    ...c,
+                    ultima_mensagem_em: conversaAtualizada.ultima_mensagem_em,
+                    ultima_mensagem_preview:
+                      conversaAtualizada.ultima_mensagem_preview,
+                    mensagens_nao_lidas:
+                      conversaAtualizada.mensagens_nao_lidas_psicologo ?? 0,
+                  }
+                : c,
+            );
+            // Reordenar por última mensagem
+            atualizadas.sort((a, b) => {
+              if (!a.ultima_mensagem_em) return 1;
+              if (!b.ultima_mensagem_em) return -1;
+              return (
+                new Date(b.ultima_mensagem_em).getTime() -
+                new Date(a.ultima_mensagem_em).getTime()
+              );
+            });
+            return atualizadas;
+          });
+        },
+      );
+    }
+
+    inicializar();
+
+    return () => {
+      montado = false;
+      if (channelRef.current) {
+        pararEscuta(channelRef.current);
+      }
+    };
+  }, []);
+
+  // Sincronizar conversasFiltradas quando conversas mudam
+  useEffect(() => {
+    if (searchText.trim() === "") {
+      setConversasFiltradas(conversas);
+    } else {
+      const filtradas = conversas.filter((c) =>
+        c.nome_participante.toLowerCase().includes(searchText.toLowerCase()),
+      );
+      setConversasFiltradas(filtradas);
+    }
+  }, [conversas, searchText]);
+
+  const handleSearch = useCallback((text: string) => {
+    setSearchText(text);
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    if (usuarioId) {
+      await carregarConversas(usuarioId);
+    }
+  }, [usuarioId, carregarConversas]);
+
   const handleChatPress = useCallback(
-    (chatId: string, pacienteId: string) => {
-      setActiveChatId(chatId);
+    (conversaId: string, pacienteId: string) => {
+      // Se for a conversa mockada, vai para a página chat-mock
+      if (conversaId === "mock-conversa-123") {
+        setActiveChatId(conversaId);
+        router.push("./chat-mock");
+        return;
+      }
+      setActiveChatId(conversaId);
       router.push(`/paciente-chat/${pacienteId}`);
     },
     [router],
   );
 
   const renderChatCard = useCallback(
-    ({ item }: { item: Chat }) => (
+    ({ item }: { item: ConversaHistorico }) => (
       <PacienteChatCard
-        pacientId={item.paciente.id}
-        pacientName={item.paciente.nome}
-        pacientPhoto={item.paciente.foto}
-        lastMessage={item.ultimaMensagem.texto}
-        lastMessageTime={item.ultimaMensagem.horario}
-        unreadCount={item.naoLidas}
-        isActive={activeChatId === item.id}
-        onPress={() => handleChatPress(item.id, item.paciente.id)}
+        pacientId={item.paciente_id}
+        pacientName={item.nome_participante}
+        pacientPhoto={item.foto_participante}
+        lastMessage={item.ultima_mensagem_preview ?? ""}
+        lastMessageTime={formatarHorario(item.ultima_mensagem_em)}
+        unreadCount={item.mensagens_nao_lidas}
+        isActive={activeChatId === item.conversa_id}
+        onPress={() => handleChatPress(item.conversa_id, item.paciente_id)}
       />
     ),
     [handleChatPress, activeChatId],
@@ -188,13 +255,19 @@ export default function HistoricoChat() {
     [searchText],
   );
 
-  const getTotalUnread = useCallback(() => {
-    return chats.reduce((sum, chat) => sum + chat.naoLidas, 0);
-  }, [chats]);
+  const getTotalNaoLidas = useCallback(() => {
+    return conversas.reduce(
+      (soma: number, c: ConversaHistorico) => soma + c.mensagens_nao_lidas,
+      0,
+    );
+  }, [conversas]);
 
-  const keyExtractor = useCallback((item: Chat) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: ConversaHistorico) => item.conversa_id,
+    [],
+  );
 
-  if (isLoading) {
+  if (carregando) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -227,13 +300,13 @@ export default function HistoricoChat() {
 
         <View style={styles.statsContainer}>
           <Text style={styles.statsText}>
-            {filteredChats.length} conversa(s)
+            {conversasFiltradas.length} conversa(s)
           </Text>
-          {getTotalUnread() > 0 && (
+          {getTotalNaoLidas() > 0 && (
             <>
               <View style={styles.statsDot} />
               <Text style={styles.statsUnread}>
-                {getTotalUnread()} não lida(s)
+                {getTotalNaoLidas()} não lida(s)
               </Text>
             </>
           )}
@@ -241,14 +314,14 @@ export default function HistoricoChat() {
       </View>
 
       <FlatList
-        data={filteredChats}
+        data={conversasFiltradas}
         renderItem={renderChatCard}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyList}
-        onRefresh={fetchChats}
-        refreshing={isLoading}
+        onRefresh={handleRefresh}
+        refreshing={carregando}
       />
     </View>
   );

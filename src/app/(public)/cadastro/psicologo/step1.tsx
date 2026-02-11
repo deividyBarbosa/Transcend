@@ -15,8 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function CadastroPsicologoScreen() {
   const router = useRouter();
   const [nomeCompleto, setNomeCompleto] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [dataNascimento, setDataNascimento] = useState('');
   const [numeroCRP, setNumeroCRP] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -38,35 +36,6 @@ export default function CadastroPsicologoScreen() {
     return senha.length >= 8 && senha.length <= 16;
   };
 
-  const validarCPF = (cpf: string) => {
-    const cpfLimpo = cpf.replace(/\D/g, '');
-    return cpfLimpo.length === 11;
-  };
-
-  const validarDataNascimento = (data: string) => {
-    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-    return regex.test(data);
-  };
-
-  const formatarCPF = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    if (numeros.length <= 3) return numeros;
-    if (numeros.length <= 6) return `${numeros.slice(0, 3)}.${numeros.slice(3)}`;
-    if (numeros.length <= 9) return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6)}`;
-    return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6, 9)}-${numeros.slice(9, 11)}`;
-  };
-
-  const formatarData = (texto: string) => {
-    const numeros = texto.replace(/\D/g, '');
-    if (numeros.length <= 2) return numeros;
-    if (numeros.length <= 4) return `${numeros.slice(0, 2)}/${numeros.slice(2)}`;
-    return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4, 8)}`;
-  };
-
-  const converterDataParaISO = (data: string) => {
-    const [dia, mes, ano] = data.split('/');
-    return `${ano}-${mes}-${dia}`;
-  };
 
   const handleUpload = async () => {
     try {
@@ -102,22 +71,12 @@ export default function CadastroPsicologoScreen() {
     console.log('Iniciando validação...');
 
     // Validações
-    if (!nomeCompleto || !cpf || !dataNascimento || !numeroCRP || !email || !senha || !confirmarSenha) {
+    if (!nomeCompleto || !numeroCRP || !email || !senha || !confirmarSenha) {
       Alert.alert('Atenção', 'Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
-    if (!validarCPF(cpf)) {
-      Alert.alert('Atenção', 'CPF inválido');
-      return;
-    }
-
-    if (!validarDataNascimento(dataNascimento)) {
-      Alert.alert('Atenção', 'Data de nascimento inválida. Use o formato: DD/MM/AAAA');
-      return;
-    }
-
-    if (!validarCRP(numeroCRP)) {
+if (!validarCRP(numeroCRP)) {
       Alert.alert('Atenção', 'Formato do CRP inválido. Use o formato: 01/12345');
       return;
     }
@@ -151,7 +110,6 @@ export default function CadastroPsicologoScreen() {
         nome: nomeCompleto,
         email,
         senha,
-        data_nascimento: converterDataParaISO(dataNascimento),
         crp: numeroCRP,
       });
 
@@ -173,7 +131,7 @@ export default function CadastroPsicologoScreen() {
         const blob = await response.blob();
 
         const { error: uploadError } = await supabase.storage
-          .from('documents')
+          .from('CRP')
           .upload(nomeArquivo, blob, {
             contentType: documento.type,
             upsert: true,

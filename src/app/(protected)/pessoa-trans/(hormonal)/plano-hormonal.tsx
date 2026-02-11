@@ -13,43 +13,19 @@ import MedicationCard from '@/components/MedicationCard';
 import Calendar from '@/components/Calendar';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { APLICACOES_MOCK, calcularEstatisticas, EVOLUCAO_MOCK } from '@/mocks/mockPlanoHormonal';
+import { EVOLUCAO_MOCK } from '@/mocks/mockPlanoHormonal';
 import EvolutionChart from '@/components/EvolutionChart';
 import { supabase } from '@/utils/supabase';
-import { buscarPlanosAtivos } from '@/services/planoHormonal';
-import type { PlanoHormonal } from '@/types/planoHormonal';
-
-const getMarkedDatesStatus = () => {
-  const status: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } = {};
-  
-  // Agrupar aplicações por data
-  const porData = APLICACOES_MOCK.reduce((acc, app) => {
-    if (!acc[app.data]) acc[app.data] = [];
-    acc[app.data].push(app);
-    return acc;
-  }, {} as { [data: string]: typeof APLICACOES_MOCK });
-  
-  // Determinar status de cada dia
-  Object.keys(porData).forEach(data => {
-    const apps = porData[data];
-    if (apps.every(a => a.status === 'aplicado')) {
-      status[data] = 'aplicado';
-    } else if (apps.some(a => a.status === 'atrasado')) {
-      status[data] = 'atrasado';
-    } else {
-      status[data] = 'pendente';
-    }
-  });
-  
-  return status;
-};
+import { buscarPlanosAtivos, buscarHistoricoAplicacoes } from '@/services/planoHormonal';
+import type { PlanoHormonal, AplicacaoHormonal } from '@/types/planoHormonal';
 
 export default function PlanoHormonalScreen() {
   const router = useRouter();
 
   const [planoAtual, setPlanoAtual] = useState<PlanoHormonal[]>([]);
+  const [todosPlanos, setTodosPlanos] = useState<PlanoHormonal[]>([]);
+  const [aplicacoes, setAplicacoes] = useState<AplicacaoHormonal[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const stats = calcularEstatisticas();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -64,6 +40,18 @@ export default function PlanoHormonalScreen() {
           if (resultado.sucesso && resultado.dados) {
             setPlanoAtual(resultado.dados);
           }
+          // Buscar todos os planos (ativos e inativos) para lookup de nomes
+          const { data: planosData } = await supabase
+            .from('planos_hormonais')
+            .select('*')
+            .eq('usuario_id', data.user.id);
+          if (planosData) {
+            setTodosPlanos(planosData as PlanoHormonal[]);
+          }
+          const resultadoAplicacoes = await buscarHistoricoAplicacoes(data.user.id);
+          if (resultadoAplicacoes.sucesso && resultadoAplicacoes.dados) {
+            setAplicacoes(resultadoAplicacoes.dados);
+          }
         }
         setCarregando(false);
       };
@@ -71,14 +59,39 @@ export default function PlanoHormonalScreen() {
     }, [])
   );
 
-  // Função para buscar hormônio por ID (mock, para o calendário)
-  const getHormonioPorId = (hormonioId: string) => {
-    return planoAtual.find((h: PlanoHormonal) => h.id === hormonioId);
+  // Função para buscar plano por ID (busca em todos os planos, não só ativos)
+  const getPlanoPorId = (planoId: string) => {
+    return todosPlanos.find((h: PlanoHormonal) => h.id === planoId);
   };
 
   // Obter datas com aplicações para marcar no calendário
   const getMarkedDates = () => {
-    return APLICACOES_MOCK.map(app => app.data);
+    return [...new Set(aplicacoes.map(app => app.data_aplicacao.split('T')[0]))];
+  };
+
+  // Obter status por data para colorir o calendário
+  const getMarkedDatesStatus = () => {
+    const status: { [date: string]: 'aplicado' | 'atrasado' | 'pendente' } = {};
+
+    const porData = aplicacoes.reduce((acc, app) => {
+      const data = app.data_aplicacao.split('T')[0];
+      if (!acc[data]) acc[data] = [];
+      acc[data].push(app);
+      return acc;
+    }, {} as { [data: string]: AplicacaoHormonal[] });
+
+    Object.keys(porData).forEach(data => {
+      const apps = porData[data];
+      if (apps.every(a => a.status === 'aplicado')) {
+        status[data] = 'aplicado';
+      } else if (apps.some(a => a.status === 'atrasado')) {
+        status[data] = 'atrasado';
+      } else {
+        status[data] = 'pendente';
+      }
+    });
+
+    return status;
   };
 
   // Obter aplicações de um dia específico
@@ -86,8 +99,8 @@ export default function PlanoHormonalScreen() {
     const ano = currentMonth.getFullYear();
     const mes = currentMonth.getMonth();
     const dataStr = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
-    return APLICACOES_MOCK.filter(app => app.data === dataStr);
+
+    return aplicacoes.filter(app => app.data_aplicacao.split('T')[0] === dataStr);
   };
 
   const handlePreviousMonth = () => {
@@ -104,29 +117,6 @@ export default function PlanoHormonalScreen() {
     setSelectedDay(day);
   };
 
-  const handleRegistrarAplicacao = (nomeHormonio: string) => {
-    const aplicacao = aplicacoesDoDia.find(app => {
-      const h = getHormonioPorId(app.hormonioId);
-      return h?.nome === nomeHormonio;
-    });
-    
-    const hormonio = planoAtual.find(h => h.nome === nomeHormonio);
-    
-    if (!aplicacao || !hormonio) return;
-    
-    router.push({
-      pathname: '/pessoa-trans/registrar-aplicacao',
-      params: {
-        planoId: hormonio.id,
-        hormonio: nomeHormonio,
-        data: aplicacao.data,
-        horario: aplicacao.horarioPrevisto,
-        dosagem: hormonio.dosagem + hormonio.unidade_dosagem,
-        modoAplicacao: hormonio.modo_aplicacao,
-      }
-    });
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'aplicado':
@@ -139,16 +129,12 @@ export default function PlanoHormonalScreen() {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'aplicado':
-        return 'Aplicado';
-      case 'atrasado':
-        return 'Atrasado';
-      case 'pendente':
-      default:
-        return 'Pendente';
-    }
+  const formatarAtraso = (minutos: number) => {
+    if (minutos === 0) return 'No horário';
+    const horas = Math.floor(minutos / 60);
+    const mins = minutos % 60;
+    if (horas > 0) return `Atraso ${horas}h ${mins}m`;
+    return `Atraso ${mins}m`;
   };
 
   const formatarDataExibicao = (day: number) => {
@@ -224,73 +210,75 @@ export default function PlanoHormonalScreen() {
             />
 
             {/* Lista de aplicações do dia selecionado */}
-            {selectedDay && aplicacoesDoDia.length > 0 && (
-              <View style={styles.dayDetailsCard}>
+            {selectedDay && (
+              <>
                 <Text style={styles.dayDetailsTitle}>
                   {formatarDataExibicao(selectedDay)}
                 </Text>
 
-                {aplicacoesDoDia.map((app, index) => {
-                  const statusIcon = getStatusIcon(app.status);
-                  const hormonio = getHormonioPorId(app.hormonioId);
-                  
-                  if (!hormonio) return null;
-                  
-                  return (
-                    <View key={index} style={styles.aplicacaoItem}>
-                      <View style={styles.aplicacaoHeader}>
-                        <View style={styles.aplicacaoInfo}>
-                          <Ionicons 
-                            name={statusIcon.name as any} 
-                            size={20} 
-                            color={statusIcon.color} 
+                {aplicacoesDoDia.length === 0 ? (
+                  <View style={styles.dayDetailsCard}>
+                    <Text style={styles.emptyText}>
+                      Nenhuma aplicação registrada para este dia
+                    </Text>
+                  </View>
+                ) : (
+                  aplicacoesDoDia.map((app) => {
+                    const statusIcon = getStatusIcon(app.status);
+                    const hormonio = getPlanoPorId(app.plano_id);
+                    const hormonioInativo = !hormonio || !hormonio.ativo;
+                    const horario = app.horario_aplicado || app.horario_previsto;
+                    const horarioExibicao = horario
+                      ? horario.split(':').slice(0, 2).join(':')
+                      : '--:--';
+
+                    return (
+                      <TouchableOpacity
+                        key={app.id}
+                        style={[styles.historicoItem, hormonioInativo && styles.historicoItemInativo]}
+                        onPress={() => {
+                          if (hormonio && hormonio.ativo) {
+                            router.push(`/pessoa-trans/detalhes-hormonio?id=${hormonio.id}`);
+                            return;
+                          }
+                          Alert.alert(
+                            'Hormônio inativo',
+                            'Este hormônio foi removido do seu plano e não pode mais ser editado.'
+                          );
+                        }}
+                        activeOpacity={hormonioInativo ? 1 : 0.7}
+                      >
+                        <View style={[
+                          styles.historicoIcon,
+                          { backgroundColor: app.status === 'aplicado' ? '#E8F5E9' : app.status === 'atrasado' ? '#FFF3E0' : '#F5F5F5' }
+                        ]}>
+                          <Ionicons
+                            name={statusIcon.name as any}
+                            size={24}
+                            color={statusIcon.color}
                           />
-                          <Text style={styles.aplicacaoHormonio}>
-                            {hormonio.nome}
+                        </View>
+                        <View style={styles.historicoContent}>
+                          <Text style={styles.historicoNome}>
+                            {hormonio?.nome ?? 'Hormônio removido'}
+                          </Text>
+                          {hormonioInativo && (
+                            <View style={styles.inativoBadge}>
+                              <Text style={styles.inativoBadgeText}>Inativo</Text>
+                            </View>
+                          )}
+                          <Text style={styles.historicoDetalhe}>
+                            {horarioExibicao} • {formatarAtraso(app.atraso)}
                           </Text>
                         </View>
-                        <Text style={styles.aplicacaoHorario}>{app.horarioPrevisto}</Text>
-                      </View>
-
-                      <Text style={styles.aplicacaoDosagem}>
-                        {hormonio.dosagem}{hormonio.unidade_dosagem}
-                      </Text>
-                      
-                      <View style={styles.aplicacaoStatus}>
-                        <Text style={[
-                          styles.aplicacaoStatusText,
-                          { color: statusIcon.color }
-                        ]}>
-                          {getStatusText(app.status)}
-                        </Text>
-                        
-                        {app.status === 'pendente' && (
-                          <TouchableOpacity
-                            style={styles.registrarButton}
-                            onPress={() => handleRegistrarAplicacao(hormonio.nome)}
-                          >
-                            <Text style={styles.registrarButtonText}>Registrar</Text>
-                          </TouchableOpacity>
+                        {!hormonioInativo && (
+                          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
                         )}
-                      </View>
-
-                      {app.horarioAplicado && (
-                        <Text style={styles.aplicacaoDetalhe}>
-                          Aplicado às {app.horarioAplicado}
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
-
-            {selectedDay && aplicacoesDoDia.length === 0 && (
-              <View style={styles.dayDetailsCard}>
-                <Text style={styles.emptyText}>
-                  Nenhuma aplicação programada para este dia
-                </Text>
-              </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </>
             )}
 
             {/* Evolução */}
@@ -328,75 +316,61 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 12,
     padding: 16,
-    marginTop: 12,
+    marginTop: 4,
     marginBottom: 8,
   },
   dayDetailsTitle: {
     fontFamily: fonts.bold,
     fontSize: 16,
     color: colors.text,
-    marginBottom: 16,
+    marginTop: 12,
+    marginBottom: 8,
   },
-  aplicacaoItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  aplicacaoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  aplicacaoInfo: {
+  historicoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
   },
-  aplicacaoHormonio: {
+  historicoItemInativo: {
+    opacity: 0.75,
+  },
+  historicoIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  historicoContent: {
+    flex: 1,
+  },
+  historicoNome: {
     fontFamily: fonts.semibold,
     fontSize: 15,
     color: colors.text,
+    marginBottom: 2,
   },
-  aplicacaoHorario: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.muted,
+  inativoBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginBottom: 4,
   },
-  aplicacaoDosagem: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.muted,
-    marginLeft: 28,
-    marginBottom: 8,
-  },
-  aplicacaoStatus: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginLeft: 28,
-  },
-  aplicacaoStatusText: {
+  inativoBadgeText: {
     fontFamily: fonts.medium,
-    fontSize: 13,
-  },
-  aplicacaoDetalhe: {
-    fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 11,
     color: colors.muted,
-    marginLeft: 28,
-    marginTop: 4,
   },
-  registrarButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  registrarButtonText: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    color: colors.white,
+  historicoDetalhe: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.muted,
   },
   emptyText: {
     fontFamily: fonts.regular,
@@ -413,3 +387,4 @@ const styles = StyleSheet.create({
     top: 16,
   },
 });
+

@@ -5,11 +5,11 @@ import { colors } from "@/theme/colors";
 
 interface AgendamentoCardProps {
   patientName: string;
-  patientPhoto: any;
+  patientPhoto?: any;
   sessionType: string;
   date: string;
   time: string;
-  badge?: "HOJE" | "AMANHÃ" | null;
+  badge?: 'HOJE' | 'AMANHA' | null;
   onPress: () => void;
 }
 
@@ -26,7 +26,13 @@ export function AgendamentoCard({
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.patientInfo}>
-          <Image source={patientPhoto} style={styles.photo} />
+          {patientPhoto ? (
+            <Image source={patientPhoto} style={styles.photo} />
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <Ionicons name="person-outline" size={20} color="#666666" />
+            </View>
+          )}
 
           <View style={styles.info}>
             <Text style={styles.name}>{patientName}</Text>
@@ -58,7 +64,7 @@ export function AgendamentoCard({
 
       <TouchableOpacity
         style={styles.button}
-        onPress={onPress} // ← USAR A PROP onPress
+        onPress={onPress}
         activeOpacity={0.7}
       >
         <Text style={styles.buttonText}>Ver Detalhes</Text>
@@ -98,6 +104,15 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 12,
+  },
+  photoPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    backgroundColor: '#F3F3F3',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   info: {
     flex: 1,
@@ -159,3 +174,4 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 });
+

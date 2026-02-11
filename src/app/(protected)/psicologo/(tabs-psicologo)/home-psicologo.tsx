@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,14 +6,18 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-} from "react-native";
-import { useRouter } from "expo-router";
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
-import { colors } from "@/theme/colors";
-import { PsychologistHeader } from "@/components/psicologo/PsicologoHeader";
-import PsicologoCalendar from "@/components/psicologo/PsicologoCalendar";
-import Button from "@/components/Button";
-import { ConsultaCard } from "@/components/psicologo/ConsultaCard";
+import { colors } from '@/theme/colors';
+import { PsychologistHeader } from '@/components/psicologo/PsicologoHeader';
+import PsicologoCalendar from '@/components/psicologo/PsicologoCalendar';
+import Button from '@/components/Button';
+import { ConsultaCard } from '@/components/psicologo/ConsultaCard';
+import { supabase } from '@/utils/supabase';
+import { listarSessoesPsicologo, listarSolicitacoesPsicologo } from '@/services/agendamento';
 
 interface Consulta {
   id: string;
@@ -21,78 +25,100 @@ interface Consulta {
   dataConsulta: Date;
   horaInicio: string;
   horaFim: string;
+  status: 'agendada' | 'concluida' | 'cancelada';
 }
 
-const MOCK_CONSULTAS: Consulta[] = [
-  {
-    id: "1",
-    pacientName: "Lucas Silva",
-    dataConsulta: new Date(2026, 2, 31),
-    horaInicio: "10:00",
-    horaFim: "11:00",
-  },
-  {
-    id: "2",
-    pacientName: "Sofia Oliveira",
-    dataConsulta: new Date(2026, 1, 1),
-    horaInicio: "14:00",
-    horaFim: "15:00",
-  },
-  {
-    id: "3",
-    pacientName: "Pedro Santos",
-    dataConsulta: new Date(2026, 0, 31),
-    horaInicio: "09:00",
-    horaFim: "10:00",
-  },
-];
+const statusToCardStatus = (status: string | null): 'agendada' | 'concluida' | 'cancelada' => {
+  if (status === 'realizada') return 'concluida';
+  if (status === 'cancelada') return 'cancelada';
+  return 'agendada';
+};
 
 export default function PsicologoHome() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [consultas, setConsultas] = useState<Consulta[]>(MOCK_CONSULTAS);
+  const [consultas, setConsultas] = useState<Consulta[]>([]);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  const carregarConsultas = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) {
+        setConsultas([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const [resultado, solicitacoesRes] = await Promise.all([
+        listarSessoesPsicologo(userId),
+        listarSolicitacoesPsicologo(userId),
+      ]);
+
+      if (solicitacoesRes.sucesso && solicitacoesRes.dados) {
+        setPendingRequestsCount(solicitacoesRes.dados.length);
+      } else {
+        setPendingRequestsCount(0);
+      }
+
+      if (!resultado.sucesso || !resultado.dados) {
+        setConsultas([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const parsed = resultado.dados.map(sessao => {
+        const dt = new Date(sessao.data_sessao);
+        const inicio = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+        const duracao = sessao.duracao_minutos || 60;
+        const fimDt = new Date(dt.getTime() + duracao * 60 * 1000);
+        const fim = `${String(fimDt.getHours()).padStart(2, '0')}:${String(fimDt.getMinutes()).padStart(2, '0')}`;
+
+        return {
+          id: sessao.id,
+          pacientName: sessao.paciente_nome,
+          dataConsulta: dt,
+          horaInicio: inicio,
+          horaFim: fim,
+          status: statusToCardStatus(sessao.status),
+        } as Consulta;
+      });
+
+      setConsultas(parsed);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarConsultas();
+    }, [carregarConsultas])
+  );
 
   const markedDates = useMemo(() => {
-    return consultas.map((consulta) => {
+    return consultas.map(consulta => {
       const year = consulta.dataConsulta.getFullYear();
-      const month = String(consulta.dataConsulta.getMonth() + 1).padStart(
-        2,
-        "0",
-      );
-      const day = String(consulta.dataConsulta.getDate()).padStart(2, "0");
+      const month = String(consulta.dataConsulta.getMonth() + 1).padStart(2, '0');
+      const day = String(consulta.dataConsulta.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     });
   }, [consultas]);
 
   const proximasConsultas = useMemo(() => {
-    const hoje = new Date();
-    const anoHoje = hoje.getFullYear();
-    const mesHoje = hoje.getMonth();
-    const diaHoje = hoje.getDate();
-
+    const agora = new Date();
     return consultas
-      .filter((consulta) => {
-        const ano = consulta.dataConsulta.getFullYear();
-        const mes = consulta.dataConsulta.getMonth();
-        const dia = consulta.dataConsulta.getDate();
-
-        if (ano > anoHoje) return true;
-        if (ano < anoHoje) return false;
-
-        if (mes > mesHoje) return true;
-        if (mes < mesHoje) return false;
-
-        return dia >= diaHoje;
-      })
+      .filter(consulta => consulta.status === 'agendada')
+      .filter(consulta => consulta.dataConsulta.getTime() >= agora.getTime())
       .sort((a, b) => a.dataConsulta.getTime() - b.dataConsulta.getTime())
       .slice(0, 3);
   }, [consultas]);
 
   const handlePreviousMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
+    setCurrentMonth(prev => {
       const newDate = new Date(prev);
       newDate.setMonth(prev.getMonth() - 1);
       return newDate;
@@ -100,53 +126,47 @@ export default function PsicologoHome() {
   }, []);
 
   const handleNextMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
+    setCurrentMonth(prev => {
       const newDate = new Date(prev);
       newDate.setMonth(prev.getMonth() + 1);
       return newDate;
     });
   }, []);
 
-  const handleDayPress = useCallback(
-    (day: number) => {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-      setSelectedDate(dateStr);
-      router.push(`/consultas/${dateStr}`);
-    },
-    [currentMonth, router],
-  );
+  const handleDayPress = useCallback(() => {
+    router.push('/psicologo/consultas/consultas');
+  }, [router]);
 
   const handleSolicitacoesPress = useCallback(() => {
-    router.push("/solicitacoes");
+    router.push('/psicologo/solicitacoes');
+  }, [router]);
+
+  const handleDisponibilidadePress = useCallback(() => {
+    router.push('/psicologo/disponibilidade');
   }, [router]);
 
   const handleVerMaisPress = useCallback(() => {
-    router.push("/consultas/consultas");
+    router.push('/psicologo/consultas/consultas');
   }, [router]);
 
   const handleListaCompletaPress = useCallback(() => {
-    router.push("/atendimentos");
+    router.push('/psicologo/atendimentos');
   }, [router]);
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await carregarConsultas();
     setIsRefreshing(false);
-  }, []);
+  }, [carregarConsultas]);
 
   return (
     <View style={styles.container}>
-      <PsychologistHeader pendingRequestsCount={3} />
+      <PsychologistHeader pendingRequestsCount={pendingRequestsCount} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.actionsSection}>
           <Button
@@ -155,14 +175,17 @@ export default function PsicologoHome() {
             loading={isLoading}
             style={styles.primaryButton}
           />
+          <Button
+            title="Gerenciar disponibilidade"
+            onPress={handleDisponibilidadePress}
+            style={styles.secondaryButton}
+          />
         </View>
 
         <View style={styles.calendarSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Agenda</Text>
-            <Text style={styles.sectionSubtitle}>
-              {proximasConsultas.length} consulta(s) próxima(s)
-            </Text>
+            <Text style={styles.sectionSubtitle}>{proximasConsultas.length} consulta(s) próxima(s)</Text>
           </View>
 
           <PsicologoCalendar
@@ -182,32 +205,31 @@ export default function PsicologoHome() {
             </TouchableOpacity>
           </View>
 
-          {proximasConsultas.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : proximasConsultas.length > 0 ? (
             <View style={styles.consultasList}>
-              {proximasConsultas.map((consulta) => (
+              {proximasConsultas.map(consulta => (
                 <ConsultaCard
                   key={consulta.id}
                   pacientName={consulta.pacientName}
                   dataConsulta={consulta.dataConsulta}
                   horaInicio={consulta.horaInicio}
                   horaFim={consulta.horaFim}
+                  status={consulta.status}
                 />
               ))}
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>
-                Nenhuma consulta agendada
-              </Text>
+              <Text style={styles.emptyStateText}>Nenhuma consulta agendada</Text>
             </View>
           )}
 
           <View style={styles.buttonsContainer}>
-            <Button
-              title="Ver mais consultas"
-              onPress={handleVerMaisPress}
-              style={styles.secondaryButton}
-            />
+            <Button title="Ver mais consultas" onPress={handleVerMaisPress} style={styles.secondaryButton} />
             <Button
               title="Lista completa de atendimentos"
               onPress={handleListaCompletaPress}
@@ -231,6 +253,7 @@ const styles = StyleSheet.create({
   actionsSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
+    gap: 12,
   },
   primaryButton: {
     height: 48,
@@ -241,25 +264,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.text,
   },
   sectionSubtitle: {
     fontSize: 14,
-    fontWeight: "400",
-    color: "black",
+    fontWeight: '400',
+    color: 'black',
   },
   verMaisText: {
     fontSize: 14,
-    fontWeight: "600",
-    color: colors.primary || "#D65C73",
+    fontWeight: '600',
+    color: colors.primary || '#D65C73',
   },
   consultasSection: {
     marginTop: 32,
@@ -270,11 +293,11 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     paddingVertical: 40,
-    alignItems: "center",
+    alignItems: 'center',
   },
   emptyStateText: {
     fontSize: 16,
-    color: "black",
+    color: 'black',
   },
   buttonsContainer: {
     marginTop: 20,
@@ -287,6 +310,6 @@ const styles = StyleSheet.create({
   tertiaryButton: {
     height: 48,
     borderRadius: 12,
-    backgroundColor: "#cf98a0",
+    backgroundColor: '#cf98a0',
   },
 });

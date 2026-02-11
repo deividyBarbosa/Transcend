@@ -5,6 +5,7 @@ export interface Consulta {
   data: string; // YYYY-MM-DD
   horario: string; // HH:MM
   status: 'agendada' | 'realizada' | 'cancelada';
+  statusLabel?: string;
   tipo: 'online' | 'presencial';
   link?: string; // Link da videochamada
   observacoes?: string;

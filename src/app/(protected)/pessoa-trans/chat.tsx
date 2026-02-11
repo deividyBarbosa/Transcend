@@ -60,15 +60,15 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: colors.background }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={0}
       >
         <ChatHeader
           nome={conversa.psicologoNome}
-          foto={conversa.psicologoFoto}
+          foto={require("@/assets/avatar-woman.png")}
           onBack={() => router.back()}
         />
 
@@ -79,13 +79,19 @@ export default function ChatScreen() {
           renderItem={({ item }) => (
             <MensagemBubble
               mensagem={item}
-              isMinha={item.remetenteTipo === 'paciente'}
-              avatarUrl={item.remetenteTipo === 'psicologo' ? conversa.psicologoFoto : undefined}
+              isMinha={item.remetenteTipo === "paciente"}
+              avatarUrl={
+                item.remetenteTipo === "psicologo"
+                  ? conversa.psicologoFoto
+                  : undefined
+              }
             />
           )}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.mensagensList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
         />
 
         <ChatInput

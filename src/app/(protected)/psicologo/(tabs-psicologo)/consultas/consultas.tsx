@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,85 +6,131 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { colors } from "@/theme/colors";
-import { AgendamentoCard } from "@/components/psicologo/AgendamentoCard";
+import { colors } from '@/theme/colors';
+import { AgendamentoCard } from '@/components/psicologo/AgendamentoCard';
+import { supabase } from '@/utils/supabase';
+import { listarSessoesPsicologo } from '@/services/agendamento';
 
-type TabType = "proximas" | "passadas" | "canceladas";
+type TabType = 'proximas' | 'passadas' | 'canceladas';
 
 interface Consulta {
   id: string;
   patientName: string;
-  patientPhoto: any;
   sessionType: string;
   date: string;
   time: string;
-  badge?: "HOJE" | "AMANHÃ" | null;
+  badge?: 'HOJE' | 'AMANHA' | null;
+  statusRaw: string;
+  dataSessao: Date;
 }
 
-const MOCK_CONSULTAS_PROXIMAS: Consulta[] = [
-  {
-    id: "1",
-    patientName: "Mariana Silva",
-    patientPhoto: require("@/assets/avatar-woman.png"),
-    sessionType: "Online • Terapia Individual",
-    date: "24 de Fev. 2026",
-    time: "14:00 - 15:00",
-    badge: "HOJE",
-  },
-  {
-    id: "2",
-    patientName: "Ricardo Santos",
-    patientPhoto: require("@/assets/avatar-man.png"),
-    sessionType: "Presencial • Terapia Individual",
-    date: "25 de Fev. 2026",
-    time: "09:30 - 10:30",
-    badge: null,
-  },
-  
-];
+const formatarData = (date: Date) => {
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
-const MOCK_CONSULTAS_PASSADAS: Consulta[] = [{
-    id: "3",
-    patientName: "Ana Ferreira",
-    patientPhoto: require("@/assets/avatar-woman.png"),
-    sessionType: "Online • Primeira Consulta",
-    date: "28 de Jan. 2026",
-    time: "16:00 - 17:00",
-    badge: null,
-  },];
-const MOCK_CONSULTAS_CANCELADAS: Consulta[] = [];
+const calcularBadge = (dataSessao: Date): 'HOJE' | 'AMANHA' | null => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const amanha = new Date(hoje);
+  amanha.setDate(hoje.getDate() + 1);
+
+  const data = new Date(dataSessao);
+  data.setHours(0, 0, 0, 0);
+
+  if (data.getTime() === hoje.getTime()) return 'HOJE';
+  if (data.getTime() === amanha.getTime()) return 'AMANHA';
+  return null;
+};
 
 export default function Consultas() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>("proximas");
+  const [activeTab, setActiveTab] = useState<TabType>('proximas');
   const [isLoading, setIsLoading] = useState(false);
+  const [todasConsultas, setTodasConsultas] = useState<Consulta[]>([]);
 
-  const getConsultasByTab = useCallback(() => {
+  const carregarConsultas = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) {
+        setTodasConsultas([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const resultado = await listarSessoesPsicologo(userId);
+      if (!resultado.sucesso || !resultado.dados) {
+        setTodasConsultas([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const consultas = resultado.dados.map(sessao => {
+        const data = new Date(sessao.data_sessao);
+        const inicio = `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`;
+        const duracao = sessao.duracao_minutos || 60;
+        const fimDate = new Date(data.getTime() + duracao * 60 * 1000);
+        const fim = `${String(fimDate.getHours()).padStart(2, '0')}:${String(fimDate.getMinutes()).padStart(2, '0')}`;
+
+        const modalidade = sessao.modalidade ? String(sessao.modalidade) : 'Online';
+
+        return {
+          id: sessao.id,
+          patientName: sessao.paciente_nome,
+          sessionType: `${modalidade} - Sessao`,
+          date: formatarData(data),
+          time: `${inicio} - ${fim}`,
+          badge: calcularBadge(data),
+          statusRaw: (sessao.status || 'agendada').toLowerCase(),
+          dataSessao: data,
+        } as Consulta;
+      });
+
+      setTodasConsultas(consultas);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarConsultas();
+    }, [carregarConsultas])
+  );
+
+  const consultas = useMemo(() => {
+    const agora = new Date();
+
     switch (activeTab) {
-      case "proximas":
-        return MOCK_CONSULTAS_PROXIMAS;
-      case "passadas":
-        return MOCK_CONSULTAS_PASSADAS;
-      case "canceladas":
-        return MOCK_CONSULTAS_CANCELADAS;
+      case 'proximas':
+        return todasConsultas
+          .filter(c => ['agendada', 'confirmada', 'remarcada'].includes(c.statusRaw))
+          .filter(c => c.dataSessao.getTime() >= agora.getTime())
+          .sort((a, b) => a.dataSessao.getTime() - b.dataSessao.getTime());
+      case 'passadas':
+        return todasConsultas
+          .filter(c => c.statusRaw === 'realizada' || c.dataSessao.getTime() < agora.getTime())
+          .filter(c => c.statusRaw !== 'cancelada')
+          .sort((a, b) => b.dataSessao.getTime() - a.dataSessao.getTime());
+      case 'canceladas':
+        return todasConsultas
+          .filter(c => c.statusRaw === 'cancelada')
+          .sort((a, b) => b.dataSessao.getTime() - a.dataSessao.getTime());
       default:
         return [];
     }
-  }, [activeTab]);
-
-  const consultas = getConsultasByTab();
-
-  //usar isso em vez do mock, pra ir pro id do paciente 
-  const handleConsultaPress = useCallback(
-    (consultaId: string) => {
-      router.push(`/consulta/${consultaId}`); 
-    },
-    [router],
-  );
+  }, [activeTab, todasConsultas]);
 
   const handleBackPress = useCallback(() => {
     router.back();
@@ -94,23 +140,21 @@ export default function Consultas() {
     ({ item }: { item: Consulta }) => (
       <AgendamentoCard
         patientName={item.patientName}
-        patientPhoto={item.patientPhoto}
         sessionType={item.sessionType}
         date={item.date}
         time={item.time}
         badge={item.badge}
-        onPress={() => router.push("./detalhes-consulta")}
-        // onPress={() => handleConsultaPress(item.id)} TODO: Quando integrar lembre de colocar isso em vez do mock
+        onPress={() => router.push(`/psicologo/consultas/detalhes-consulta?id=${item.id}`)}
       />
     ),
-    [handleConsultaPress],
+    [router]
   );
 
   const renderEmptyList = useCallback(() => {
     const emptyMessages = {
-      proximas: "Nenhuma consulta próxima",
-      passadas: "Nenhuma consulta passada",
-      canceladas: "Nenhuma consulta cancelada",
+      proximas: 'Nenhuma consulta proxima',
+      passadas: 'Nenhuma consulta passada',
+      canceladas: 'Nenhuma consulta cancelada',
     };
 
     return (
@@ -130,14 +174,10 @@ export default function Consultas() {
         onPress={() => setActiveTab(tab)}
         activeOpacity={0.7}
       >
-        <Text
-          style={[styles.tabText, activeTab === tab && styles.tabTextActive]}
-        >
-          {label}
-        </Text>
+        <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{label}</Text>
       </TouchableOpacity>
     ),
-    [activeTab],
+    [activeTab]
   );
 
   if (isLoading) {
@@ -151,11 +191,7 @@ export default function Consultas() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBackPress}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={handleBackPress} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
 
@@ -165,9 +201,9 @@ export default function Consultas() {
       </View>
 
       <View style={styles.tabsContainer}>
-        {renderTabButton("proximas", "Próximas")}
-        {renderTabButton("passadas", "Passadas")}
-        {renderTabButton("canceladas", "Canceladas")}
+        {renderTabButton('proximas', 'Proximas')}
+        {renderTabButton('passadas', 'Passadas')}
+        {renderTabButton('canceladas', 'Canceladas')}
       </View>
 
       <FlatList
@@ -189,9 +225,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 16,
@@ -199,16 +235,16 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.text,
   },
   tabsContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingHorizontal: 16,
     marginBottom: 16,
     gap: 8,
@@ -216,23 +252,23 @@ const styles = StyleSheet.create({
   tabButton: {
     flex: 1,
     paddingVertical: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 20,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   tabButtonActive: {
-    backgroundColor: "#FFE8E8",
+    backgroundColor: '#FFE8E8',
   },
   tabText: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#999999",
+    fontWeight: '500',
+    color: '#999999',
   },
   tabTextActive: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#D85D7A",
+    fontWeight: '600',
+    color: '#D85D7A',
   },
   listContent: {
     paddingHorizontal: 16,
@@ -243,18 +279,18 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 60,
   },
   emptyText: {
     fontSize: 16,
-    color: "#666666",
+    color: '#666666',
   },
 });

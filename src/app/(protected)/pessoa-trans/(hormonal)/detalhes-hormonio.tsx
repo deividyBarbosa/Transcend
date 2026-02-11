@@ -1,7 +1,7 @@
 // se der tempo vou refatorar esse depois
 
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,8 +12,8 @@ import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 import DetalhesAplicacaoModal from '@/components/DetalhesAplicacaoModal';
 import { supabase } from '@/utils/supabase';
-import { buscarHistoricoAplicacoes, buscarProximasAplicacoes } from '@/services/planoHormonal';
-import type { PlanoHormonal, AplicacaoHormonal, ProximaAplicacao } from '@/types/planoHormonal';
+import { buscarHistoricoAplicacoes } from '@/services/planoHormonal';
+import type { PlanoHormonal, AplicacaoHormonal } from '@/types/planoHormonal';
 
 const FREQUENCIA_PARA_DIAS: Record<string, number> = {
   'Diária': 1,
@@ -116,6 +116,13 @@ export default function DetalhesHormonioScreen() {
 
   const handleEditar = () => {
     if (!hormonio) return;
+    if (!hormonio.ativo) {
+      Alert.alert(
+        'Hormônio inativo',
+        'Este hormônio já foi removido do plano e não pode mais ser editado.'
+      );
+      return;
+    }
     router.push({
       pathname: '/pessoa-trans/editar-medicamento',
       params: {
@@ -133,6 +140,13 @@ export default function DetalhesHormonioScreen() {
 
   const handleRegistrarAplicacao = () => {
     if (!hormonio) return;
+    if (!hormonio.ativo) {
+      Alert.alert(
+        'Hormônio inativo',
+        'Este hormônio já foi removido do plano e não aceita novos registros.'
+      );
+      return;
+    }
     router.push({
       pathname: '/pessoa-trans/registrar-aplicacao',
       params: {
@@ -146,13 +160,15 @@ export default function DetalhesHormonioScreen() {
   };
 
   const formatarData = (dataStr: string) => {
-    const [ano, mes, dia] = dataStr.split('-');
+    const dataParte = dataStr.split('T')[0];
+    const [ano, mes, dia] = dataParte.split('-');
     const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
     return `${dia} ${meses[parseInt(mes) - 1]}`;
   };
 
   const formatarDataCompleta = (dataStr: string) => {
-    const [ano, mes, dia] = dataStr.split('-');
+    const dataParte = dataStr.split('T')[0];
+    const [ano, mes, dia] = dataParte.split('-');
     const data = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
     return data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
   };
@@ -204,6 +220,8 @@ export default function DetalhesHormonioScreen() {
     );
   }
 
+  const hormonioInativo = !hormonio.ativo;
+
 return (
   <>
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -211,11 +229,11 @@ return (
         <Header
           title={hormonio.nome}
           showBackButton
-          rightIcon={
+          rightIcon={!hormonioInativo ? (
             <TouchableOpacity onPress={handleEditar}>
               <Ionicons name="create-outline" size={24} color={colors.text} />
             </TouchableOpacity>
-          }
+          ) : undefined}
         />
 
         <ScrollView
@@ -228,8 +246,10 @@ return (
               <View style={styles.iconContainer}>
                 <Ionicons name="medical" size={28} color={colors.primary} />
               </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>ATIVO</Text>
+              <View style={[styles.statusBadge, hormonioInativo && styles.statusBadgeInativo]}>
+                <Text style={[styles.statusText, hormonioInativo && styles.statusTextInativo]}>
+                  {hormonioInativo ? 'INATIVO' : 'ATIVO'}
+                </Text>
               </View>
             </View>
 
@@ -243,13 +263,22 @@ return (
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="time-outline" size={16} color={colors.muted} />
-                <Text style={styles.infoText}>{hormonio.horario_preferencial || '--:--'}</Text>
+                <Text style={styles.infoText}>{hormonio.horario_preferencial?.split(':').slice(0, 2).join(':') || '--:--'}</Text>
               </View>
             </View>
           </View>
 
+          {hormonioInativo && (
+            <View style={styles.inativoInfoCard}>
+              <Ionicons name="information-circle-outline" size={20} color={colors.muted} />
+              <Text style={styles.inativoInfoText}>
+                Este hormônio foi removido do plano. Você pode apenas consultar o histórico.
+              </Text>
+            </View>
+          )}
+
           {/* Próxima Aplicação */}
-          {proximaAplicacao && (
+          {!hormonioInativo && proximaAplicacao && (
             <>
               <Text style={styles.sectionTitle}>Próxima Aplicação</Text>
               <View style={styles.nextCard}>
@@ -265,7 +294,7 @@ return (
                         : `Em ${proximaAplicacao.diasRestantes} dias`}
                   </Text>
                   <Text style={styles.nextReminder}>
-                    Prepare sua dose para as {hormonio.horario_preferencial || '08:00'}
+                    Prepare sua dose para as {hormonio.horario_preferencial?.split(':').slice(0, 2).join(':') || '08:00'}
                   </Text>
                 </View>
                 <Button
@@ -314,10 +343,12 @@ return (
           </View>
 
           <View style={styles.registrarButtonContainer}>
-            <Button
-              title="+ Registrar Aplicação"
-              onPress={handleRegistrarAplicacao}
-            />
+            {!hormonioInativo && (
+              <Button
+                title="+ Registrar Aplicação"
+                onPress={handleRegistrarAplicacao}
+              />
+            )}
           </View>
 
           {historico.length === 0 && (
@@ -352,7 +383,7 @@ return (
                 <View style={styles.historicoContent}>
                   <Text style={styles.historicoData}>{formatarData(item.data_aplicacao)}</Text>
                   <Text style={styles.historicoDetalhe}>
-                    {item.horario_aplicado || item.horario_previsto || '--:--'} • {formatarAtraso(item.atraso)}
+                    {(item.horario_aplicado || item.horario_previsto || '--:--').split(':').slice(0, 2).join(':')} • {formatarAtraso(item.atraso)}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.muted} />
@@ -429,10 +460,32 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
+  statusBadgeInativo: {
+    backgroundColor: '#F1F3F5',
+  },
   statusText: {
     fontFamily: fonts.semibold,
     fontSize: 12,
     color: '#4CAF50',
+  },
+  statusTextInativo: {
+    color: colors.muted,
+  },
+  inativoInfoCard: {
+    backgroundColor: '#F7F8FA',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  inativoInfoText: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 18,
   },
   label: {
     fontFamily: fonts.regular,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -6,54 +6,53 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { colors } from "@/theme/colors";
 import { ProfilePhoto } from "@/components/psicologo/ProfilePicture";
 import { ProfileStats } from "@/components/psicologo/ProfileStats";
-
-interface Perfil {
-  id: string;
-  nome: string;
-  foto: any;
-  crp: string;
-  titulo: string;
-  descricao: string;
-  especialidades: string[];
-  estatisticas: {
-    pacientes: number;
-    avaliacao: number;
-    experiencia: number;
-  };
-}
-
-const MOCK_PERFIL: Perfil = {
-  id: "1",
-  nome: "Dra. Valéria Almeida",
-  foto: require("@/assets/val-almeida.png"),
-  crp: "CRP 06/123456",
-  titulo: "PSICÓLOGA CLÍNICA",
-  descricao:
-    "Psicóloga com atuação clínica voltada ao acompanhamento de pessoas trans, travestis e não binárias em diferentes etapas da transição de gênero. Trabalho focada no acolhimento, fortalecimento da identidade, manejo de ansiedade, depressão e estresse social, além de suporte psicológico durante processos de transição social, familiar, médica e jurídica. Atendimento pautado na escuta ética, respeito à diversidade e promoção da saúde mental em contextos de vulnerabilidade e afirmação de gênero.",
-  especialidades: [
-    "Pessoas trans e não binárias",
-    "Saúde mental LGBTQIAPN+",
-    "Transição de gênero",
-    "Processos de afirmação de gênero",
-    "Autoconhecimento",
-  ],
-  estatisticas: {
-    pacientes: 120, //todo: tratar pra aparecer mensagem caso nao tenha ou nao tenha informado em editar perfil
-    avaliacao: 4.9,
-    experiencia: 8,
-  },
-};
+import { fazerLogout, obterUsuarioAtual } from "@/services/auth";
+import {
+  buscarMeuPerfilPsicologo,
+  PerfilPsicologoData,
+} from "@/services/psicologo";
 
 export default function PerfilPsicologo() {
   const router = useRouter();
-  const [perfil, setPerfil] = useState<Perfil>(MOCK_PERFIL);
+  const [perfil, setPerfil] = useState<PerfilPsicologoData | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const carregarPerfil = useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
+
+    const usuario = await obterUsuarioAtual();
+    if (!usuario) {
+      setErro("Não foi possível identificar o usuário logado.");
+      setCarregando(false);
+      return;
+    }
+
+    const resultado = await buscarMeuPerfilPsicologo(usuario.id);
+
+    if (resultado.sucesso && resultado.dados) {
+      setPerfil(resultado.dados);
+    } else {
+      setErro(resultado.erro || "Erro ao carregar perfil.");
+    }
+
+    setCarregando(false);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarPerfil();
+    }, [carregarPerfil])
+  );
 
   const handleEditPhoto = useCallback(() => {
     Alert.alert(
@@ -85,6 +84,56 @@ export default function PerfilPsicologo() {
     router.push("/configuracoes");
   }, [router]);
 
+  const handleDisponibilidade = useCallback(() => {
+    router.push("/psicologo/disponibilidade");
+  }, [router]);
+
+  const handleSair = useCallback(() => {
+    Alert.alert(
+      "Sair da Conta",
+      "Tem certeza que deseja sair?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            const resultado = await fazerLogout();
+            if (resultado.sucesso) {
+              router.replace("/");
+            } else {
+              Alert.alert("Erro", resultado.erro || "Não foi possível sair.");
+            }
+          },
+        },
+      ]
+    );
+  }, [router]);
+
+  if (carregando) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (erro || !perfil) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.primary} />
+        <Text style={styles.erroTexto}>{erro || "Perfil não encontrado."}</Text>
+        <TouchableOpacity style={styles.tentarNovamenteBotao} onPress={carregarPerfil}>
+          <Text style={styles.tentarNovamenteTexto}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const fotoSource = perfil.foto_url
+    ? { uri: perfil.foto_url }
+    : require("@/assets/val-almeida.png");
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -92,12 +141,9 @@ export default function PerfilPsicologo() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#D65C73" />
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Perfil</Text>
-        <TouchableOpacity style={styles.menuButton} onPress={handleSettings}>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#D65C73" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -106,7 +152,7 @@ export default function PerfilPsicologo() {
       >
         <View style={styles.photoSection}>
           <ProfilePhoto
-            source={perfil.foto}
+            source={fotoSource}
             size={120}
             onEditPress={handleEditPhoto}
           />
@@ -115,31 +161,35 @@ export default function PerfilPsicologo() {
         <View style={styles.infoSection}>
           <Text style={styles.nome}>{perfil.nome}</Text>
           <Text style={styles.titulo}>
-            {perfil.titulo} | {perfil.crp}
+            {perfil.titulo ? `${perfil.titulo} | ` : ""}{perfil.crp}
           </Text>
         </View>
 
         <ProfileStats
-          pacientes={perfil.estatisticas.pacientes}
-          avaliacao={perfil.estatisticas.avaliacao}
-          experiencia={perfil.estatisticas.experiencia}
+          pacientes={perfil.total_pacientes ?? 0}
+          avaliacao={perfil.avaliacao_media ?? 0}
+          experiencia={perfil.anos_experiencia ?? 0}
         />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sobre mim</Text>
-          <Text style={styles.descricao}>{perfil.descricao}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Especialidades</Text>
-          <View style={styles.tagsContainer}>
-            {perfil.especialidades.map((especialidade, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{especialidade}</Text>
-              </View>
-            ))}
+        {perfil.descricao ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sobre mim</Text>
+            <Text style={styles.descricao}>{perfil.descricao}</Text>
           </View>
-        </View>
+        ) : null}
+
+        {perfil.especialidades && perfil.especialidades.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Especialidades</Text>
+            <View style={styles.tagsContainer}>
+              {perfil.especialidades.map((especialidade, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{especialidade}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
@@ -156,8 +206,26 @@ export default function PerfilPsicologo() {
             onPress={handleSettings}
             activeOpacity={0.8}
           >
-            <Ionicons name="settings-outline" size={20} color="#D65C73" />
+            <Ionicons name="settings-outline" size={20} color={colors.primary} />
             <Text style={styles.settingsButtonText}>Configurações</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={handleDisponibilidade}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+            <Text style={styles.settingsButtonText}>Disponibilidade</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleSair}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#F44336" />
+            <Text style={styles.logoutButtonText}>Sair da conta</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -170,22 +238,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
+  },
+  erroTexto: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  tentarNovamenteBotao: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  tentarNovamenteTexto: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
+    position: "relative", 
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: "center",
     alignItems: "center",
+    position: "absolute",
+    left: 16, // Adicione isso
+    zIndex: 1, // Adicione isso
   },
   headerTitle: {
     fontSize: 18,
@@ -195,7 +291,7 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 40,
     height: 40,
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
   },
   scrollContent: {
@@ -296,5 +392,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#D65C73",
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#F44336",
   },
 });
