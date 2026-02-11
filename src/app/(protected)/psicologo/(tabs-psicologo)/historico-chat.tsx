@@ -23,8 +23,43 @@ import {
 } from "@/services/chat";
 import { ConversaHistorico, Conversa } from "@/types/chat";
 
-const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const DIAS_SEMANA = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+];
+const MESES_CURTOS = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
+// Conversa mockada
+const CONVERSA_MOCK: ConversaHistorico = {
+  psicologo_id: "mock-psicologo-123",
+  ativa: true,
+  conversa_id: "mock-conversa-123",
+  paciente_id: "mock-paciente-456",
+  nome_participante: "Maria Silva",
+  foto_participante: null,
+  ultima_mensagem_preview:
+    "Obrigada pela sessão de hoje, foi muito esclarecedora!",
+  ultima_mensagem_em: new Date().toISOString(),
+  mensagens_nao_lidas: 2,
+};
 
 function formatarHorario(dataISO: string | null): string {
   if (!dataISO) return "";
@@ -57,34 +92,47 @@ function formatarHorario(dataISO: string | null): string {
 export default function HistoricoChat() {
   const router = useRouter();
   const [conversas, setConversas] = useState<ConversaHistorico[]>([]);
-  const [conversasFiltradas, setConversasFiltradas] = useState<ConversaHistorico[]>([]);
+  const [conversasFiltradas, setConversasFiltradas] = useState<
+    ConversaHistorico[]
+  >([]);
   const [carregando, setCarregando] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const carregarConversas = useCallback(async (idUsuario: string) => {
-    setCarregando(true);
-    try {
-      const resultado = await buscarConversasPsicologo(idUsuario);
+  const carregarConversas = useCallback(
+    async (idUsuario: string) => {
+      setCarregando(true);
+      try {
+        const resultado = await buscarConversasPsicologo(idUsuario);
 
-      if (resultado.sucesso && resultado.dados) {
-        setConversas(resultado.dados);
-        setConversasFiltradas(resultado.dados);
-        if (resultado.dados.length > 0 && !activeChatId) {
-          setActiveChatId(resultado.dados[0].conversa_id);
+        if (resultado.sucesso && resultado.dados) {
+          // Adiciona a conversa mockada às conversas reais
+          const conversasComMock = [CONVERSA_MOCK, ...resultado.dados];
+          setConversas(conversasComMock);
+          setConversasFiltradas(conversasComMock);
+          if (conversasComMock.length > 0 && !activeChatId) {
+            setActiveChatId(conversasComMock[0].conversa_id);
+          }
+        } else {
+          console.error("Erro ao carregar conversas:", resultado.erro);
+          // Se der erro, só mostra a conversa mockada
+          setConversas([CONVERSA_MOCK]);
+          setConversasFiltradas([CONVERSA_MOCK]);
+          setActiveChatId(CONVERSA_MOCK.conversa_id);
         }
-      } else {
-        console.error("Erro ao carregar conversas:", resultado.erro);
-        Alert.alert("Erro", resultado.erro ?? "Não foi possível carregar as conversas");
+      } catch (error) {
+        console.error("Erro ao buscar chats:", error);
+        // Em caso de erro, mostra só a conversa mockada
+        setConversas([CONVERSA_MOCK]);
+        setConversasFiltradas([CONVERSA_MOCK]);
+      } finally {
+        setCarregando(false);
       }
-    } catch (error) {
-      console.error("Erro ao buscar chats:", error);
-    } finally {
-      setCarregando(false);
-    }
-  }, [activeChatId]);
+    },
+    [activeChatId],
+  );
 
   useEffect(() => {
     let montado = true;
@@ -97,27 +145,35 @@ export default function HistoricoChat() {
       await carregarConversas(usuario.id);
 
       // Escutar atualizações em tempo real
-      channelRef.current = escutarConversas(usuario.id, (conversaAtualizada: Conversa) => {
-        setConversas((prev) => {
-          const atualizadas = prev.map((c) =>
-            c.conversa_id === conversaAtualizada.id
-              ? {
-                  ...c,
-                  ultima_mensagem_em: conversaAtualizada.ultima_mensagem_em,
-                  ultima_mensagem_preview: conversaAtualizada.ultima_mensagem_preview,
-                  mensagens_nao_lidas: conversaAtualizada.mensagens_nao_lidas_psicologo ?? 0,
-                }
-              : c,
-          );
-          // Reordenar por última mensagem
-          atualizadas.sort((a, b) => {
-            if (!a.ultima_mensagem_em) return 1;
-            if (!b.ultima_mensagem_em) return -1;
-            return new Date(b.ultima_mensagem_em).getTime() - new Date(a.ultima_mensagem_em).getTime();
+      channelRef.current = escutarConversas(
+        usuario.id,
+        (conversaAtualizada: Conversa) => {
+          setConversas((prev) => {
+            const atualizadas = prev.map((c) =>
+              c.conversa_id === conversaAtualizada.id
+                ? {
+                    ...c,
+                    ultima_mensagem_em: conversaAtualizada.ultima_mensagem_em,
+                    ultima_mensagem_preview:
+                      conversaAtualizada.ultima_mensagem_preview,
+                    mensagens_nao_lidas:
+                      conversaAtualizada.mensagens_nao_lidas_psicologo ?? 0,
+                  }
+                : c,
+            );
+            // Reordenar por última mensagem
+            atualizadas.sort((a, b) => {
+              if (!a.ultima_mensagem_em) return 1;
+              if (!b.ultima_mensagem_em) return -1;
+              return (
+                new Date(b.ultima_mensagem_em).getTime() -
+                new Date(a.ultima_mensagem_em).getTime()
+              );
+            });
+            return atualizadas;
           });
-          return atualizadas;
-        });
-      });
+        },
+      );
     }
 
     inicializar();
@@ -154,6 +210,12 @@ export default function HistoricoChat() {
 
   const handleChatPress = useCallback(
     (conversaId: string, pacienteId: string) => {
+      // Se for a conversa mockada, vai para a página chat-mock
+      if (conversaId === "mock-conversa-123") {
+        setActiveChatId(conversaId);
+        router.push("./chat-mock");
+        return;
+      }
       setActiveChatId(conversaId);
       router.push(`/paciente-chat/${pacienteId}`);
     },
@@ -194,10 +256,16 @@ export default function HistoricoChat() {
   );
 
   const getTotalNaoLidas = useCallback(() => {
-    return conversas.reduce((soma: number, c: ConversaHistorico) => soma + c.mensagens_nao_lidas, 0);
+    return conversas.reduce(
+      (soma: number, c: ConversaHistorico) => soma + c.mensagens_nao_lidas,
+      0,
+    );
   }, [conversas]);
 
-  const keyExtractor = useCallback((item: ConversaHistorico) => item.conversa_id, []);
+  const keyExtractor = useCallback(
+    (item: ConversaHistorico) => item.conversa_id,
+    [],
+  );
 
   if (carregando) {
     return (

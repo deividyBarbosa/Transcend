@@ -1,14 +1,14 @@
 // to-do: tirar tudo de chamada dentro do app
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ImageSourcePropType } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { fonts } from '@/theme/fonts';
 
 interface ChatHeaderProps {
   nome: string;
-  foto: string;
+  foto: ImageSourcePropType;
   onBack: () => void;
   onCall?: () => void;
   onVideoCall?: () => void;
@@ -26,7 +26,7 @@ export default function ChatHeader({
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
-      <Image source={{ uri: foto }} style={styles.avatar} />
+      <Image source={foto} style={styles.avatar} />
       <View style={styles.info}>
         <Text style={styles.nome}>{nome}</Text>
       </View>

@@ -81,7 +81,7 @@ export default function PerfilPsicologo() {
   }, [router]);
 
   const handleSettings = useCallback(() => {
-    router.push("../configuracoes");
+    router.push("/configuracoes");
   }, [router]);
 
   const handleDisponibilidade = useCallback(() => {
