@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,40 +9,41 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import DismissKeyboard from '@/components/DismissKeyboard';
-import Header from '@/components/Header';
-import Input from '@/components/Input';
-import Button from '@/components/Button';
-import SelectModal from '@/components/SelectModal';
-import { colors } from '@/theme/colors';
-import { fonts } from '@/theme/fonts';
-import { Usuario, Genero } from '@/types/auth';
+  Modal,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import DismissKeyboard from "@/components/DismissKeyboard";
+import Header from "@/components/Header";
+import Input from "@/components/Input";
+import Button from "@/components/Button";
+import SelectModal from "@/components/SelectModal";
+import { colors } from "@/theme/colors";
+import { fonts } from "@/theme/fonts";
+import { Usuario, Genero } from "@/types/auth";
 import {
   obterUsuarioAtual,
   atualizarPerfil,
   uploadFotoPerfil,
-} from '@/services/auth';
-import { supabase } from '@/utils/supabase';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "@/services/auth";
+import { supabase } from "@/utils/supabase";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const GENEROS: { valor: Genero; label: string }[] = [
-  { valor: 'mulher_trans', label: 'Mulher Trans' },
-  { valor: 'homem_trans', label: 'Homem Trans' },
-  { valor: 'nao_binario', label: 'Não Binário' },
-  { valor: 'outro', label: 'Outro' },
+  { valor: "mulher_trans", label: "Mulher Trans" },
+  { valor: "homem_trans", label: "Homem Trans" },
+  { valor: "nao_binario", label: "Não Binário" },
+  { valor: "outro", label: "Outro" },
 ];
 
 const generoParaLabel = (genero: Genero | null): string => {
-  const item = GENEROS.find(g => g.valor === genero);
-  return item?.label || '';
+  const item = GENEROS.find((g) => g.valor === genero);
+  return item?.label || "";
 };
 
 const labelParaGenero = (label: string): Genero | undefined => {
-  const item = GENEROS.find(g => g.label === label);
+  const item = GENEROS.find((g) => g.label === label);
   return item?.valor;
 };
 
@@ -54,20 +55,22 @@ export default function EditarPerfilScreen() {
   const [enviandoFoto, setEnviandoFoto] = useState(false);
 
   // Campos compartilhados
-  const [nome, setNome] = useState('');
+  const [nome, setNome] = useState("");
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
 
   // Campos pessoa_trans
-  const [bio, setBio] = useState('');
-  const [genero, setGenero] = useState<Genero>('mulher_trans');
+  const [bio, setBio] = useState("");
+  const [genero, setGenero] = useState<Genero>("mulher_trans");
   const [showGeneroModal, setShowGeneroModal] = useState(false);
 
   // Campos psicologo
-  const [crp, setCrp] = useState('');
-  const [titulo, setTitulo] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [anosExperiencia, setAnosExperiencia] = useState('');
-  const [especialidades, setEspecialidades] = useState('');
+  const [crp, setCrp] = useState("");
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [anosExperiencia, setAnosExperiencia] = useState("");
+  const [especialidadesArray, setEspecialidadesArray] = useState<string[]>([]);
+  const [novaEspecialidade, setNovaEspecialidade] = useState("");
+  const [showEspecialidadeModal, setShowEspecialidadeModal] = useState(false);
   const [psicologoData, setPsicologoData] = useState<any | null>(null);
 
   useEffect(() => {
@@ -76,27 +79,25 @@ export default function EditarPerfilScreen() {
       const usuarioAtual = await obterUsuarioAtual();
       if (usuarioAtual) {
         setUsuario(usuarioAtual);
-        setNome(usuarioAtual.nome || '');
+        setNome(usuarioAtual.nome || "");
         setFotoUrl(usuarioAtual.foto_url);
 
         // Campos pessoa_trans
-        if (usuarioAtual.tipo === 'pessoa_trans') {
-          setBio(usuarioAtual.bio || '');
-          setGenero(usuarioAtual.genero || 'mulher_trans');
+        if (usuarioAtual.tipo === "pessoa_trans") {
+          setBio(usuarioAtual.bio || "");
+          setGenero(usuarioAtual.genero || "mulher_trans");
         }
 
         // Campos psicologo
-        if (usuarioAtual.tipo === 'psicologo' && usuarioAtual.psicologo) {
+        if (usuarioAtual.tipo === "psicologo" && usuarioAtual.psicologo) {
           const psico = usuarioAtual.psicologo;
           setPsicologoData(psico);
-          setCrp(psico.crp || '');
-          setTitulo(psico.titulo || '');
-          setDescricao(psico.descricao || '');
-          setAnosExperiencia(psico.anos_experiencia?.toString() || '');
-          setEspecialidades(
-            Array.isArray(psico.especialidades)
-              ? psico.especialidades.join(', ')
-              : ''
+          setCrp(psico.crp || "");
+          setTitulo(psico.titulo || "");
+          setDescricao(psico.descricao || "");
+          setAnosExperiencia(psico.anos_experiencia?.toString() || "");
+          setEspecialidadesArray(
+            Array.isArray(psico.especialidades) ? psico.especialidades : [],
           );
         }
       }
@@ -110,14 +111,14 @@ export default function EditarPerfilScreen() {
 
     if (!permissao.granted) {
       Alert.alert(
-        'Permissão necessária',
-        'Precisamos de acesso à sua galeria para trocar a foto.'
+        "Permissão necessária",
+        "Precisamos de acesso à sua galeria para trocar a foto.",
       );
       return;
     }
 
     const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -130,24 +131,51 @@ export default function EditarPerfilScreen() {
       const resultadoUpload = await uploadFotoPerfil(usuario.id, {
         uri: asset.uri,
         name: asset.fileName || `avatar_${Date.now()}.jpg`,
-        type: asset.mimeType || 'image/jpeg',
+        type: asset.mimeType || "image/jpeg",
       });
 
       if (resultadoUpload.sucesso && resultadoUpload.dados) {
         setFotoUrl(resultadoUpload.dados);
       } else {
-        Alert.alert('Erro', resultadoUpload.erro || 'Falha ao enviar foto.');
+        Alert.alert("Erro", resultadoUpload.erro || "Falha ao enviar foto.");
       }
 
       setEnviandoFoto(false);
     }
   }, [usuario]);
 
+  const incrementarExperiencia = () => {
+    const valor = parseInt(anosExperiencia || "0", 10);
+    setAnosExperiencia((valor + 1).toString());
+  };
+
+  const decrementarExperiencia = () => {
+    const valor = parseInt(anosExperiencia || "0", 10);
+    if (valor > 0) {
+      setAnosExperiencia((valor - 1).toString());
+    }
+  };
+
+  const adicionarEspecialidade = () => {
+    if (novaEspecialidade.trim()) {
+      setEspecialidadesArray([
+        ...especialidadesArray,
+        novaEspecialidade.trim(),
+      ]);
+      setNovaEspecialidade("");
+      setShowEspecialidadeModal(false);
+    }
+  };
+
+  const removerEspecialidade = (index: number) => {
+    setEspecialidadesArray(especialidadesArray.filter((_, i) => i !== index));
+  };
+
   const handleSalvarPessoaTrans = useCallback(async () => {
     if (!usuario) return;
 
     if (!nome.trim()) {
-      Alert.alert('Erro', 'O nome não pode estar vazio.');
+      Alert.alert("Erro", "O nome não pode estar vazio.");
       return;
     }
 
@@ -158,11 +186,11 @@ export default function EditarPerfilScreen() {
     });
 
     if (resultado.sucesso) {
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert("Sucesso", "Perfil atualizado com sucesso!", [
+        { text: "OK", onPress: () => router.back() },
       ]);
     } else {
-      Alert.alert('Erro', resultado.erro || 'Não foi possível salvar.');
+      Alert.alert("Erro", resultado.erro || "Não foi possível salvar.");
     }
   }, [usuario, nome, bio, genero, router]);
 
@@ -170,12 +198,12 @@ export default function EditarPerfilScreen() {
     if (!usuario || !psicologoData) return;
 
     if (!nome.trim()) {
-      Alert.alert('Erro', 'O nome não pode estar vazio.');
+      Alert.alert("Erro", "O nome não pode estar vazio.");
       return;
     }
 
     if (!crp.trim()) {
-      Alert.alert('Erro', 'O CRP não pode estar vazio.');
+      Alert.alert("Erro", "O CRP não pode estar vazio.");
       return;
     }
 
@@ -188,57 +216,68 @@ export default function EditarPerfilScreen() {
       });
 
       if (!resultadoPerfil.sucesso) {
-        Alert.alert('Erro', resultadoPerfil.erro || 'Erro ao atualizar perfil');
+        Alert.alert("Erro", resultadoPerfil.erro || "Erro ao atualizar perfil");
         setSalvando(false);
         return;
       }
 
       // Atualizar dados do psicólogo
-      const especialidadesArray = especialidades
-        .split(',')
-        .map(e => e.trim())
-        .filter(e => e.length > 0);
-
       const { error } = await supabase
-        .from('psicologos')
+        .from("psicologos")
         .update({
           crp: crp.trim(),
           titulo: titulo.trim() || null,
           descricao: descricao.trim() || null,
-          especialidades: especialidadesArray.length > 0 ? especialidadesArray : null,
-          anos_experiencia: anosExperiencia ? parseInt(anosExperiencia, 10) : null,
+          especialidades:
+            especialidadesArray.length > 0 ? especialidadesArray : null,
+          anos_experiencia: anosExperiencia
+            ? parseInt(anosExperiencia, 10)
+            : null,
         })
-        .eq('usuario_id', usuario.id);
+        .eq("usuario_id", usuario.id);
 
       setSalvando(false);
 
       if (error) {
-        Alert.alert('Erro', error.message || 'Não foi possível atualizar dados de psicólogo.');
+        Alert.alert(
+          "Erro",
+          error.message || "Não foi possível atualizar dados de psicólogo.",
+        );
       } else {
-        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!', [
-          { text: 'OK', onPress: () => router.back() },
+        Alert.alert("Sucesso", "Perfil atualizado com sucesso!", [
+          { text: "OK", onPress: () => router.back() },
         ]);
       }
     } catch (e) {
       setSalvando(false);
-      Alert.alert('Erro', 'Erro inesperado ao salvar.');
+      Alert.alert("Erro", "Erro inesperado ao salvar.");
       console.error(e);
     }
-  }, [usuario, psicologoData, nome, crp, titulo, descricao, especialidades, anosExperiencia, router]);
+  }, [
+    usuario,
+    psicologoData,
+    nome,
+    crp,
+    titulo,
+    descricao,
+    especialidadesArray,
+    anosExperiencia,
+    router,
+  ]);
 
   const handleSalvar = () => {
-    if (usuario?.tipo === 'pessoa_trans') {
+    if (usuario?.tipo === "pessoa_trans") {
       handleSalvarPessoaTrans();
-    } else if (usuario?.tipo === 'psicologo') {
+    } else if (usuario?.tipo === "psicologo") {
       handleSalvarPsicologo();
     }
   };
 
   const getIniciais = (nomeStr: string) => {
     return nomeStr
-      .split(' ')
-      .map(n => n[0])
-      .join('')
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
       .substring(0, 2)
       .toUpperCase();
   };
@@ -255,7 +294,7 @@ export default function EditarPerfilScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <DismissKeyboard>
         <View style={styles.container}>
           <Header title="Editar Perfil" showBackButton />
@@ -277,7 +316,7 @@ export default function EditarPerfilScreen() {
                 ) : (
                   <View style={[styles.foto, styles.fotoPlaceholder]}>
                     <Text style={styles.fotoIniciais}>
-                      {getIniciais(nome || 'U')}
+                      {getIniciais(nome || "U")}
                     </Text>
                   </View>
                 )}
@@ -289,53 +328,61 @@ export default function EditarPerfilScreen() {
                   )}
                 </View>
               </TouchableOpacity>
-              <Text style={styles.fotoTexto}>Toque para alterar a foto</Text>
+              <TouchableOpacity onPress={handleTrocarFoto}>
+                <Text style={styles.fotoTexto}>Alterar Foto</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Nome (compartilhado) */}
-            <Input
-              label="Nome"
-              value={nome}
-              onChangeText={setNome}
-              placeholder="Seu nome"
-            />
+            <View style={styles.campoContainer}>
+              <Text style={styles.campoLabel}>NOME COMPLETO</Text>
+              <TextInput
+                style={styles.input}
+                value={nome}
+                onChangeText={setNome}
+                placeholder="Seu nome"
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
 
             {/* Campos pessoa_trans */}
-            {usuario?.tipo === 'pessoa_trans' && (
+            {usuario?.tipo === "pessoa_trans" && (
               <>
                 <View style={styles.campoContainer}>
-                  <Text style={styles.campoLabel}>Bio</Text>
+                  <Text style={styles.campoLabel}>BIO</Text>
                   <TextInput
-                    style={styles.bioInput}
+                    style={[styles.input, styles.bioInput]}
                     value={bio}
                     onChangeText={setBio}
                     placeholder="Conte um pouco sobre você..."
-                    placeholderTextColor={colors.muted}
+                    placeholderTextColor="#9CA3AF"
                     multiline
                     numberOfLines={4}
                     maxLength={300}
                     textAlignVertical="top"
                   />
-                  <Text style={styles.contadorCaracteres}>{bio.length}/300</Text>
+                  <Text style={styles.contadorCaracteres}>
+                    {bio.length}/300
+                  </Text>
                 </View>
 
                 <View style={styles.campoContainer}>
-                  <Text style={styles.campoLabel}>Gênero</Text>
+                  <Text style={styles.campoLabel}>GÊNERO</Text>
                   <TouchableOpacity
                     style={styles.seletorGenero}
                     onPress={() => setShowGeneroModal(true)}
                   >
                     <Text style={styles.seletorGeneroTexto}>
-                      {generoParaLabel(genero) || 'Selecionar'}
+                      {generoParaLabel(genero) || "Selecionar"}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color={colors.muted} />
+                    <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
 
                 <SelectModal
                   visible={showGeneroModal}
                   title="Selecionar Gênero"
-                  options={GENEROS.map(g => g.label)}
+                  options={GENEROS.map((g) => g.label)}
                   selectedValue={generoParaLabel(genero)}
                   onSelect={(label) => {
                     const valor = labelParaGenero(label);
@@ -349,54 +396,96 @@ export default function EditarPerfilScreen() {
             )}
 
             {/* Campos psicologo */}
-            {usuario?.tipo === 'psicologo' && (
+            {usuario?.tipo === "psicologo" && (
               <>
-                <Input
-                  label="CRP"
-                  value={crp}
-                  onChangeText={setCrp}
-                  placeholder="Seu número de CRP (ex: 06/12345)"
-                />
-
-                <Input
-                  label="Título / Especialização"
-                  value={titulo}
-                  onChangeText={setTitulo}
-                  placeholder="Ex: Psicólogo Clínico"
-                />
+                <View style={styles.campoContainer}>
+                  <Text style={styles.campoLabel}>CRP</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={crp}
+                    onChangeText={setCrp}
+                    placeholder="06/123456"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
 
                 <View style={styles.campoContainer}>
-                  <Text style={styles.campoLabel}>Descrição Profissional</Text>
+                  <Text style={styles.campoLabel}>BIO/SOBRE MIM</Text>
                   <TextInput
-                    style={styles.bioInput}
+                    style={[styles.input, styles.bioInput]}
                     value={descricao}
                     onChangeText={setDescricao}
                     placeholder="Fale sobre sua experiência e abordagem..."
-                    placeholderTextColor={colors.muted}
+                    placeholderTextColor="#9CA3AF"
                     multiline
-                    numberOfLines={4}
+                    numberOfLines={6}
                     maxLength={500}
                     textAlignVertical="top"
                   />
-                  <Text style={styles.contadorCaracteres}>{descricao.length}/500</Text>
+                  <Text style={styles.contadorCaracteres}>
+                    {descricao.length}/500
+                  </Text>
                 </View>
 
-                <Input
-                  label="Especialidades"
-                  value={especialidades}
-                  onChangeText={setEspecialidades}
-                  placeholder="Ex: Ansiedade, Depressão, Identidade (separadas por vírgula)"
-                  multiline
-                  numberOfLines={3}
-                />
+                <View style={styles.campoContainer}>
+                  <Text style={styles.campoLabel}>ESTATÍSTICAS</Text>
+                  <View style={styles.secaoEstatisticas}>
+                    <View style={styles.experienciaContainer}>
+                      <Text style={styles.experienciaLabel}>
+                        Experiência (anos)
+                      </Text>
+                      <View style={styles.experienciaControles}>
+                        <TouchableOpacity
+                          style={styles.botaoExperiencia}
+                          onPress={decrementarExperiencia}
+                        >
+                          <Text style={styles.botaoExperienciaTexto}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.experienciaValor}>
+                          {anosExperiencia || "0"}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.botaoExperiencia}
+                          onPress={incrementarExperiencia}
+                        >
+                          <Text style={styles.botaoExperienciaTexto}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </View>
 
-                <Input
-                  label="Anos de Experiência"
-                  value={anosExperiencia}
-                  onChangeText={setAnosExperiencia}
-                  placeholder="Ex: 5"
-                  keyboardType="numeric"
-                />
+                <View style={styles.campoContainer}>
+                  <View style={styles.especialidadesHeader}>
+                    <Text style={styles.campoLabel}>ESPECIALIDADES</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowEspecialidadeModal(true)}
+                    >
+                      <Ionicons
+                        name="add-circle"
+                        size={28}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.tagsContainer}>
+                    {especialidadesArray.map((especialidade, index) => (
+                      <View key={index} style={styles.tag}>
+                        <Text style={styles.tagText}>{especialidade}</Text>
+                        <TouchableOpacity
+                          onPress={() => removerEspecialidade(index)}
+                        >
+                          <Ionicons
+                            name="close-circle"
+                            size={18}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               </>
             )}
 
@@ -410,6 +499,50 @@ export default function EditarPerfilScreen() {
               />
             </View>
           </ScrollView>
+
+          {/* Modal de Especialidade */}
+          <Modal
+            visible={showEspecialidadeModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowEspecialidadeModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitulo}>Adicionar Especialidade</Text>
+
+                <TextInput
+                  style={styles.modalInput}
+                  value={novaEspecialidade}
+                  onChangeText={setNovaEspecialidade}
+                  placeholder="Digite a especialidade"
+                  placeholderTextColor="#9CA3AF"
+                  autoFocus
+                />
+
+                <View style={styles.modalBotoes}>
+                  <TouchableOpacity
+                    style={[styles.modalBotao, styles.modalBotaoCancelar]}
+                    onPress={() => {
+                      setNovaEspecialidade("");
+                      setShowEspecialidadeModal(false);
+                    }}
+                  >
+                    <Text style={styles.modalBotaoCancelarTexto}>Cancelar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalBotao, styles.modalBotaoAdicionar]}
+                    onPress={adicionarEspecialidade}
+                  >
+                    <Text style={styles.modalBotaoAdicionarTexto}>
+                      Adicionar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
         </View>
       </DismissKeyboard>
     </SafeAreaView>
@@ -427,8 +560,8 @@ const styles = StyleSheet.create({
   },
   carregandoContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,
@@ -438,87 +571,226 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   fotoSection: {
-    alignItems: 'center',
-    marginBottom: 24,
+    alignItems: "center",
+    marginBottom: 32,
   },
   fotoContainer: {
-    position: 'relative',
+    position: "relative",
+    marginBottom: 12,
   },
   foto: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
   fotoPlaceholder: {
     backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   fotoIniciais: {
     fontFamily: fonts.bold,
-    fontSize: 36,
+    fontSize: 40,
     color: colors.white,
   },
   fotoBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 3,
     borderColor: colors.background,
   },
   fotoTexto: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.muted,
-    marginTop: 8,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.primary,
   },
   campoContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   campoLabel: {
-    fontSize: 16,
-    fontFamily: fonts.medium,
-    color: colors.text,
+    fontSize: 12,
+    fontFamily: fonts.semibold,
+    color: "#6B7280",
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
-  bioInput: {
+  input: {
     backgroundColor: colors.white,
     borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
     fontFamily: fonts.regular,
     color: colors.text,
-    minHeight: 100,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  bioInput: {
+    minHeight: 120,
+    paddingTop: 14,
+    textAlignVertical: "top",
   },
   contadorCaracteres: {
     fontFamily: fonts.regular,
     fontSize: 12,
-    color: colors.muted,
-    textAlign: 'right',
+    color: "#9CA3AF",
+    textAlign: "right",
     marginTop: 4,
   },
   seletorGenero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.white,
     borderRadius: 8,
-    paddingHorizontal: 15,
-    height: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   seletorGeneroTexto: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: fonts.regular,
     color: colors.text,
   },
+  secaoEstatisticas: {
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  experienciaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  experienciaLabel: {
+    fontSize: 15,
+    fontFamily: fonts.medium,
+    color: colors.text,
+  },
+  experienciaControles: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  botaoExperiencia: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  botaoExperienciaTexto: {
+    fontSize: 20,
+    fontFamily: fonts.semibold,
+    color: colors.primary,
+  },
+  experienciaValor: {
+    fontSize: 18,
+    fontFamily: fonts.semibold,
+    color: colors.text,
+    minWidth: 30,
+    textAlign: "center",
+  },
+  especialidadesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  tag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#FFF5F7",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#FECDD3",
+  },
+  tagText: {
+    fontSize: 13,
+    fontFamily: fonts.medium,
+    color: colors.primary,
+  },
   botaoContainer: {
     marginTop: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+  },
+  modalTitulo: {
+    fontSize: 18,
+    fontFamily: fonts.bold,
+    color: colors.text,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    fontFamily: fonts.regular,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 20,
+  },
+  modalBotoes: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalBotao: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modalBotaoCancelar: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  modalBotaoCancelarTexto: {
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+    color: colors.text,
+  },
+  modalBotaoAdicionar: {
+    backgroundColor: colors.primary,
+  },
+  modalBotaoAdicionarTexto: {
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+    color: colors.white,
   },
 });
