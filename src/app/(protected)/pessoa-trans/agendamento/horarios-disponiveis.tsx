@@ -26,6 +26,7 @@ export default function HorariosDisponiveisScreen() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [horarioSelecionado, setHorarioSelecionado] = useState<string | null>(null);
+  const [erroTela, setErroTela] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -36,8 +37,20 @@ export default function HorariosDisponiveisScreen() {
         }
 
         setCarregando(true);
+        setErroTela(null);
         const res = await buscarHorariosDisponiveisPsicologo(psicologoId, data);
-        setHorarios(res.sucesso && res.dados ? res.dados : []);
+        const listaHorarios = res.sucesso && res.dados ? res.dados : [];
+        setHorarios(listaHorarios);
+        setHorarioSelecionado(atual => {
+          if (!atual) return atual;
+          const aindaDisponivel = listaHorarios.some(
+            h => h.horario === atual && h.disponivel
+          );
+          return aindaDisponivel ? atual : null;
+        });
+        if (!res.sucesso) {
+          setErroTela(res.erro || 'Nao foi possivel carregar os horarios.');
+        }
         setCarregando(false);
       };
 
@@ -57,14 +70,16 @@ export default function HorariosDisponiveisScreen() {
 
   const handleConfirmarAgendamento = async () => {
     if (!horarioSelecionado) {
-      Alert.alert('Atenção', 'Por favor, selecione um horário');
+      setErroTela('Por favor, selecione um horario.');
       return;
     }
+
+    setErroTela(null);
 
     const { data: auth } = await supabase.auth.getUser();
     const pacienteId = auth.user?.id;
     if (!pacienteId) {
-      Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
+      setErroTela('Usuario nao autenticado. Faca login novamente.');
       return;
     }
 
@@ -73,11 +88,11 @@ export default function HorariosDisponiveisScreen() {
     setSalvando(false);
 
     if (!resultado.sucesso) {
-      Alert.alert('Erro', resultado.erro || 'Não foi possível agendar a consulta.');
+      setErroTela(resultado.erro || 'Nao foi possivel agendar a consulta.');
       return;
     }
 
-    Alert.alert('Solicitação enviada', 'A consulta foi solicitada. Aguarde a confirmação do psicólogo.', [
+    Alert.alert('Solicitacao enviada', 'A consulta foi solicitada. Aguarde a confirmacao do psicologo.', [
       {
         text: 'OK',
         onPress: () => router.push('/pessoa-trans/(tabs-pessoatrans)'),
@@ -93,7 +108,12 @@ export default function HorariosDisponiveisScreen() {
       <TouchableOpacity
         key={horario.id}
         style={[styles.horarioCard, !isDisponivel && styles.horarioCardDisabled]}
-        onPress={() => isDisponivel && setHorarioSelecionado(horario.horario)}
+        onPress={() => {
+          if (isDisponivel) {
+            setHorarioSelecionado(horario.horario);
+            setErroTela(null);
+          }
+        }}
         disabled={!isDisponivel}
       >
         <View style={styles.horarioInfo}>
@@ -104,7 +124,12 @@ export default function HorariosDisponiveisScreen() {
         <CheckBox
           label=""
           checked={isSelecionado}
-          onPress={() => isDisponivel && setHorarioSelecionado(horario.horario)}
+          onPress={() => {
+            if (isDisponivel) {
+              setHorarioSelecionado(horario.horario);
+              setErroTela(null);
+            }
+          }}
         />
       </TouchableOpacity>
     );
@@ -120,8 +145,14 @@ export default function HorariosDisponiveisScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.titulo}>Horários disponíveis</Text>
+          <Text style={styles.titulo}>Horarios disponiveis</Text>
           <Text style={styles.subtitulo}>{formatarData(data)}</Text>
+
+          {erroTela ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{erroTela}</Text>
+            </View>
+          ) : null}
 
           {carregando ? (
             <View style={styles.loadingContainer}>
@@ -134,7 +165,7 @@ export default function HorariosDisponiveisScreen() {
                   horarios.map(renderHorarioCard)
                 ) : (
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Sem horários disponíveis para esta data.</Text>
+                    <Text style={styles.emptyText}>Sem horarios disponiveis para esta data.</Text>
                   </View>
                 )}
               </View>
@@ -182,6 +213,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     marginBottom: 24,
+  },
+  errorBox: {
+    backgroundColor: '#FFF1F2',
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: '#B91C1C',
   },
   loadingContainer: {
     alignItems: 'center',

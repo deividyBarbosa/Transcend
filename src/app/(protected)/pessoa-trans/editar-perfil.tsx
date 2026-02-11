@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import Header from '@/components/Header';
 import Input from '@/components/Input';
@@ -24,7 +23,6 @@ import { Usuario, Genero } from '@/types/auth';
 import {
   obterUsuarioAtual,
   atualizarPerfil,
-  uploadFotoPerfil,
 } from '@/services/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -50,7 +48,6 @@ export default function EditarPerfilScreen() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [enviandoFoto, setEnviandoFoto] = useState(false);
 
   const [nome, setNome] = useState('');
   const [bio, setBio] = useState('');
@@ -73,44 +70,6 @@ export default function EditarPerfilScreen() {
     };
     carregar();
   }, []);
-
-  const handleTrocarFoto = useCallback(async () => {
-    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissao.granted) {
-      Alert.alert(
-        'Permissão necessária',
-        'Precisamos de acesso à sua galeria para trocar a foto.'
-      );
-      return;
-    }
-
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-
-    if (!resultado.canceled && resultado.assets[0] && usuario) {
-      const asset = resultado.assets[0];
-      setEnviandoFoto(true);
-
-      const resultadoUpload = await uploadFotoPerfil(usuario.id, {
-        uri: asset.uri,
-        name: asset.fileName || `avatar_${Date.now()}.jpg`,
-        type: asset.mimeType || 'image/jpeg',
-      });
-
-      if (resultadoUpload.sucesso && resultadoUpload.dados) {
-        setFotoUrl(resultadoUpload.dados);
-      } else {
-        Alert.alert('Erro', resultadoUpload.erro || 'Falha ao enviar foto.');
-      }
-
-      setEnviandoFoto(false);
-    }
-  }, [usuario]);
 
   const handleSalvar = useCallback(async () => {
     if (!usuario) return;
@@ -172,29 +131,17 @@ export default function EditarPerfilScreen() {
         >
           {/* Foto de Perfil */}
           <View style={styles.fotoSection}>
-            <TouchableOpacity
-              style={styles.fotoContainer}
-              onPress={handleTrocarFoto}
-              disabled={enviandoFoto}
-            >
+            <View style={styles.fotoContainer}>
               {fotoUrl ? (
                 <Image source={{ uri: fotoUrl }} style={styles.foto} />
               ) : (
                 <View style={[styles.foto, styles.fotoPlaceholder]}>
                   <Text style={styles.fotoIniciais}>
-                    {getIniciais(nome || 'U')}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.fotoBadge}>
-                {enviandoFoto ? (
-                  <ActivityIndicator size={14} color={colors.white} />
-                ) : (
-                  <Ionicons name="camera" size={16} color={colors.white} />
-                )}
+                  {getIniciais(nome || 'U')}
+                </Text>
               </View>
-            </TouchableOpacity>
-            <Text style={styles.fotoTexto}>Toque para alterar a foto</Text>
+              )}
+            </View>
           </View>
 
           {/* Campos */}
@@ -308,25 +255,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 36,
     color: colors.white,
-  },
-  fotoBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  fotoTexto: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.muted,
-    marginTop: 8,
   },
   campoContainer: {
     marginBottom: 16,

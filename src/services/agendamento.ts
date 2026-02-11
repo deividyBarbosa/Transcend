@@ -92,7 +92,32 @@ const timeToMinutes = (time: string) => {
   return h * 60 + m;
 };
 
+const normalizeDurationMinutes = (value: unknown, fallback = 60) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.round(n);
+};
+
+const extractMinutesFromDateTime = (dateTime: string) => {
+  const match = dateTime.match(/(?:T|\s)(\d{2}):(\d{2})/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const extractDateISOFromDateTime = (dateTime: string) => {
+  const match = dateTime.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+};
+
+// Adjacencies (end == next start) should not be treated as overlap.
+// We keep a tiny tolerance to avoid edge issues from non-integer durations.
+const OVERLAP_EDGE_TOLERANCE_MIN = 0.99;
 const rangesOverlap = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+  const touchesEdge =
+    Math.abs(aStart - bEnd) <= OVERLAP_EDGE_TOLERANCE_MIN ||
+    Math.abs(bStart - aEnd) <= OVERLAP_EDGE_TOLERANCE_MIN;
+
+  if (touchesEdge) return false;
   return aStart < bEnd && bStart < aEnd;
 };
 
@@ -258,26 +283,35 @@ export const buscarHorariosDisponiveisPsicologo = async (
       .eq('psicologo_id', psicologoId)
       .eq('data', dataISO);
 
-    const inicioDia = `${dataISO}T00:00:00`;
-    const fimDia = `${dataISO}T23:59:59`;
+    const dataBase = new Date(`${dataISO}T00:00:00`);
+    const diaAnterior = new Date(dataBase);
+    diaAnterior.setDate(dataBase.getDate() - 1);
+    const diaPosterior = new Date(dataBase);
+    diaPosterior.setDate(dataBase.getDate() + 1);
+
+    const inicioBusca = `${formatDate(diaAnterior)}T00:00:00`;
+    const fimBusca = `${formatDate(diaPosterior)}T23:59:59`;
 
     const { data: sessoes } = await supabase
       .from('sessoes_psicologicas')
       .select('data_sessao, duracao_minutos, status')
       .eq('psicologo_id', psicologoId)
-      .gte('data_sessao', inicioDia)
-      .lte('data_sessao', fimDia)
+      .gte('data_sessao', inicioBusca)
+      .lte('data_sessao', fimBusca)
       .in('status', ['agendada', 'confirmada', 'remarcada']);
 
     const occupiedRanges = ((sessoes || []) as Array<{
       data_sessao: string;
       duracao_minutos: number | null;
-    }>).map(s => {
-      const dt = new Date(s.data_sessao);
-      const start = dt.getHours() * 60 + dt.getMinutes();
-      const duration = s.duracao_minutos || 60;
-      return { start, end: start + duration };
-    });
+    }>)
+      .filter(s => extractDateISOFromDateTime(s.data_sessao) === dataISO)
+      .map(s => {
+        const startFromString = extractMinutesFromDateTime(s.data_sessao);
+        if (startFromString === null) return null;
+        const duration = normalizeDurationMinutes(s.duracao_minutos, 60);
+        return { start: startFromString, end: startFromString + duration };
+      })
+      .filter((range): range is { start: number; end: number } => range !== null);
 
     const bloqueiosRanges = ((bloqueios || []) as Array<{
       horario_inicio: string | null;
@@ -320,7 +354,14 @@ export const buscarHorariosDisponiveisPsicologo = async (
 
     const unicos = new Map<string, HorarioDisponivel>();
     slots.forEach(s => {
-      if (!unicos.has(s.horario) || unicos.get(s.horario)?.disponivel === false) {
+      const existente = unicos.get(s.horario);
+      if (!existente) {
+        unicos.set(s.horario, s);
+        return;
+      }
+
+      // If any duplicate source marks the slot as unavailable, keep it unavailable.
+      if (existente.disponivel && !s.disponivel) {
         unicos.set(s.horario, s);
       }
     });
@@ -351,8 +392,42 @@ export const agendarSessaoPsicologica = async (
       .eq('id', psicologoId)
       .maybeSingle();
 
-    const duracao = (psi as { duracao_sessao?: number | null } | null)?.duracao_sessao || 60;
+    const duracao = normalizeDurationMinutes(
+      (psi as { duracao_sessao?: number | null } | null)?.duracao_sessao,
+      60
+    );
     const valor = (psi as { valor_consulta?: number | null } | null)?.valor_consulta || null;
+
+    const inicioDia = `${dataISO}T00:00:00`;
+    const fimDia = `${dataISO}T23:59:59`;
+    const novoInicio = timeToMinutes(horario);
+    const novoFim = novoInicio + duracao;
+
+    const { data: sessoesExistentes, error: conflitoError } = await supabase
+      .from('sessoes_psicologicas')
+      .select('data_sessao, duracao_minutos')
+      .eq('psicologo_id', psicologoId)
+      .gte('data_sessao', inicioDia)
+      .lte('data_sessao', fimDia)
+      .in('status', ['agendada', 'confirmada', 'remarcada']);
+
+    if (conflitoError) {
+      return { sucesso: false, erro: conflitoError.message };
+    }
+
+    const conflitoDeHorario = ((sessoesExistentes || []) as Array<{
+      data_sessao: string;
+      duracao_minutos: number | null;
+    }>).some(sessao => {
+      const inicioExistente = extractMinutesFromDateTime(sessao.data_sessao);
+      if (inicioExistente === null) return false;
+      const fimExistente = inicioExistente + normalizeDurationMinutes(sessao.duracao_minutos, 60);
+      return rangesOverlap(novoInicio, novoFim, inicioExistente, fimExistente);
+    });
+
+    if (conflitoDeHorario) {
+      return { sucesso: false, erro: 'Este horario ja esta ocupado. Escolha outro horario.' };
+    }
 
     const dataSessao = `${dataISO}T${horario}:00`;
 
@@ -591,6 +666,67 @@ export const responderSolicitacaoPsicologo = async (
       return { sucesso: false, erro: 'Perfil de psicólogo não encontrado.' };
     }
 
+    let sessaoAceitaIntervalo: { dataISO: string; inicio: number; fim: number } | null = null;
+
+    if (aceitar) {
+      const { data: sessaoAlvo, error: sessaoAlvoError } = await supabase
+        .from('sessoes_psicologicas')
+        .select('id, data_sessao, duracao_minutos, status')
+        .eq('id', sessaoId)
+        .eq('psicologo_id', psicologoId)
+        .eq('status', 'agendada')
+        .maybeSingle();
+
+      if (sessaoAlvoError || !sessaoAlvo) {
+        return { sucesso: false, erro: 'Solicitacao nao encontrada ou ja respondida.' };
+      }
+
+      const alvo = sessaoAlvo as {
+        id: string;
+        data_sessao: string;
+        duracao_minutos: number | null;
+      };
+
+      const dataISO = extractDateISOFromDateTime(alvo.data_sessao);
+      const inicioAlvo = extractMinutesFromDateTime(alvo.data_sessao);
+      if (!dataISO || inicioAlvo === null) {
+        return { sucesso: false, erro: 'Horario da solicitacao invalido.' };
+      }
+
+      const fimAlvo = inicioAlvo + normalizeDurationMinutes(alvo.duracao_minutos, 60);
+      sessaoAceitaIntervalo = { dataISO, inicio: inicioAlvo, fim: fimAlvo };
+      const inicioDia = `${dataISO}T00:00:00`;
+      const fimDia = `${dataISO}T23:59:59`;
+
+      const { data: sessoesConfirmadas, error: conflitoError } = await supabase
+        .from('sessoes_psicologicas')
+        .select('id, data_sessao, duracao_minutos')
+        .eq('psicologo_id', psicologoId)
+        .gte('data_sessao', inicioDia)
+        .lte('data_sessao', fimDia)
+        .in('status', ['confirmada', 'remarcada']);
+
+      if (conflitoError) {
+        return { sucesso: false, erro: conflitoError.message };
+      }
+
+      const temConflito = ((sessoesConfirmadas || []) as Array<{
+        id: string;
+        data_sessao: string;
+        duracao_minutos: number | null;
+      }>).some(sessao => {
+        if (sessao.id === sessaoId) return false;
+        const inicio = extractMinutesFromDateTime(sessao.data_sessao);
+        if (inicio === null) return false;
+        const fim = inicio + normalizeDurationMinutes(sessao.duracao_minutos, 60);
+        return rangesOverlap(inicioAlvo, fimAlvo, inicio, fim);
+      });
+
+      if (temConflito) {
+        return { sucesso: false, erro: 'Conflito de horario com outra consulta confirmada.' };
+      }
+    }
+
     const payload: Record<string, unknown> = aceitar
       ? { status: 'confirmada' }
       : {
@@ -599,15 +735,61 @@ export const responderSolicitacaoPsicologo = async (
           cancelado_por: usuarioPsicologoId,
         };
 
-    const { error } = await supabase
+    const { data: atualizada, error } = await supabase
       .from('sessoes_psicologicas')
       .update(payload)
       .eq('id', sessaoId)
       .eq('psicologo_id', psicologoId)
-      .eq('status', 'agendada');
+      .eq('status', 'agendada')
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       return { sucesso: false, erro: error.message };
+    }
+
+    if (!atualizada) {
+      return { sucesso: false, erro: 'Solicitacao nao encontrada ou ja respondida.' };
+    }
+
+    if (aceitar && sessaoAceitaIntervalo) {
+      const inicioDia = `${sessaoAceitaIntervalo.dataISO}T00:00:00`;
+      const fimDia = `${sessaoAceitaIntervalo.dataISO}T23:59:59`;
+
+      const { data: pendentesMesmoDia } = await supabase
+        .from('sessoes_psicologicas')
+        .select('id, data_sessao, duracao_minutos')
+        .eq('psicologo_id', psicologoId)
+        .eq('status', 'agendada')
+        .gte('data_sessao', inicioDia)
+        .lte('data_sessao', fimDia);
+
+      const pendentesConflitantes = ((pendentesMesmoDia || []) as Array<{
+        id: string;
+        data_sessao: string;
+        duracao_minutos: number | null;
+      }>)
+        .filter(sessao => sessao.id !== sessaoId)
+        .filter(sessao => {
+          const inicio = extractMinutesFromDateTime(sessao.data_sessao);
+          if (inicio === null) return false;
+          const fim = inicio + normalizeDurationMinutes(sessao.duracao_minutos, 60);
+          return rangesOverlap(sessaoAceitaIntervalo!.inicio, sessaoAceitaIntervalo!.fim, inicio, fim);
+        })
+        .map(sessao => sessao.id);
+
+      if (pendentesConflitantes.length > 0) {
+        await supabase
+          .from('sessoes_psicologicas')
+          .update({
+            status: 'cancelada',
+            motivo_cancelamento: 'Conflito de horario com consulta ja confirmada',
+            cancelado_por: usuarioPsicologoId,
+          })
+          .in('id', pendentesConflitantes)
+          .eq('psicologo_id', psicologoId)
+          .eq('status', 'agendada');
+      }
     }
 
     return { sucesso: true };

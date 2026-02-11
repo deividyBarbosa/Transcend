@@ -3,7 +3,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import ErrorMessage from '@/components/ErrorMessage';
 import { colors } from '@/theme/colors';
@@ -17,7 +16,6 @@ import {
   criarEntrada,
   buscarEntradasPorMes,
   atualizarEntrada,
-  uploadFotoDiario,
 } from '@/services/diario';
 import type { EntradaDiario, NivelHumor } from '@/types/diario';
 
@@ -68,9 +66,6 @@ export default function DiarioScreen() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [otherSymptoms, setOtherSymptoms] = useState('');
   const [emotionalDiary, setEmotionalDiary] = useState('');
-  const [uploadandoFoto, setUploadandoFoto] = useState(false);
-  const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null);
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
 
   const formatDate = (year: number, month: number, day: number) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -123,8 +118,6 @@ export default function DiarioScreen() {
     const dateStr = formatDate(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     setErro(null);
     setSelectedDate(dateStr);
-    setFotoSelecionada(null); // Resetar foto ao trocar de data
-    setFotoUrl(null);
 
     const entry = entries[dateStr];
     if (entry) {
@@ -133,8 +126,6 @@ export default function DiarioScreen() {
       setSelectedSymptoms(symptoms);
       setOtherSymptoms(outros);
       setEmotionalDiary(entry.conteudo);
-      setFotoUrl(entry.foto_url);
-      setFotoSelecionada(entry.foto_url);
     } else {
       setSelectedMoods([]);
       setSelectedSymptoms([]);
@@ -159,85 +150,6 @@ export default function DiarioScreen() {
       prev.includes(symptom) ? prev.filter(s => s !== symptom) : [...prev, symptom]
     );
   };
-
-  const handleUploadFoto = useCallback(async () => {
-    try {
-      // Solicitar permissão
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permissão negada', 'É necessário permissão para acessar a galeria de fotos.');
-        return;
-      }
-
-      // Abrir seletor de imagem
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: false,
-        quality: 1,
-      });
-
-      if (result.canceled) {
-        return;
-      }
-
-      const arquivo = result.assets[0];
-
-      // Validar tipo de arquivo pela extensão
-      const nomeArquivo = arquivo.fileName || arquivo.uri.split('/').pop() || '';
-      const extensao = nomeArquivo.split('.').pop()?.toLowerCase() || '';
-      const extensoesPermitidas = ['jpg', 'jpeg', 'png', 'webp'];
-
-      if (!extensoesPermitidas.includes(extensao)) {
-        Alert.alert('Tipo inválido', 'A imagem deve ser JPG, PNG ou WebP.');
-        return;
-      }
-
-      // Validar tamanho (10 MB = 10485760 bytes)
-      const TAMANHO_MAXIMO = 10 * 1024 * 1024; // 10 MB
-      if (arquivo.fileSize && arquivo.fileSize > TAMANHO_MAXIMO) {
-        Alert.alert('Arquivo muito grande', 'A imagem deve ter no máximo 10 MB.');
-        return;
-      }
-
-      if (!usuarioId) {
-        Alert.alert('Erro', 'Usuário não autenticado.');
-        return;
-      }
-
-      setUploadandoFoto(true);
-
-      // Mapear extensão para tipo MIME
-      const tiposPermitidos: Record<string, string> = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'webp': 'image/webp',
-      };
-
-      // Fazer upload
-      const resultado = await uploadFotoDiario(
-        {
-          uri: arquivo.uri,
-          name: arquivo.fileName || `foto_${Date.now()}.jpg`,
-          type: tiposPermitidos[extensao] || 'image/jpeg',
-        },
-        usuarioId
-      );
-
-      if (resultado.sucesso && resultado.dados) {
-        setFotoSelecionada(arquivo.uri);
-        setFotoUrl(resultado.dados);
-        Alert.alert('Sucesso', 'Foto selecionada! Salve a entrada para confirmar.');
-      } else {
-        Alert.alert('Erro', resultado.erro || 'Erro ao fazer upload da foto.');
-      }
-    } catch (erro) {
-      console.error('Erro ao fazer upload de foto:', erro);
-      Alert.alert('Erro', 'Ocorreu um erro ao fazer upload da foto.');
-    } finally {
-      setUploadandoFoto(false);
-    }
-  }, [usuarioId]);
 
   const handleSave = async () => {
     setErro(null);
@@ -271,7 +183,6 @@ export default function DiarioScreen() {
           conteudo: emotionalDiary || ' ',
           humor: humorPrincipal,
           tags,
-          foto_url: fotoUrl,
         });
       } else {
         // Criar nova entrada
@@ -281,7 +192,6 @@ export default function DiarioScreen() {
           conteudo: emotionalDiary || ' ',
           humor: humorPrincipal,
           tags,
-          foto_url: fotoUrl,
         });
       }
 
@@ -290,8 +200,6 @@ export default function DiarioScreen() {
         setErro(null);
         Alert.alert('Sucesso', 'Registro salvo!');
         setSelectedDate(null);
-        setFotoSelecionada(null);
-        setFotoUrl(null);
       } else {
         setErro(resultado.erro || 'Erro ao salvar registro');
       }
@@ -361,8 +269,6 @@ export default function DiarioScreen() {
           <View style={styles.formHeader}>
             <TouchableOpacity onPress={() => {
               setSelectedDate(null);
-              setFotoSelecionada(null);
-              setFotoUrl(null);
             }}>
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
@@ -410,26 +316,6 @@ export default function DiarioScreen() {
               value={otherSymptoms}
               onChangeText={setOtherSymptoms}
             />
-          </View>
-
-          <View style={styles.formSection}>
-            <Text style={styles.formLabel}>Registrar foto</Text>
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={handleUploadFoto}
-              disabled={uploadandoFoto}
-            >
-              {uploadandoFoto ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Text style={styles.uploadButtonText}>
-                  {fotoSelecionada ? '✓ Foto selecionada' : '📷 Upload'}
-                </Text>
-              )}
-            </TouchableOpacity>
-            <Text style={styles.uploadHint}>
-              Máximo 10 MB • JPG, PNG ou WebP
-            </Text>
           </View>
 
           <View style={styles.formSection}>
@@ -579,26 +465,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: fonts.semibold,
   },
-  uploadButton: {
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderStyle: 'dashed',
-  },
-  uploadButtonText: {
-    fontSize: 14,
-    fontFamily: fonts.medium,
-    color: colors.primary,
-  },
-  uploadHint: {
-    fontSize: 12,
-    fontFamily: fonts.regular,
-    color: colors.muted,
-    marginTop: 8,
-  },
   diaryInput: {
     backgroundColor: colors.white,
     borderRadius: 8,
@@ -616,3 +482,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+

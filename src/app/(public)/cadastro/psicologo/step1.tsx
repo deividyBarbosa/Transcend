@@ -1,15 +1,11 @@
-// algumas const nao são utilizadas. mais tarde vou verificar se podem ser removidas _mesmo_
-
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import DismissKeyboard from '@/components/DismissKeyboard';
 import Header from '@/components/Header';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
-import * as DocumentPicker from 'expo-document-picker';
 import { cadastrarPsicologo } from '@/services/auth';
-import { supabase } from '@/utils/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CadastroPsicologoScreen() {
@@ -19,93 +15,50 @@ export default function CadastroPsicologoScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
-  const [documento, setDocumento] = useState<{ uri: string; name: string; type: string } | null>(null);
   const [carregando, setCarregando] = useState(false);
 
   const validarCRP = (crp: string) => {
-    // Validação básica do CRP
     const crpRegex = /^\d{2}\/\d{5}$/;
     return crpRegex.test(crp);
   };
 
-  const validarEmail = (email: string) => {
-    return email.includes('@') && email.includes('.');
+  const validarEmail = (emailValue: string) => {
+    return emailValue.includes('@') && emailValue.includes('.');
   };
 
-  const validarSenha = (senha: string) => {
-    return senha.length >= 8 && senha.length <= 16;
-  };
-
-
-  const handleUpload = async () => {
-    try {
-      const resultado = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
-
-      if (resultado.canceled || !resultado.assets?.[0]) {
-        return;
-      }
-
-      const arquivo = resultado.assets[0];
-
-      if (arquivo.size && arquivo.size > 5 * 1024 * 1024) {
-        Alert.alert('Erro', 'O arquivo deve ter no máximo 5MB');
-        return;
-      }
-
-      setDocumento({
-        uri: arquivo.uri,
-        name: arquivo.name,
-        type: arquivo.mimeType || 'application/pdf',
-      });
-
-      Alert.alert('Sucesso', 'Documento anexado!');
-    } catch (erro) {
-      Alert.alert('Erro', 'Não foi possível selecionar o documento');
-    }
+  const validarSenha = (senhaValue: string) => {
+    return senhaValue.length >= 8 && senhaValue.length <= 16;
   };
 
   const handleCadastrar = async () => {
-    console.log('Iniciando validação...');
-
-    // Validações
     if (!nomeCompleto || !numeroCRP || !email || !senha || !confirmarSenha) {
-      Alert.alert('Atenção', 'Por favor, preencha todos os campos obrigatórios');
+      Alert.alert('Atencao', 'Por favor, preencha todos os campos obrigatorios');
       return;
     }
 
-if (!validarCRP(numeroCRP)) {
-      Alert.alert('Atenção', 'Formato do CRP inválido. Use o formato: 01/12345');
+    if (!validarCRP(numeroCRP)) {
+      Alert.alert('Atencao', 'Formato do CRP invalido. Use o formato: 01/12345');
       return;
     }
 
     if (!validarEmail(email)) {
-      Alert.alert('Atenção', 'Email inválido');
+      Alert.alert('Atencao', 'Email invalido');
       return;
     }
 
     if (!validarSenha(senha)) {
-      Alert.alert('Atenção', 'A senha deve ter entre 8 e 16 caracteres');
+      Alert.alert('Atencao', 'A senha deve ter entre 8 e 16 caracteres');
       return;
     }
 
     if (senha !== confirmarSenha) {
-      Alert.alert('Atenção', 'As senhas não coincidem');
+      Alert.alert('Atencao', 'As senhas nao coincidem');
       return;
     }
 
-    if (!documento) {
-      Alert.alert('Atenção', 'Por favor, anexe a comprovação do CRP');
-      return;
-    }
-
-    console.log('Validação OK, iniciando cadastro...');
     setCarregando(true);
 
     try {
-      // 1. Cadastrar o psicólogo
       const resultadoCadastro = await cadastrarPsicologo({
         nome: nomeCompleto,
         email,
@@ -113,45 +66,10 @@ if (!validarCRP(numeroCRP)) {
         crp: numeroCRP,
       });
 
-      console.log('Resultado cadastro:', resultadoCadastro);
-
       if (!resultadoCadastro.sucesso || !resultadoCadastro.dados) {
         Alert.alert('Erro', resultadoCadastro.erro || 'Erro ao realizar cadastro');
         setCarregando(false);
         return;
-      }
-
-      // 2. Fazer upload do documento CRP
-      let uploadSucesso = false;
-      try {
-        const extensao = documento.name.split('.').pop();
-        const nomeArquivo = `${resultadoCadastro.dados.id}/crp_${Date.now()}.${extensao}`;
-
-        const response = await fetch(documento.uri);
-        const blob = await response.blob();
-
-        const { error: uploadError } = await supabase.storage
-          .from('CRP')
-          .upload(nomeArquivo, blob, {
-            contentType: documento.type,
-            upsert: true,
-          });
-
-        uploadSucesso = !uploadError;
-        if (uploadError) {
-          console.error('Erro no upload:', uploadError);
-        }
-      } catch (uploadErr) {
-        console.error('Erro no upload:', uploadErr);
-      }
-
-      console.log('Upload sucesso:', uploadSucesso);
-
-      if (!uploadSucesso) {
-        Alert.alert(
-          'Aviso',
-          'Cadastro realizado, mas houve um erro ao enviar o documento. Você pode enviá-lo depois.'
-        );
       }
 
       router.push('/cadastro/psicologo/step2');
@@ -167,21 +85,15 @@ if (!validarCRP(numeroCRP)) {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F2E8EB' }} edges={['top', 'bottom']}>
       <DismissKeyboard>
         <View style={styles.container}>
-
-          <Header title="Cadastro Psicólogo" showBackButton />
+          <Header title="Cadastro Psicologo" showBackButton />
 
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
+            <Text style={styles.title}>Cadastro Psicologo</Text>
 
-          {/* Título */}
-
-            <Text style={styles.title}>Cadastro Psicólogo</Text>
-
-          {/* Inputs */}
-  
             <Input
               label="Nome completo"
               placeholder="Digite seu nome"
@@ -191,7 +103,7 @@ if (!validarCRP(numeroCRP)) {
             />
 
             <Input
-              label="Número do CRP"
+              label="Numero do CRP"
               placeholder="01/XXXXX"
               value={numeroCRP}
               onChangeText={setNumeroCRP}
@@ -210,7 +122,7 @@ if (!validarCRP(numeroCRP)) {
 
             <Input
               label="Senha"
-              placeholder="Senha de 8 a 16 dígitos"
+              placeholder="Senha de 8 a 16 digitos"
               value={senha}
               onChangeText={setSenha}
               secureTextEntry
@@ -226,29 +138,7 @@ if (!validarCRP(numeroCRP)) {
               autoCapitalize="none"
             />
 
-            {/* Envio de documentos */}
-            <View style={styles.uploadSection}>
-              <Text style={styles.uploadTitle}>Envio de documentos</Text>
-              <View style={styles.uploadBox}>
-                <Text style={styles.uploadLabel}>Comprovação de CRP *</Text>
-                <Text style={styles.uploadSubtitle}>PDF, max 5 MB</Text>
-                <TouchableOpacity
-                  style={styles.uploadButton}
-                  onPress={handleUpload}
-                >
-                  <Text style={styles.uploadButtonText}>
-                    {documento ? 'Documento anexado' : 'Upload'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Botão Cadastrar */}
-              <Button 
-                title="Cadastrar" 
-                onPress={handleCadastrar}
-                loading={carregando}
-              />
+            <Button title="Cadastrar" onPress={handleCadastrar} loading={carregando} />
           </ScrollView>
         </View>
       </DismissKeyboard>
@@ -283,49 +173,4 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  uploadSection: {
-    marginTop: 10,
-    marginBottom: 30,
-  },
-  uploadTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter',
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  uploadBox: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-  },
-  uploadLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter',
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 4,
-  },
-  uploadSubtitle: {
-    fontSize: 12,
-    fontFamily: 'Inter',
-    color: '#666',
-    marginBottom: 15,
-  },
-  uploadButton: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#D65C73',
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-  },
-  uploadButtonText: {
-    color: '#D65C73',
-    fontSize: 14,
-    fontFamily: 'Inter',
-    fontWeight: '600',
-  }
 });

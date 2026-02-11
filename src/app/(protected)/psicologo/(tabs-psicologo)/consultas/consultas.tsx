@@ -38,6 +38,22 @@ const formatarData = (date: Date) => {
   });
 };
 
+const extractHourMinute = (dateTime: string) => {
+  const match = dateTime.match(/(?:T|\s)(\d{2}):(\d{2})/);
+  if (!match) return '00:00';
+  return `${match[1]}:${match[2]}`;
+};
+
+const addMinutes = (time: string, minutes: number) => {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const hh = Math.floor(total / 60)
+    .toString()
+    .padStart(2, '0');
+  const mm = (total % 60).toString().padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
 const calcularBadge = (dataSessao: Date): 'HOJE' | 'AMANHA' | null => {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -79,10 +95,9 @@ export default function Consultas() {
 
       const consultas = resultado.dados.map(sessao => {
         const data = new Date(sessao.data_sessao);
-        const inicio = `${String(data.getUTCHours()).padStart(2, '0')}:${String(data.getUTCMinutes()).padStart(2, '0')}`;
+        const inicio = extractHourMinute(sessao.data_sessao);
         const duracao = sessao.duracao_minutos || 60;
-        const fimDate = new Date(data.getTime() + duracao * 60 * 1000);
-        const fim = `${String(fimDate.getUTCHours()).padStart(2, '0')}:${String(fimDate.getUTCMinutes()).padStart(2, '0')}`;
+        const fim = addMinutes(inicio, duracao);
 
         const modalidade = sessao.modalidade ? String(sessao.modalidade) : 'Online';
 
@@ -114,11 +129,23 @@ export default function Consultas() {
     const agora = new Date();
 
     switch (activeTab) {
-      case 'proximas':
-        return todasConsultas
-          .filter(c => ['agendada', 'confirmada', 'remarcada'].includes(c.statusRaw))
+      case 'proximas': {
+        const base = todasConsultas
+          .filter(c => ['confirmada', 'remarcada'].includes(c.statusRaw))
           .filter(c => c.dataSessao.getTime() >= agora.getTime())
           .sort((a, b) => a.dataSessao.getTime() - b.dataSessao.getTime());
+
+        // Evita exibir sessÃµes duplicadas no mesmo horÃ¡rio (legado de dados antigos).
+        const unicasPorHorario = new Map<string, Consulta>();
+        base.forEach(consulta => {
+          const key = `${consulta.dataSessao.toISOString()}|${consulta.time}`;
+          if (!unicasPorHorario.has(key)) {
+            unicasPorHorario.set(key, consulta);
+          }
+        });
+
+        return Array.from(unicasPorHorario.values());
+      }
       case 'passadas':
         return todasConsultas
           .filter(c => c.statusRaw === 'realizada' || c.dataSessao.getTime() < agora.getTime())

@@ -25,6 +25,7 @@ interface Consulta {
   dataConsulta: Date;
   horaInicio: string;
   horaFim: string;
+  statusRaw: string;
   status: 'agendada' | 'concluida' | 'cancelada';
 }
 
@@ -32,6 +33,22 @@ const statusToCardStatus = (status: string | null): 'agendada' | 'concluida' | '
   if (status === 'realizada') return 'concluida';
   if (status === 'cancelada') return 'cancelada';
   return 'agendada';
+};
+
+const extractHourMinute = (dateTime: string) => {
+  const match = dateTime.match(/(?:T|\s)(\d{2}):(\d{2})/);
+  if (!match) return '00:00';
+  return `${match[1]}:${match[2]}`;
+};
+
+const addMinutes = (time: string, minutes: number) => {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const hh = Math.floor(total / 60)
+    .toString()
+    .padStart(2, '0');
+  const mm = (total % 60).toString().padStart(2, '0');
+  return `${hh}:${mm}`;
 };
 
 export default function PsicologoHome() {
@@ -72,10 +89,9 @@ export default function PsicologoHome() {
 
       const parsed = resultado.dados.map(sessao => {
         const dt = new Date(sessao.data_sessao);
-        const inicio = `${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`;
+        const inicio = extractHourMinute(sessao.data_sessao);
         const duracao = sessao.duracao_minutos || 60;
-        const fimDt = new Date(dt.getTime() + duracao * 60 * 1000);
-        const fim = `${String(fimDt.getUTCHours()).padStart(2, '0')}:${String(fimDt.getUTCMinutes()).padStart(2, '0')}`;
+        const fim = addMinutes(inicio, duracao);
 
         return {
           id: sessao.id,
@@ -83,6 +99,7 @@ export default function PsicologoHome() {
           dataConsulta: dt,
           horaInicio: inicio,
           horaFim: fim,
+          statusRaw: (sessao.status || 'agendada').toLowerCase(),
           status: statusToCardStatus(sessao.status),
         } as Consulta;
       });
@@ -110,11 +127,21 @@ export default function PsicologoHome() {
 
   const proximasConsultas = useMemo(() => {
     const agora = new Date();
-    return consultas
-      .filter(consulta => consulta.status === 'agendada')
+    const base = consultas
+      .filter(consulta => ['confirmada', 'remarcada'].includes(consulta.statusRaw))
       .filter(consulta => consulta.dataConsulta.getTime() >= agora.getTime())
-      .sort((a, b) => a.dataConsulta.getTime() - b.dataConsulta.getTime())
-      .slice(0, 3);
+      .sort((a, b) => a.dataConsulta.getTime() - b.dataConsulta.getTime());
+
+    // Evita exibir sessÃµes duplicadas no mesmo horÃ¡rio (legado de dados antigos).
+    const unicasPorHorario = new Map<string, Consulta>();
+    base.forEach(consulta => {
+      const key = `${consulta.dataConsulta.toISOString()}|${consulta.horaInicio}|${consulta.horaFim}`;
+      if (!unicasPorHorario.has(key)) {
+        unicasPorHorario.set(key, consulta);
+      }
+    });
+
+    return Array.from(unicasPorHorario.values()).slice(0, 3);
   }, [consultas]);
 
   const handlePreviousMonth = useCallback(() => {

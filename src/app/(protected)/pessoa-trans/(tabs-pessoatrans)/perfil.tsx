@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import ProfileOption from '@/components/ProfileOption';
 import SelectModal from '@/components/SelectModal';
 import { colors } from '@/theme/colors';
@@ -21,7 +20,6 @@ import { Usuario } from '@/types/auth';
 import {
   obterUsuarioAtual,
   fazerLogout,
-  uploadFotoPerfil,
 } from '@/services/auth';
 
 const PRONOMES = [
@@ -37,7 +35,6 @@ export default function PerfilScreen() {
   const [pronomes, setPronomes] = useState('Ela/Dela');
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [enviandoFoto, setEnviandoFoto] = useState(false);
 
   const carregarPerfil = useCallback(async () => {
     const usuarioAtual = await obterUsuarioAtual();
@@ -104,46 +101,6 @@ export default function PerfilScreen() {
     );
   };
 
-  const handleTrocarFoto = useCallback(async () => {
-    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissao.granted) {
-      Alert.alert(
-        'Permissão necessária',
-        'Precisamos de acesso à sua galeria para trocar a foto.'
-      );
-      return;
-    }
-
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-
-    if (!resultado.canceled && resultado.assets[0] && usuario) {
-      const asset = resultado.assets[0];
-      setEnviandoFoto(true);
-
-      const resultadoUpload = await uploadFotoPerfil(usuario.id, {
-        uri: asset.uri,
-        name: asset.fileName || `avatar_${Date.now()}.jpg`,
-        type: asset.mimeType || 'image/jpeg',
-      });
-
-      if (resultadoUpload.sucesso && resultadoUpload.dados) {
-        setUsuario(prev =>
-          prev ? { ...prev, foto_url: resultadoUpload.dados! } : prev
-        );
-      } else {
-        Alert.alert('Erro', resultadoUpload.erro || 'Falha ao enviar foto.');
-      }
-
-      setEnviandoFoto(false);
-    }
-  }, [usuario]);
-
   const getIniciais = (nome: string) => {
     return nome
       .split(' ')
@@ -186,17 +143,6 @@ export default function PerfilScreen() {
                 </Text>
               </View>
             )}
-            <TouchableOpacity
-              style={styles.editAvatarButton}
-              onPress={handleTrocarFoto}
-              disabled={enviandoFoto}
-            >
-              {enviandoFoto ? (
-                <ActivityIndicator size={14} color={colors.white} />
-              ) : (
-                <Ionicons name="camera" size={16} color={colors.white} />
-              )}
-            </TouchableOpacity>
           </View>
 
           <Text style={styles.nome}>{nomeExibicao}</Text>
@@ -218,7 +164,7 @@ export default function PerfilScreen() {
         <ProfileOption
           icon="person-outline"
           title="Editar Perfil"
-          subtitle="Nome, foto, informações pessoais"
+          subtitle="Nome e informacoes pessoais"
           onPress={handleEditarPerfil}
         />
         <ProfileOption
@@ -314,19 +260,6 @@ const styles = StyleSheet.create({
     fontSize: 36,
     color: colors.white,
   },
-  editAvatarButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
   nome: {
     fontFamily: fonts.bold,
     fontSize: 24,
@@ -372,3 +305,4 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
 });
+

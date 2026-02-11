@@ -121,18 +121,6 @@ const criarPsicologo = async (
     atende_presencial?: boolean;
   }
 ): Promise<{ psicologo: Psicologo | null; erro: string | null }> => {
-  // Verificar se já existe
-  const { data: existente } = await supabase
-    .from('psicologos')
-    .select('*')
-    .eq('usuario_id', usuarioId)
-    .single();
-
-  if (existente) {
-    console.log('Psicólogo já existe, retornando existente');
-    return { psicologo: existente as Psicologo, erro: null };
-  }
-
   const { data: psicologo, error } = await supabase
     .from('psicologos')
     .insert({
@@ -143,13 +131,24 @@ const criarPsicologo = async (
       valor_consulta: dados.valor_consulta || null,
       atende_online: dados.atende_online ?? true,
       atende_presencial: dados.atende_presencial ?? false,
-      aceita_convenio: false,
-      verificado: false,
+      duracao_sessao: 60,
     })
     .select()
     .single();
 
   if (error) {
+    if (error.code === '23505') {
+      const { data: existente, error: existenteError } = await supabase
+        .from('psicologos')
+        .select('*')
+        .eq('usuario_id', usuarioId)
+        .maybeSingle();
+
+      if (!existenteError && existente) {
+        return { psicologo: existente as Psicologo, erro: null };
+      }
+    }
+
     console.error('Erro ao criar psicólogo:', error);
     return { psicologo: null, erro: `Erro ao criar dados do psicólogo: ${error.message}` };
   }
@@ -158,6 +157,117 @@ const criarPsicologo = async (
   return { psicologo: psicologo as Psicologo, erro: null };
 };
 
+const getCrpFromMetadata = (user: { id: string; user_metadata?: Record<string, unknown> }) => {
+  const crpRaw = user.user_metadata?.crp;
+  const crp = typeof crpRaw === 'string' ? crpRaw.trim() : '';
+  return crp || `PENDENTE-${user.id.slice(0, 8)}`;
+};
+
+const getNomeFromMetadata = (user: { email?: string | null; user_metadata?: Record<string, unknown> }) => {
+  const nomeRaw = user.user_metadata?.nome;
+  if (typeof nomeRaw === 'string' && nomeRaw.trim().length > 0) {
+    return nomeRaw.trim();
+  }
+  const email = user.email || '';
+  const fallback = email.split('@')[0]?.trim();
+  return fallback || 'Usuario';
+};
+
+const getTipoFromMetadata = (user: { user_metadata?: Record<string, unknown> }): TipoUsuario | null => {
+  const tipoRaw = user.user_metadata?.tipo;
+  if (tipoRaw === 'psicologo' || tipoRaw === 'pessoa_trans' || tipoRaw === 'moderador' || tipoRaw === 'admin') {
+    return tipoRaw;
+  }
+  return null;
+};
+
+const autoRepararCadastroNoLogin = async (
+  user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }
+): Promise<void> => {
+  const { data: psicologoExistente } = await supabase
+    .from('psicologos')
+    .select('id')
+    .eq('usuario_id', user.id)
+    .maybeSingle();
+
+  const tipoMetadata = getTipoFromMetadata(user);
+  const tipoFinal: TipoUsuario = psicologoExistente
+    ? 'psicologo'
+    : (tipoMetadata || 'pessoa_trans');
+
+  await criarOuAtualizarPerfil(
+    user.id,
+    user.email || '',
+    {
+      nome: getNomeFromMetadata(user),
+      tipo: tipoFinal,
+      data_nascimento: null,
+      genero: 'outro',
+    }
+  );
+
+  if (tipoFinal === 'psicologo' && !psicologoExistente) {
+    await criarPsicologo(user.id, {
+      crp: getCrpFromMetadata({
+        id: user.id,
+        user_metadata: user.user_metadata,
+      }),
+    });
+  }
+};
+
+const completarCadastroPsicologo = async (
+  userId: string,
+  dados: DadosCadastroPsicologo
+): Promise<ResultadoAuth<Usuario>> => {
+  const { perfil, erro: erroPerfil } = await criarOuAtualizarPerfil(
+    userId,
+    dados.email,
+    {
+      nome: dados.nome,
+      tipo: 'psicologo',
+      data_nascimento: dados.data_nascimento,
+      genero: dados.genero || 'outro',
+    }
+  );
+
+  if (erroPerfil || !perfil) {
+    return {
+      sucesso: false,
+      erro: erroPerfil || 'Erro ao criar perfil',
+    };
+  }
+
+  const { psicologo, erro: erroPsicologo } = await criarPsicologo(
+    userId,
+    {
+      crp: dados.crp,
+      especialidades: dados.especialidades,
+      abordagem: dados.abordagem,
+      valor_consulta: dados.valor_consulta,
+      atende_online: dados.atende_online,
+      atende_presencial: dados.atende_presencial,
+    }
+  );
+
+  if (erroPsicologo || !psicologo) {
+    console.error('Aviso: Perfil criado mas dados de psicólogo falharam');
+    return {
+      sucesso: false,
+      erro: erroPsicologo || 'Erro ao criar dados do psicólogo',
+    };
+  }
+
+  const usuario: Usuario = {
+    ...perfil,
+    psicologo: psicologo,
+  };
+
+  return {
+    sucesso: true,
+    dados: usuario,
+  };
+};
 /**
  * Busca o perfil completo do usuário
  */
@@ -183,7 +293,7 @@ const buscarPerfil = async (userId: string): Promise<Usuario | null> => {
       .from('psicologos')
       .select('*')
       .eq('usuario_id', userId)
-      .single();
+      .maybeSingle();
 
     if (!psiError && psicologo) {
       usuario.psicologo = psicologo as Psicologo;
@@ -221,17 +331,49 @@ export const fazerLogin = async (
       };
     }
 
-    const perfil = await buscarPerfil(data.user.id);
+    let perfil = await buscarPerfil(data.user.id);
 
     if (!perfil) {
-      return {
-        sucesso: false,
-        erro: 'Seu perfil não foi encontrado. Entre em contato com o suporte se o problema persistir.',
-      };
+      await autoRepararCadastroNoLogin({
+        id: data.user.id,
+        email: data.user.email,
+        user_metadata: (data.user.user_metadata || {}) as Record<string, unknown>,
+      });
+
+      perfil = await buscarPerfil(data.user.id);
+
+      if (!perfil) {
+        return {
+          sucesso: false,
+          erro: 'Seu perfil não foi encontrado. Entre em contato com o suporte se o problema persistir.',
+        };
+      }
+    }
+
+    // Auto-reparo: em alguns cenários o perfil existe, mas a linha em psicologos não.
+    if (perfil.tipo === 'psicologo' && !perfil.psicologo) {
+      const { erro: erroPsicologo } = await criarPsicologo(data.user.id, {
+        crp: getCrpFromMetadata({
+          id: data.user.id,
+          user_metadata: (data.user.user_metadata || {}) as Record<string, unknown>,
+        }),
+      });
+
+      if (erroPsicologo) {
+        return {
+          sucesso: false,
+          erro: erroPsicologo,
+        };
+      }
+
+      const perfilAtualizado = await buscarPerfil(data.user.id);
+      if (perfilAtualizado) {
+        perfil = perfilAtualizado;
+      }
     }
 
     // Psicólogo precisa estar verificado para acessar o app
-    if (perfil.tipo === 'psicologo' && !perfil.psicologo?.verificado) {
+    if (perfil.tipo === 'psicologo' && perfil.psicologo && perfil.psicologo.verificado !== true) {
       await supabase.auth.signOut();
       return {
         sucesso: false,
@@ -344,11 +486,29 @@ export const cadastrarPsicologo = async (
         data: {
           nome: dados.nome,
           tipo: 'psicologo' as TipoUsuario,
+          crp: dados.crp,
         },
       },
     });
 
     if (authError) {
+      if (authError.code === 'user_already_exists') {
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          email: dados.email,
+          password: dados.senha,
+        });
+
+        if (loginError || !loginData.user) {
+          return {
+            sucesso: false,
+            erro: mapearErro(loginError?.code || authError.code || '', loginError?.message || authError.message),
+            codigo: loginError?.code || authError.code,
+          };
+        }
+
+        return await completarCadastroPsicologo(loginData.user.id, dados);
+      }
+
       console.error('Erro no auth.signUp:', authError);
       return {
         sucesso: false,
@@ -366,56 +526,24 @@ export const cadastrarPsicologo = async (
 
     console.log('Usuário auth criado:', authData.user.id);
 
-    // 2. Criar ou atualizar perfil (funciona com ou sem trigger)
-    const { perfil, erro: erroPerfil } = await criarOuAtualizarPerfil(
-      authData.user.id,
-      dados.email,
-      {
-        nome: dados.nome,
-        tipo: 'psicologo',
-        data_nascimento: dados.data_nascimento,
-        genero: dados.genero || 'outro',
-      }
-    );
+    if (!authData.session) {
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email: dados.email,
+        password: dados.senha,
+      });
 
-    if (erroPerfil || !perfil) {
-      return {
-        sucesso: false,
-        erro: erroPerfil || 'Erro ao criar perfil',
-      };
+      if (loginError || !loginData.user) {
+        return {
+          sucesso: false,
+          erro:
+            mapearErro(loginError?.code || '', loginError?.message || '') ||
+            'Conta criada, mas não foi possível finalizar o cadastro agora.',
+          codigo: loginError?.code,
+        };
+      }
     }
 
-    // 3. Criar entrada na tabela psicologos
-    const { psicologo, erro: erroPsicologo } = await criarPsicologo(
-      authData.user.id,
-      {
-        crp: dados.crp,
-        especialidades: dados.especialidades,
-        abordagem: dados.abordagem,
-        valor_consulta: dados.valor_consulta,
-        atende_online: dados.atende_online,
-        atende_presencial: dados.atende_presencial,
-      }
-    );
-
-    if (erroPsicologo || !psicologo) {
-      // Perfil foi criado mas psicólogo não - ainda retorna sucesso parcial
-      console.error('Aviso: Perfil criado mas dados de psicólogo falharam');
-      return {
-        sucesso: false,
-        erro: erroPsicologo || 'Erro ao criar dados do psicólogo',
-      };
-    }
-
-    const usuario: Usuario = {
-      ...perfil,
-      psicologo: psicologo,
-    };
-
-    return {
-      sucesso: true,
-      dados: usuario,
-    };
+    return await completarCadastroPsicologo(authData.user.id, dados);
   } catch (erro) {
     console.error('Erro no cadastro psicólogo:', erro);
     return {
@@ -424,7 +552,6 @@ export const cadastrarPsicologo = async (
     };
   }
 };
-
 /**
  * Realiza logout do usuário
  */
@@ -754,3 +881,4 @@ export const atualizarConfiguracoes = async (
     };
   }
 };
+

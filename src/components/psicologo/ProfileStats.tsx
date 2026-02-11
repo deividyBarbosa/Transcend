@@ -1,16 +1,13 @@
 import React from "react";
 import { StyleSheet, View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 interface ProfileStatsProps {
   pacientes: number;
-  avaliacao: number;
   experiencia: number;
 }
 
 export function ProfileStats({
   pacientes,
-  avaliacao,
   experiencia,
 }: ProfileStatsProps) {
   return (
@@ -18,16 +15,6 @@ export function ProfileStats({
       <View style={styles.statItem}>
         <Text style={styles.statValue}>{pacientes}+</Text>
         <Text style={styles.statLabel}>PACIENTES</Text>
-      </View>
-
-      <View style={styles.statDivider} />
-
-      <View style={styles.statItem}>
-        <View style={styles.ratingContainer}>
-          <Text style={styles.statValue}>{avaliacao}</Text>
-          <Ionicons name="star" size={20} color="#FFA500" />
-        </View>
-        <Text style={styles.statLabel}>AVALIAÇÕES</Text>
       </View>
 
       <View style={styles.statDivider} />
@@ -60,12 +47,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#3D2B2E",
-    marginBottom: 4,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
     marginBottom: 4,
   },
   statLabel: {

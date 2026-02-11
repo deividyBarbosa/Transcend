@@ -8,6 +8,7 @@ interface SolicitacaoAtendimentoCardProps {
   scheduledTime: string;
   onReject: () => void;
   onAccept: () => void;
+  disabled?: boolean;
 }
 
 export function SolicitacaoAtendimentoCard({
@@ -16,6 +17,7 @@ export function SolicitacaoAtendimentoCard({
   scheduledTime,
   onReject,
   onAccept,
+  disabled = false,
 }: SolicitacaoAtendimentoCardProps) {
   return (
     <View style={styles.container}>
@@ -34,6 +36,7 @@ export function SolicitacaoAtendimentoCard({
         <TouchableOpacity
           style={styles.rejectButton}
           onPress={onReject}
+          disabled={disabled}
           activeOpacity={0.7}
         >
           <Text style={styles.rejectText}>Recusar</Text>
@@ -42,6 +45,7 @@ export function SolicitacaoAtendimentoCard({
         <TouchableOpacity
           style={styles.acceptButton}
           onPress={onAccept}
+          disabled={disabled}
           activeOpacity={0.7}
         >
           <Text style={styles.acceptText}>Aceitar</Text>

@@ -53,29 +53,6 @@ export default function PerfilPsicologo() {
       carregarPerfil();
     }, [carregarPerfil])
   );
-
-  const handleEditPhoto = useCallback(() => {
-    Alert.alert(
-      "Alterar foto",
-      "Escolha uma opção",
-      [
-        {
-          text: "Câmera",
-          onPress: () => console.log("Abrir câmera"),
-        },
-        {
-          text: "Galeria",
-          onPress: () => console.log("Abrir galeria"),
-        },
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-      ],
-      { cancelable: true },
-    );
-  }, []);
-
   const handleEditProfile = useCallback(() => {
     router.push("/editar-perfil");
   }, [router]);
@@ -154,7 +131,7 @@ export default function PerfilPsicologo() {
           <ProfilePhoto
             source={fotoSource}
             size={120}
-            onEditPress={handleEditPhoto}
+            editable={false}
           />
         </View>
 
@@ -167,7 +144,6 @@ export default function PerfilPsicologo() {
 
         <ProfileStats
           pacientes={perfil.total_pacientes ?? 0}
-          avaliacao={perfil.avaliacao_media ?? 0}
           experiencia={perfil.anos_experiencia ?? 0}
         />
 
@@ -410,3 +386,6 @@ const styles = StyleSheet.create({
     color: "#F44336",
   },
 });
+
+
+
