@@ -144,9 +144,6 @@ export default function PerfilPsicologo() {
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Perfil</Text>
-        <TouchableOpacity style={styles.menuButton} onPress={handleSettings}>
-          <Ionicons name="ellipsis-horizontal" size={24} color={colors.primary} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -268,19 +265,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
+    position: "relative", 
   },
   backButton: {
     width: 40,
     height: 40,
     justifyContent: "center",
     alignItems: "center",
+    position: "absolute",
+    left: 16, // Adicione isso
+    zIndex: 1, // Adicione isso
   },
   headerTitle: {
     fontSize: 18,
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 40,
     height: 40,
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
   },
   scrollContent: {
