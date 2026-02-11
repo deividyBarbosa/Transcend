@@ -159,7 +159,7 @@ export const listarPsicologosParaAgendamento = async (): Promise<Resultado<Psico
               p.nome_social ||
                 p.nome ||
                 p.nome_civil ||
-                'Psicologo(a)'
+                'Psicólogo(a)'
             ),
           ])
         );
@@ -170,14 +170,14 @@ export const listarPsicologosParaAgendamento = async (): Promise<Resultado<Psico
       const especialidade = p.especialidades?.[0] || p.abordagem || 'Psicologia';
       const tipo = p.atende_online
         ? p.atende_presencial
-          ? 'Sessoes online e presenciais'
-          : 'Sessoes online via aplicativo'
-        : 'Sessoes presenciais';
+          ? 'Sessões online e presenciais'
+          : 'Sessões online via aplicativo'
+        : 'Sessões presenciais';
 
       return {
         id: p.id,
         usuario_id: p.usuario_id,
-        nome: perfilMap.get(p.usuario_id) || 'Psicologo(a)',
+        nome: perfilMap.get(p.usuario_id) || 'Psicólogo(a)',
         especialidade,
         tipo,
         crp: p.crp,
@@ -191,7 +191,7 @@ export const listarPsicologosParaAgendamento = async (): Promise<Resultado<Psico
 
     return { sucesso: true, dados };
   } catch (error) {
-    return { sucesso: false, erro: 'Erro ao listar psicologos.' };
+    return { sucesso: false, erro: 'Erro ao listar psicólogos.' };
   }
 };
 
@@ -230,7 +230,7 @@ export const buscarDatasDisponiveisPsicologo = async (
 
     return { sucesso: true, dados: datas };
   } catch {
-    return { sucesso: false, erro: 'Erro ao buscar datas disponiveis.' };
+    return { sucesso: false, erro: 'Erro ao buscar datas disponíveis.' };
   }
 };
 
@@ -328,7 +328,7 @@ export const buscarHorariosDisponiveisPsicologo = async (
     const dados = Array.from(unicos.values()).sort((a, b) => a.horario.localeCompare(b.horario));
     return { sucesso: true, dados };
   } catch {
-    return { sucesso: false, erro: 'Erro ao buscar horarios disponiveis.' };
+    return { sucesso: false, erro: 'Erro ao buscar horários disponíveis.' };
   }
 };
 
@@ -342,7 +342,7 @@ export const agendarSessaoPsicologica = async (
     const verif = await buscarHorariosDisponiveisPsicologo(psicologoId, dataISO);
     const slotValido = verif.sucesso && verif.dados?.find(s => s.horario === horario && s.disponivel);
     if (!slotValido) {
-      return { sucesso: false, erro: 'Este horario nao esta mais disponivel.' };
+      return { sucesso: false, erro: 'Este horário não está mais disponível.' };
     }
 
     const { data: psi } = await supabase
@@ -372,7 +372,7 @@ export const agendarSessaoPsicologica = async (
       .single();
 
     if (error || !data) {
-      return { sucesso: false, erro: error?.message || 'Nao foi possivel agendar a consulta.' };
+      return { sucesso: false, erro: error?.message || 'Não foi possível agendar a consulta.' };
     }
 
     return {
@@ -433,7 +433,7 @@ export const listarSessoesPsicologo = async (
 
     return { sucesso: true, dados };
   } catch {
-    return { sucesso: false, erro: 'Erro ao listar consultas do psicologo.' };
+    return { sucesso: false, erro: 'Erro ao listar consultas do psicólogo.' };
   }
 };
 
@@ -485,7 +485,7 @@ export const listarSessoesPaciente = async (
     const perfisMap = new Map(
       ((perfis || []) as Array<Record<string, unknown>>).map(p => [
         String(p.id),
-        String(p.nome_social || p.nome || p.nome_civil || 'Psicologo(a)'),
+        String(p.nome_social || p.nome || p.nome_civil || 'Psicólogo(a)'),
       ])
     );
 
@@ -493,7 +493,7 @@ export const listarSessoesPaciente = async (
       listaPsicologos.map(p => [
         p.id,
         {
-          nome: perfisMap.get(p.usuario_id) || 'Psicologo(a)',
+          nome: perfisMap.get(p.usuario_id) || 'Psicólogo(a)',
           foto: p.foto_url || null,
         },
       ])
@@ -502,7 +502,7 @@ export const listarSessoesPaciente = async (
     const dados: SessaoPacienteAgenda[] = lista.map(sessao => ({
       id: sessao.id,
       psicologo_id: sessao.psicologo_id,
-      psicologo_nome: psicologoMap.get(sessao.psicologo_id)?.nome || 'Psicologo(a)',
+      psicologo_nome: psicologoMap.get(sessao.psicologo_id)?.nome || 'Psicólogo(a)',
       psicologo_foto: psicologoMap.get(sessao.psicologo_id)?.foto || null,
       data_sessao: sessao.data_sessao,
       status: (sessao.status || 'agendada').toLowerCase(),
@@ -576,7 +576,7 @@ export const listarSolicitacoesPsicologo = async (
 
     return { sucesso: true, dados };
   } catch {
-    return { sucesso: false, erro: 'Erro ao listar solicitacoes.' };
+    return { sucesso: false, erro: 'Erro ao listar solicitações.' };
   }
 };
 
@@ -588,14 +588,14 @@ export const responderSolicitacaoPsicologo = async (
   try {
     const psicologoId = await buscarIdPsicologoPorUsuario(usuarioPsicologoId);
     if (!psicologoId) {
-      return { sucesso: false, erro: 'Perfil de psicologo nao encontrado.' };
+      return { sucesso: false, erro: 'Perfil de psicólogo não encontrado.' };
     }
 
     const payload: Record<string, unknown> = aceitar
       ? { status: 'confirmada' }
       : {
           status: 'cancelada',
-          motivo_cancelamento: 'Recusada pelo psicologo',
+          motivo_cancelamento: 'Recusada pelo psicólogo',
           cancelado_por: usuarioPsicologoId,
         };
 
@@ -612,7 +612,7 @@ export const responderSolicitacaoPsicologo = async (
 
     return { sucesso: true };
   } catch {
-    return { sucesso: false, erro: 'Erro ao responder solicitacao.' };
+    return { sucesso: false, erro: 'Erro ao responder solicitação.' };
   }
 };
 
@@ -675,7 +675,7 @@ export const listarPacientesPsicologo = async (
 
     return { sucesso: true, dados };
   } catch {
-    return { sucesso: false, erro: 'Erro ao listar pacientes do psicologo.' };
+    return { sucesso: false, erro: 'Erro ao listar pacientes do psicólogo.' };
   }
 };
 
@@ -744,7 +744,7 @@ export const adicionarDisponibilidadeDoPsicologo = async (
 ): Promise<Resultado<DisponibilidadePsicologo>> => {
   try {
     const psicologoId = await buscarIdPsicologoPorUsuario(usuarioPsicologoId);
-    if (!psicologoId) return { sucesso: false, erro: 'Perfil de psicologo nao encontrado.' };
+    if (!psicologoId) return { sucesso: false, erro: 'Perfil de psicólogo não encontrado.' };
 
     const { data, error } = await supabase
       .from('disponibilidade_psicologo')
@@ -772,7 +772,7 @@ export const removerDisponibilidadeDoPsicologo = async (
 ): Promise<Resultado<void>> => {
   try {
     const psicologoId = await buscarIdPsicologoPorUsuario(usuarioPsicologoId);
-    if (!psicologoId) return { sucesso: false, erro: 'Perfil de psicologo nao encontrado.' };
+    if (!psicologoId) return { sucesso: false, erro: 'Perfil de psicólogo não encontrado.' };
 
     const { error } = await supabase
       .from('disponibilidade_psicologo')

@@ -41,7 +41,7 @@ export default function PacienteChatScreen() {
     try {
       const usuario = await obterUsuarioAtual();
       if (!usuario) {
-        setErroConversa('Erro ao obter/ criar conversa: Usuario nao autenticado.');
+        setErroConversa('Erro ao obter/criar conversa: Usuário não autenticado.');
         return;
       }
 
@@ -50,11 +50,11 @@ export default function PacienteChatScreen() {
         router.push(`/pessoa-trans/chat?conversaId=${(resultado.dados as any).id}`);
       } else {
         console.error('Erro ao obter/ criar conversa:', resultado.erro);
-        setErroConversa(`Erro ao obter/ criar conversa: ${resultado.erro || 'Nao foi possivel iniciar a conversa'}`);
+        setErroConversa(`Erro ao obter/criar conversa: ${resultado.erro || 'Não foi possível iniciar a conversa'}`);
       }
     } catch (e) {
       console.error(e);
-      setErroConversa('Erro ao obter/ criar conversa: Nao foi possivel iniciar a conversa');
+      setErroConversa('Erro ao obter/criar conversa: Não foi possível iniciar a conversa');
     } finally {
       setStarting(false);
     }

@@ -41,11 +41,11 @@ const MODALIDADES = [
 const DIA_LABEL_MAP: Record<number, string> = {
   0: 'Domingo',
   1: 'Segunda',
-  2: 'Terca',
+  2: 'Terça',
   3: 'Quarta',
   4: 'Quinta',
   5: 'Sexta',
-  6: 'Sabado',
+  6: 'Sábado',
   7: 'Domingo',
 };
 
@@ -88,7 +88,7 @@ export default function DisponibilidadePsicologoScreen() {
     if (resultado.sucesso) {
       setLista(resultado.dados || []);
     } else {
-      Alert.alert('Erro', resultado.erro || 'Nao foi possivel carregar disponibilidade.');
+      Alert.alert('Erro', resultado.erro || 'Não foi possível carregar disponibilidade.');
     }
     setCarregando(false);
   }, []);
@@ -110,17 +110,17 @@ export default function DisponibilidadePsicologoScreen() {
 
   const adicionar = useCallback(async () => {
     if (!usuarioId) {
-      Alert.alert('Erro', 'Usuario nao autenticado.');
+      Alert.alert('Erro', 'Usuário não autenticado.');
       return;
     }
 
     if (!horarioValido(inicio) || !horarioValido(fim)) {
-      Alert.alert('Horario invalido', 'Use o formato HH:MM. Exemplo: 09:30');
+      Alert.alert('Horário inválido', 'Use o formato HH:MM. Exemplo: 09:30');
       return;
     }
 
     if (toMinutes(inicio) >= toMinutes(fim)) {
-      Alert.alert('Horario invalido', 'Horario final deve ser maior que o inicial.');
+      Alert.alert('Horário inválido', 'Horário final deve ser maior que o inicial.');
       return;
     }
 
@@ -134,7 +134,7 @@ export default function DisponibilidadePsicologoScreen() {
     setSalvando(false);
 
     if (!resultado.sucesso) {
-      Alert.alert('Erro', resultado.erro || 'Nao foi possivel salvar disponibilidade.');
+      Alert.alert('Erro', resultado.erro || 'Não foi possível salvar disponibilidade.');
       return;
     }
 
@@ -145,7 +145,7 @@ export default function DisponibilidadePsicologoScreen() {
   const remover = useCallback(
     (id: string) => {
       if (!usuarioId) return;
-      Alert.alert('Remover horario', 'Deseja remover esta disponibilidade?', [
+      Alert.alert('Remover horário', 'Deseja remover esta disponibilidade?', [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Remover',
@@ -153,7 +153,7 @@ export default function DisponibilidadePsicologoScreen() {
           onPress: async () => {
             const resultado = await removerDisponibilidadeDoPsicologo(usuarioId, id);
             if (!resultado.sucesso) {
-              Alert.alert('Erro', resultado.erro || 'Nao foi possivel remover disponibilidade.');
+              Alert.alert('Erro', resultado.erro || 'Não foi possível remover disponibilidade.');
               return;
             }
             await carregarDisponibilidade();
@@ -176,7 +176,7 @@ export default function DisponibilidadePsicologoScreen() {
         ) : (
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.formCard}>
-              <Text style={styles.sectionTitle}>Cadastrar novo horario</Text>
+              <Text style={styles.sectionTitle}>Cadastrar novo horário</Text>
 
               <Text style={styles.label}>Dia da semana</Text>
               <View style={styles.chipsRow}>
@@ -211,7 +211,7 @@ export default function DisponibilidadePsicologoScreen() {
               <View style={styles.inputsRow}>
                 <View style={styles.inputWrap}>
                   <Input
-                    label="Inicio"
+                    label="Início"
                     value={inicio}
                     onChangeText={setInicio}
                     placeholder="08:00"
@@ -235,9 +235,9 @@ export default function DisponibilidadePsicologoScreen() {
             </View>
 
             <View style={styles.listCard}>
-              <Text style={styles.sectionTitle}>Horarios cadastrados</Text>
+              <Text style={styles.sectionTitle}>Horários cadastrados</Text>
               {disponibilidadeOrdenada.length === 0 ? (
-                <Text style={styles.emptyText}>Voce ainda nao cadastrou horarios.</Text>
+                <Text style={styles.emptyText}>Você ainda não cadastrou horários.</Text>
               ) : (
                 disponibilidadeOrdenada.map(item => (
                   <View key={item.id} style={styles.item}>

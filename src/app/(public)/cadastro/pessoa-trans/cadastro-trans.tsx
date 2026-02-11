@@ -116,7 +116,7 @@ export default function CadastroTransScreen() {
         email,
         senha,
         genero: genero as Genero,
-        data_nascimento: dataNascimento,
+        data_nascimento: dataNascimento.split('/').reverse().join('-'),
       });
 
       if (resultado.sucesso) {

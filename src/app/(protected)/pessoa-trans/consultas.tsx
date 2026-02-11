@@ -22,15 +22,15 @@ type TabType = 'agendadas' | 'realizadas' | 'mensagens';
 
 const dataISO = (valor: string) => {
   const d = new Date(valor);
-  const ano = d.getFullYear();
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const dia = String(d.getDate()).padStart(2, '0');
+  const ano = d.getUTCFullYear();
+  const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dia = String(d.getUTCDate()).padStart(2, '0');
   return `${ano}-${mes}-${dia}`;
 };
 
 const horaBR = (valor: string) => {
   const d = new Date(valor);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 };
 
 const mapearConsulta = (sessao: SessaoPacienteAgenda): Consulta => {
@@ -40,7 +40,7 @@ const mapearConsulta = (sessao: SessaoPacienteAgenda): Consulta => {
 
   const statusLabel =
     status === 'agendada'
-      ? 'Aguardando confirmacao do psicologo'
+      ? 'Aguardando confirmação do psicólogo'
       : status === 'confirmada'
         ? 'Confirmada'
         : status === 'remarcada'
@@ -124,7 +124,7 @@ export default function ConsultasScreen() {
     <View style={styles.emptyState}>
       <Ionicons name="calendar-outline" size={64} color={colors.muted} style={{ opacity: 0.3 }} />
       <Text style={styles.emptyText}>
-        {activeTab === 'agendadas' ? 'Voce nao tem consultas agendadas' : 'Nenhuma consulta realizada ainda'}
+        {activeTab === 'agendadas' ? 'Você não tem consultas agendadas' : 'Nenhuma consulta realizada ainda'}
       </Text>
       {activeTab === 'agendadas' && (
         <Button
@@ -150,9 +150,9 @@ export default function ConsultasScreen() {
           <View style={styles.bannerContent}>
             <Ionicons name="information-circle" size={20} color={colors.primary} />
             <View style={styles.bannerText}>
-              <Text style={styles.bannerTitle}>Pagamentos e honorarios</Text>
+              <Text style={styles.bannerTitle}>Pagamentos e honorários</Text>
               <Text style={styles.bannerSubtitle}>
-                Os pagamentos sao tratados diretamente com seu psicologo, fora da plataforma Transcend.
+                Os pagamentos são tratados diretamente com seu psicólogo, fora da plataforma Transcend.
               </Text>
             </View>
           </View>
@@ -163,7 +163,7 @@ export default function ConsultasScreen() {
       )}
 
       <View style={styles.searchWrapper}>
-        <SearchInput value={searchText} onChangeText={handleSearch} placeholder="Buscar psicologo..." />
+        <SearchInput value={searchText} onChangeText={handleSearch} placeholder="Buscar psicólogo..." />
       </View>
 
       <View style={styles.statsContainer}>
@@ -171,7 +171,7 @@ export default function ConsultasScreen() {
         {getTotalUnread() > 0 && (
           <>
             <View style={styles.statsDot} />
-            <Text style={styles.statsUnread}>{getTotalUnread()} nao lida(s)</Text>
+            <Text style={styles.statsUnread}>{getTotalUnread()} não lida(s)</Text>
           </>
         )}
       </View>
@@ -216,7 +216,7 @@ export default function ConsultasScreen() {
           onPress={() => setActiveTab('realizadas')}
         >
           <Text style={[styles.tabText, activeTab === 'realizadas' && styles.tabTextActive]}>
-            Historico ({consultasRealizadas.length})
+            Histórico ({consultasRealizadas.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

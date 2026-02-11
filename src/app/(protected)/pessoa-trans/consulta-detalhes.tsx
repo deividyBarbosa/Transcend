@@ -31,7 +31,7 @@ const normalizarStatus = (status: string | null | undefined): ConsultaDetalhe['s
 
 const statusLabel = (status: string | null | undefined) => {
   const valor = (status || '').toLowerCase();
-  if (valor === 'agendada') return 'Aguardando confirmacao do psicologo';
+  if (valor === 'agendada') return 'Aguardando confirmação do psicólogo';
   if (valor === 'confirmada') return 'Confirmada';
   if (valor === 'remarcada') return 'Remarcada';
   if (valor === 'realizada') return 'Realizada';
@@ -62,7 +62,7 @@ export default function ConsultaDetalhesScreen() {
           .maybeSingle();
 
         if (sessao) {
-          let psicologoNome = 'Psicologo(a)';
+          let psicologoNome = 'Psicólogo(a)';
           const { data: psicologo } = await supabase
             .from('psicologos')
             .select('usuario_id')
@@ -77,15 +77,15 @@ export default function ConsultaDetalhesScreen() {
               .maybeSingle();
 
             if (perfil) {
-              psicologoNome = perfil.nome_social || perfil.nome || perfil.nome_civil || 'Psicologo(a)';
+              psicologoNome = perfil.nome_social || perfil.nome || perfil.nome_civil || 'Psicólogo(a)';
             }
           }
 
           const dataSessao = new Date((sessao as any).data_sessao);
-          const data = `${dataSessao.getFullYear()}-${String(dataSessao.getMonth() + 1).padStart(2, '0')}-${String(
-            dataSessao.getDate()
+          const data = `${dataSessao.getUTCFullYear()}-${String(dataSessao.getUTCMonth() + 1).padStart(2, '0')}-${String(
+            dataSessao.getUTCDate()
           ).padStart(2, '0')}`;
-          const horario = `${String(dataSessao.getHours()).padStart(2, '0')}:${String(dataSessao.getMinutes()).padStart(2, '0')}`;
+          const horario = `${String(dataSessao.getUTCHours()).padStart(2, '0')}:${String(dataSessao.getUTCMinutes()).padStart(2, '0')}`;
           const statusRaw = (sessao as any).status as string | null;
 
           setConsulta({
@@ -148,7 +148,7 @@ export default function ConsultaDetalhesScreen() {
   const handleEntrarConsulta = () => {
     if (consulta?.link) {
       Linking.openURL(consulta.link).catch(() => {
-        Alert.alert('Erro', 'Nao foi possivel abrir o link da consulta');
+        Alert.alert('Erro', 'Não foi possível abrir o link da consulta');
       });
     }
   };
@@ -156,7 +156,7 @@ export default function ConsultaDetalhesScreen() {
   const handleCancelarConsulta = () => {
     if (!consulta) return;
     Alert.alert('Cancelar Consulta', 'Tem certeza que deseja cancelar esta consulta?', [
-      { text: 'Nao', style: 'cancel' },
+      { text: 'Não', style: 'cancel' },
       {
         text: 'Sim, cancelar',
         style: 'destructive',
@@ -166,7 +166,7 @@ export default function ConsultaDetalhesScreen() {
             const { data: auth } = await supabase.auth.getUser();
             const userId = auth.user?.id;
             if (!userId) {
-              Alert.alert('Erro', 'Usuario nao autenticado.');
+              Alert.alert('Erro', 'Usuário não autenticado.');
               setCancelando(false);
               return;
             }
@@ -191,7 +191,7 @@ export default function ConsultaDetalhesScreen() {
             Alert.alert('Cancelada', 'Consulta cancelada com sucesso', [{ text: 'OK', onPress: () => router.back() }]);
           } catch {
             setCancelando(false);
-            Alert.alert('Erro', 'Nao foi possivel cancelar a consulta.');
+            Alert.alert('Erro', 'Não foi possível cancelar a consulta.');
           }
         },
       },
@@ -218,7 +218,7 @@ export default function ConsultaDetalhesScreen() {
       <SafeAreaView style={styles.safeArea}>
         <Header title="Consulta" showBackButton />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Consulta nao encontrada</Text>
+          <Text style={styles.errorText}>Consulta não encontrada</Text>
         </View>
       </SafeAreaView>
     );
@@ -259,13 +259,13 @@ export default function ConsultaDetalhesScreen() {
             </View>
             <View style={styles.psicologoInfo}>
               <Text style={styles.psicologoNome}>{consulta.psicologoNome}</Text>
-              <Text style={styles.psicologoLabel}>Psicologo(a)</Text>
+              <Text style={styles.psicologoLabel}>Psicólogo(a)</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Informacoes</Text>
+          <Text style={styles.cardTitle}>Informações</Text>
 
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
@@ -280,7 +280,7 @@ export default function ConsultaDetalhesScreen() {
           <View style={styles.infoRow}>
             <Ionicons name="time-outline" size={20} color={colors.primary} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Horario</Text>
+              <Text style={styles.infoLabel}>Horário</Text>
               <Text style={styles.infoValue}>{consulta.horario}</Text>
             </View>
           </View>
@@ -302,7 +302,7 @@ export default function ConsultaDetalhesScreen() {
 
         {isRealizada && consulta.observacoes && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Observacoes</Text>
+            <Text style={styles.cardTitle}>Observações</Text>
             <View style={styles.observacoesBox}>
               <Text style={styles.observacoesText}>{consulta.observacoes}</Text>
             </View>

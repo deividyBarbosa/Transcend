@@ -103,7 +103,7 @@ export default function DiarioScreen() {
       setEntries(mapa);
       setErro(null);
     } else {
-      setErro(resultado.erro || 'Nao foi possivel carregar as entradas do diario.');
+      setErro(resultado.erro || 'Não foi possível carregar as entradas do diário.');
     }
   }, [usuarioId, currentMonth]);
 

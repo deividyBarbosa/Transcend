@@ -57,14 +57,14 @@ export default function HorariosDisponiveisScreen() {
 
   const handleConfirmarAgendamento = async () => {
     if (!horarioSelecionado) {
-      Alert.alert('Atencao', 'Por favor, selecione um horario');
+      Alert.alert('Atenção', 'Por favor, selecione um horário');
       return;
     }
 
     const { data: auth } = await supabase.auth.getUser();
     const pacienteId = auth.user?.id;
     if (!pacienteId) {
-      Alert.alert('Erro', 'Usuario nao autenticado. Faca login novamente.');
+      Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
       return;
     }
 
@@ -73,11 +73,11 @@ export default function HorariosDisponiveisScreen() {
     setSalvando(false);
 
     if (!resultado.sucesso) {
-      Alert.alert('Erro', resultado.erro || 'Nao foi possivel agendar a consulta.');
+      Alert.alert('Erro', resultado.erro || 'Não foi possível agendar a consulta.');
       return;
     }
 
-    Alert.alert('Solicitacao enviada', 'A consulta foi solicitada. Aguarde a confirmacao do psicologo.', [
+    Alert.alert('Solicitação enviada', 'A consulta foi solicitada. Aguarde a confirmação do psicólogo.', [
       {
         text: 'OK',
         onPress: () => router.push('/pessoa-trans/(tabs-pessoatrans)'),
@@ -120,7 +120,7 @@ export default function HorariosDisponiveisScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.titulo}>Horarios disponiveis</Text>
+          <Text style={styles.titulo}>Horários disponíveis</Text>
           <Text style={styles.subtitulo}>{formatarData(data)}</Text>
 
           {carregando ? (
@@ -134,7 +134,7 @@ export default function HorariosDisponiveisScreen() {
                   horarios.map(renderHorarioCard)
                 ) : (
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Sem horarios disponiveis para esta data.</Text>
+                    <Text style={styles.emptyText}>Sem horários disponíveis para esta data.</Text>
                   </View>
                 )}
               </View>

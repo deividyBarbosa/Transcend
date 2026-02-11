@@ -34,6 +34,7 @@ const formatarData = (date: Date) => {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'UTC',
   });
 };
 
@@ -78,17 +79,17 @@ export default function Consultas() {
 
       const consultas = resultado.dados.map(sessao => {
         const data = new Date(sessao.data_sessao);
-        const inicio = `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`;
+        const inicio = `${String(data.getUTCHours()).padStart(2, '0')}:${String(data.getUTCMinutes()).padStart(2, '0')}`;
         const duracao = sessao.duracao_minutos || 60;
         const fimDate = new Date(data.getTime() + duracao * 60 * 1000);
-        const fim = `${String(fimDate.getHours()).padStart(2, '0')}:${String(fimDate.getMinutes()).padStart(2, '0')}`;
+        const fim = `${String(fimDate.getUTCHours()).padStart(2, '0')}:${String(fimDate.getUTCMinutes()).padStart(2, '0')}`;
 
         const modalidade = sessao.modalidade ? String(sessao.modalidade) : 'Online';
 
         return {
           id: sessao.id,
           patientName: sessao.paciente_nome,
-          sessionType: `${modalidade} - Sessao`,
+          sessionType: `${modalidade} - Sessão`,
           date: formatarData(data),
           time: `${inicio} - ${fim}`,
           badge: calcularBadge(data),
@@ -152,7 +153,7 @@ export default function Consultas() {
 
   const renderEmptyList = useCallback(() => {
     const emptyMessages = {
-      proximas: 'Nenhuma consulta proxima',
+      proximas: 'Nenhuma consulta próxima',
       passadas: 'Nenhuma consulta passada',
       canceladas: 'Nenhuma consulta cancelada',
     };
@@ -201,7 +202,7 @@ export default function Consultas() {
       </View>
 
       <View style={styles.tabsContainer}>
-        {renderTabButton('proximas', 'Proximas')}
+        {renderTabButton('proximas', 'Próximas')}
         {renderTabButton('passadas', 'Passadas')}
         {renderTabButton('canceladas', 'Canceladas')}
       </View>

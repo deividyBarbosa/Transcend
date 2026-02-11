@@ -72,10 +72,10 @@ export default function PsicologoHome() {
 
       const parsed = resultado.dados.map(sessao => {
         const dt = new Date(sessao.data_sessao);
-        const inicio = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+        const inicio = `${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`;
         const duracao = sessao.duracao_minutos || 60;
         const fimDt = new Date(dt.getTime() + duracao * 60 * 1000);
-        const fim = `${String(fimDt.getHours()).padStart(2, '0')}:${String(fimDt.getMinutes()).padStart(2, '0')}`;
+        const fim = `${String(fimDt.getUTCHours()).padStart(2, '0')}:${String(fimDt.getUTCMinutes()).padStart(2, '0')}`;
 
         return {
           id: sessao.id,
@@ -101,9 +101,9 @@ export default function PsicologoHome() {
 
   const markedDates = useMemo(() => {
     return consultas.map(consulta => {
-      const year = consulta.dataConsulta.getFullYear();
-      const month = String(consulta.dataConsulta.getMonth() + 1).padStart(2, '0');
-      const day = String(consulta.dataConsulta.getDate()).padStart(2, '0');
+      const year = consulta.dataConsulta.getUTCFullYear();
+      const month = String(consulta.dataConsulta.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(consulta.dataConsulta.getUTCDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     });
   }, [consultas]);

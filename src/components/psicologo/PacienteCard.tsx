@@ -50,7 +50,7 @@ export function PacienteCard({
           {pacientName}
         </Text>
         <Text style={styles.cardDescription}>
-          {typeof pacientAge === "number" ? `${pacientAge} anos` : "Idade nao informada"}
+          {typeof pacientAge === "number" ? `${pacientAge} anos` : "Idade não informada"}
         </Text>
       </View>
 

@@ -26,6 +26,7 @@ const formatarDataHora = (dataSessao: string) => {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "UTC",
   });
 };
 
@@ -73,7 +74,7 @@ export default function Solicitacoes() {
     async (sessaoId: string, aceitar: boolean) => {
       const usuario = await obterUsuarioAtual();
       if (!usuario?.id) {
-        Alert.alert("Erro", "Usuario nao autenticado.");
+        Alert.alert("Erro", "Usuário não autenticado.");
         return;
       }
 
@@ -82,7 +83,7 @@ export default function Solicitacoes() {
       setRespondendoId(null);
 
       if (!resultado.sucesso) {
-        Alert.alert("Erro", resultado.erro || "Nao foi possivel responder a solicitacao.");
+        Alert.alert("Erro", resultado.erro || "Não foi possível responder a solicitação.");
         return;
       }
 
@@ -93,7 +94,7 @@ export default function Solicitacoes() {
 
   const handleRecusar = useCallback(
     (sessaoId: string) => {
-      Alert.alert("Recusar solicitacao", "Deseja recusar esta solicitacao de consulta?", [
+      Alert.alert("Recusar solicitação", "Deseja recusar esta solicitação de consulta?", [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Recusar",
@@ -121,7 +122,7 @@ export default function Solicitacoes() {
   const renderEmptyList = useCallback(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Nenhuma solicitacao pendente</Text>
+        <Text style={styles.emptyText}>Nenhuma solicitação pendente</Text>
       </View>
     ),
     []
@@ -140,7 +141,7 @@ export default function Solicitacoes() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Solicitacoes</Text>
+        <Text style={styles.title}>Solicitações</Text>
         <Text style={styles.subtitle}>{solicitacoes.length} pendente(s)</Text>
         {respondendoId ? <Text style={styles.processingText}>Processando resposta...</Text> : null}
       </View>
