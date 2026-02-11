@@ -119,7 +119,7 @@ export default function ChatMock() {
       >
         <ChatHeader
           nome="Maria Silva"
-          foto={require("@/assets/avatar-woman.png")}
+          foto={require("@/assets/avatar-man.png")}
           onBack={() => router.back()}
         />
 
