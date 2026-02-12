@@ -1,0 +1,158 @@
+import React, { useState } from 'react';
+import {View, Text, TouchableOpacity, StyleSheet, Image, Alert, ScrollView} from 'react-native';
+import { useRouter } from 'expo-router';
+import { fazerLogin } from '@/services/auth';
+import DismissKeyboard from '@/components/DismissKeyboard';
+import Input from '@/components/Input';
+import Button from '@/components/Button';
+import ErrorMessage from '@/components/ErrorMessage';
+
+export default function LoginScreen() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    setErro(null);
+
+    if (!email || !senha) {
+      setErro('Preencha o email e a senha para continuar.');
+      return;
+    }
+
+    setCarregando(true);
+    try {
+      const resultado = await fazerLogin(email, senha);
+
+      if (resultado.sucesso) {
+        if (!resultado.dados) {
+          Alert.alert('Erro', 'Não foi possível identificar o perfil do usuário');
+          return;
+        }
+
+        if (resultado.dados.tipo === 'pessoa_trans') {
+          router.replace('/pessoa-trans');
+          return;
+        }
+
+        if (resultado.dados.tipo === 'psicologo') {
+          router.replace('/psicologo');
+          return;
+        }
+
+        Alert.alert('Erro', 'Tipo de usuário não suportado para login');
+      } else {
+        setErro(resultado.erro || 'Email ou senha incorretos. Verifique seus dados e tente novamente.');
+      }
+    } catch (e) {
+      setErro('Ocorreu um erro inesperado ao fazer login. Verifique sua conexão e tente novamente.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+return (
+  <DismissKeyboard>
+    <View style={styles.container}>
+      <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+      >
+      {/* Borboleta */}
+      <Image
+        source={require('@/assets/butterfly.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+
+      <View style={styles.content}>
+        {/* Texto de boas-vindas */}
+        <Text style={styles.title}>Bem-vindo de volta</Text>
+
+        <ErrorMessage message={erro} />
+
+        {/* Campos */}
+        <Input
+          placeholder="Email"
+          value={email}
+          onChangeText={(text: string) => { setErro(null); setEmail(text); }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Input
+          placeholder="Senha"
+          value={senha}
+          onChangeText={(text: string) => { setErro(null); setSenha(text); }}
+          secureTextEntry
+          autoCapitalize="none"
+        />
+
+        {/* Link Esqueceu a senha */}
+        <TouchableOpacity onPress={() => router.push('/esqueci-senha')}>
+          <Text style={styles.forgotPassword}>Esqueci minha senha</Text>
+        </TouchableOpacity>
+        
+        {/* Botão Entrar */}
+        <Button 
+          title="ENTRAR" 
+          onPress={handleLogin}
+          loading={carregando}
+        />
+
+        {/* Link para cadastro */}
+        <TouchableOpacity onPress={() => router.push('/(public)/cadastro')}>
+          <Text style={styles.signupText}>Não tem conta? Cadastre-se</Text>
+        </TouchableOpacity>
+       </View>
+      </ScrollView>
+    </View>
+  </DismissKeyboard>
+);
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F2E8EB',
+  },
+  logo: {
+    width: '100%',
+    height: 250,
+    marginTop: 70,
+  },
+  content: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    paddingBottom: 40
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 24,
+    fontFamily: 'Inter',
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 40,
+    textAlign: 'center',
+  },
+  forgotPassword: {
+    fontSize: 14,
+    fontFamily: 'Inter',
+    color: '#666',
+    marginBottom: 25,
+    alignSelf: 'flex-start',
+  },
+  signupText: {
+    fontSize: 14,
+    fontFamily: 'Inter',
+    color: '#666',
+    marginTop: 15,
+  },
+});
