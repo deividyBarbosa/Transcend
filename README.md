@@ -115,7 +115,7 @@ USING (auth.uid() = pessoa_trans_id);
 
 Baixe o APK mais recente para Android:
 
-👉 **[Download do APK](https://drive.google.com/file/d/1KW0X0-rO3_6qYy822aHOsIAgOrHC_NhS/view?usp=sharing)**
+👉 **[Download do APK](https://drive.google.com/drive/u/0/folders/1cSLy0qMF2CKZv331GTJ-xx1PCnp3oKD2)**
 
 > **Nota:** O app requer Android 8.0 ou superior. Ao instalar, pode ser necessário habilitar a opção "Instalar apps de fontes desconhecidas" nas configurações do dispositivo.
 
