@@ -250,7 +250,7 @@ export default function InicioScreen() {
       </View>
 
         <Text style={styles.greeting}>
-          Olá, <Text style={styles.name}>{nome}</Text>
+          Olá, <Text style={styles.name}>{nome.split(' ')[0]}</Text>
         </Text>
 
         <Text style={styles.sectionTitle}>Plano Hormonal</Text>

@@ -36,7 +36,7 @@ const horaBR = (valor: string) => {
 const mapearConsulta = (sessao: SessaoPacienteAgenda): Consulta => {
   const status = (sessao.status || 'agendada').toLowerCase();
   const statusNormalizado: Consulta['status'] =
-    status === 'realizada' ? 'realizada' : status === 'cancelada' ? 'cancelada' : 'agendada';
+    status === 'realizada' ? 'realizada' : status === 'cancelada' ? 'cancelada' : status === 'confirmada' ? 'confirmada' : 'agendada';
 
   const statusLabel =
     status === 'agendada'
@@ -74,7 +74,7 @@ export default function ConsultasScreen() {
   const [carregandoConsultas, setCarregandoConsultas] = useState(false);
 
   const consultasAgendadas = useMemo(
-    () => consultasTodas.filter(c => c.status === 'agendada'),
+    () => consultasTodas.filter(c => c.status === 'agendada' || c.status === 'confirmada'),
     [consultasTodas]
   );
   const consultasRealizadas = useMemo(

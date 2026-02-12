@@ -4,7 +4,7 @@ export interface Consulta {
   psicologoNome: string;
   data: string; // YYYY-MM-DD
   horario: string; // HH:MM
-  status: 'agendada' | 'realizada' | 'cancelada';
+  status: 'agendada' | 'confirmada' | 'realizada' | 'cancelada';
   statusLabel?: string;
   tipo: 'online' | 'presencial';
   link?: string; // Link da videochamada

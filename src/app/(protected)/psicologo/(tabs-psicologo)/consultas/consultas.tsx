@@ -21,6 +21,7 @@ type TabType = 'proximas' | 'passadas' | 'canceladas';
 interface Consulta {
   id: string;
   patientName: string;
+  patientPhoto: string | null;
   sessionType: string;
   date: string;
   time: string;
@@ -104,6 +105,7 @@ export default function Consultas() {
         return {
           id: sessao.id,
           patientName: sessao.paciente_nome,
+          patientPhoto: sessao.paciente_foto,
           sessionType: `${modalidade} - Sessão`,
           date: formatarData(data),
           time: `${inicio} - ${fim}`,
@@ -168,10 +170,12 @@ export default function Consultas() {
     ({ item }: { item: Consulta }) => (
       <AgendamentoCard
         patientName={item.patientName}
+        patientPhoto={item.patientPhoto}
         sessionType={item.sessionType}
         date={item.date}
         time={item.time}
         badge={item.badge}
+        status={item.statusRaw}
         onPress={() => router.push(`/psicologo/consultas/detalhes-consulta?id=${item.id}`)}
       />
     ),
