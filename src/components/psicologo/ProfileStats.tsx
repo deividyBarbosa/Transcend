@@ -2,25 +2,16 @@ import React from "react";
 import { StyleSheet, View, Text } from "react-native";
 
 interface ProfileStatsProps {
-  pacientes: number;
   experiencia: number;
 }
 
 export function ProfileStats({
-  pacientes,
   experiencia,
 }: ProfileStatsProps) {
   return (
     <View style={styles.statsContainer}>
       <View style={styles.statItem}>
-        <Text style={styles.statValue}>{pacientes}+</Text>
-        <Text style={styles.statLabel}>PACIENTES</Text>
-      </View>
-
-      <View style={styles.statDivider} />
-
-      <View style={styles.statItem}>
-        <Text style={styles.statValue}>{experiencia} anos</Text>
+        <Text style={styles.statValue}>{experiencia} {experiencia === 1 ? 'ano' : 'anos'}</Text>
         <Text style={styles.statLabel}>EXPERIÊNCIA</Text>
       </View>
     </View>
@@ -54,10 +45,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#9CA3AF",
     letterSpacing: 0.5,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: "#F3E8EB",
   },
 });

@@ -5,11 +5,12 @@ import { colors } from "@/theme/colors";
 
 interface AgendamentoCardProps {
   patientName: string;
-  patientPhoto?: any;
+  patientPhoto?: string | null;
   sessionType: string;
   date: string;
   time: string;
   badge?: 'HOJE' | 'AMANHA' | null;
+  status?: string;
   onPress: () => void;
 }
 
@@ -20,14 +21,16 @@ export function AgendamentoCard({
   date,
   time,
   badge = null,
+  status,
   onPress,
 }: AgendamentoCardProps) {
+  const isConfirmada = status === 'confirmada';
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.patientInfo}>
           {patientPhoto ? (
-            <Image source={patientPhoto} style={styles.photo} />
+            <Image source={{ uri: patientPhoto }} style={styles.photo} />
           ) : (
             <View style={styles.photoPlaceholder}>
               <Ionicons name="person-outline" size={20} color="#666666" />
@@ -44,8 +47,15 @@ export function AgendamentoCard({
         </View>
 
         {badge && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{badge}</Text>
+          <View style={[styles.badge, isConfirmada && styles.badgeConfirmada]}>
+            <Text style={[styles.badgeText, isConfirmada && styles.badgeTextConfirmada]}>{badge}</Text>
+          </View>
+        )}
+
+        {isConfirmada && (
+          <View style={styles.statusConfirmada}>
+            <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+            <Text style={styles.statusConfirmadaText}>Confirmada</Text>
           </View>
         )}
       </View>
@@ -63,7 +73,7 @@ export function AgendamentoCard({
       </View>
 
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, isConfirmada && styles.buttonConfirmada]}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -172,6 +182,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  buttonConfirmada: {
+    backgroundColor: "#16A34A",
+  },
+  badgeConfirmada: {
+    backgroundColor: "#DCFCE7",
+  },
+  badgeTextConfirmada: {
+    color: "#16A34A",
+  },
+  statusConfirmada: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "#DCFCE7",
+  },
+  statusConfirmadaText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#16A34A",
   },
 });
 

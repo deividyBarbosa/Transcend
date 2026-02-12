@@ -143,7 +143,6 @@ export default function PerfilPsicologo() {
         </View>
 
         <ProfileStats
-          pacientes={perfil.total_pacientes ?? 0}
           experiencia={perfil.anos_experiencia ?? 0}
         />
 

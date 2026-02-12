@@ -13,35 +13,42 @@ interface ConsultaItemProps {
 }
 
 export default function ConsultaItem({ consulta, onPress, onEntrarConsulta }: ConsultaItemProps) {
-  const isAgendada = consulta.status === 'agendada';
+  const isAgendada = consulta.status === 'agendada' || consulta.status === 'confirmada';
+  const isConfirmada = consulta.status === 'confirmada';
   const badgeLabel =
     consulta.statusLabel ||
-    (consulta.status === 'agendada'
-      ? 'Agendada'
-      : consulta.status === 'realizada'
-        ? 'Realizada'
-        : 'Cancelada');
+    (consulta.status === 'confirmada'
+      ? 'Confirmada'
+      : consulta.status === 'agendada'
+        ? 'Agendada'
+        : consulta.status === 'realizada'
+          ? 'Realizada'
+          : 'Cancelada');
   const badgeStyle =
-    consulta.status === 'agendada'
-      ? styles.badgeWarning
-      : consulta.status === 'realizada'
-        ? styles.badgeSuccess
-        : styles.badgeDanger;
+    consulta.status === 'confirmada'
+      ? styles.badgeConfirmada
+      : consulta.status === 'agendada'
+        ? styles.badgeWarning
+        : consulta.status === 'realizada'
+          ? styles.badgeSuccess
+          : styles.badgeDanger;
   const badgeTextStyle =
-    consulta.status === 'agendada'
-      ? styles.badgeWarningText
-      : consulta.status === 'realizada'
-        ? styles.badgeSuccessText
-        : styles.badgeDangerText;
+    consulta.status === 'confirmada'
+      ? styles.badgeConfirmadaText
+      : consulta.status === 'agendada'
+        ? styles.badgeWarningText
+        : consulta.status === 'realizada'
+          ? styles.badgeSuccessText
+          : styles.badgeDangerText;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.header}>
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, isConfirmada && styles.iconContainerConfirmada]}>
           <Ionicons
-            name={isAgendada ? 'calendar-outline' : 'checkmark-circle-outline'}
+            name={isConfirmada ? 'checkmark-circle' : isAgendada ? 'calendar-outline' : 'checkmark-circle-outline'}
             size={24}
-            color={isAgendada ? colors.primary : '#4CAF50'}
+            color={isConfirmada ? '#16A34A' : isAgendada ? colors.primary : '#4CAF50'}
           />
         </View>
         <View style={styles.info}>
@@ -72,7 +79,7 @@ export default function ConsultaItem({ consulta, onPress, onEntrarConsulta }: Co
 
       {isAgendada && consulta.link && onEntrarConsulta && (
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.entrarButton} onPress={onEntrarConsulta}>
+          <TouchableOpacity style={[styles.entrarButton, isConfirmada && styles.entrarButtonConfirmada]} onPress={onEntrarConsulta}>
             <Ionicons name="videocam" size={16} color={colors.white} />
             <Text style={styles.entrarButtonText}>Entrar na consulta</Text>
           </TouchableOpacity>
@@ -181,6 +188,15 @@ const styles = StyleSheet.create({
   badgeDangerText: {
     color: '#B71C1C',
   },
+  iconContainerConfirmada: {
+    backgroundColor: '#DCFCE7',
+  },
+  badgeConfirmada: {
+    backgroundColor: '#DCFCE7',
+  },
+  badgeConfirmadaText: {
+    color: '#16A34A',
+  },
   entrarButton: {
     backgroundColor: colors.primary,
     flexDirection: 'row',
@@ -189,6 +205,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 12,
+  },
+  entrarButtonConfirmada: {
+    backgroundColor: '#16A34A',
   },
   entrarButtonText: {
     fontFamily: fonts.semibold,

@@ -461,7 +461,7 @@ export const agendarSessaoPsicologica = async (
 
 export const listarSessoesPsicologo = async (
   usuarioPsicologoId: string
-): Promise<Resultado<Array<SessaoAgenda & { paciente_nome: string }>>> => {
+): Promise<Resultado<Array<SessaoAgenda & { paciente_nome: string; paciente_foto: string | null }>>> => {
   try {
     const { data: psicologo, error: psiError } = await supabase
       .from('psicologos')
@@ -491,24 +491,129 @@ export const listarSessoesPsicologo = async (
     const pacienteIds = Array.from(new Set(lista.map(s => s.paciente_id)));
     const { data: perfis } = await supabase
       .from('perfis')
-      .select('id, nome, nome_social')
+      .select('*')
       .in('id', pacienteIds);
 
     const perfilMap = new Map(
-      ((perfis || []) as Array<{ id: string; nome: string | null; nome_social: string | null }>).map(p => [
-        p.id,
-        p.nome_social || p.nome || 'Paciente',
+      ((perfis || []) as Array<Record<string, unknown>>).map(p => [
+        String(p.id),
+        {
+          nome: String(p.nome_social || p.nome || p.nome_civil || 'Paciente'),
+          foto: (p.foto_url as string | null) || null,
+        },
       ])
     );
 
     const dados = lista.map(sessao => ({
       ...sessao,
-      paciente_nome: perfilMap.get(sessao.paciente_id) || 'Paciente',
+      paciente_nome: perfilMap.get(sessao.paciente_id)?.nome || 'Paciente',
+      paciente_foto: perfilMap.get(sessao.paciente_id)?.foto || null,
     }));
 
     return { sucesso: true, dados };
   } catch {
     return { sucesso: false, erro: 'Erro ao listar consultas do psicólogo.' };
+  }
+};
+
+export interface DetalhesSessaoPsicologo {
+  id: string;
+  paciente_nome: string;
+  paciente_foto: string | null;
+  data_sessao: string;
+  duracao_minutos: number;
+  status: string;
+  modalidade: string;
+  link_videochamada: string | null;
+  valor: number | null;
+  notas_paciente: string | null;
+}
+
+export const buscarSessaoPsicologo = async (
+  sessaoId: string,
+  usuarioPsicologoId: string
+): Promise<Resultado<DetalhesSessaoPsicologo>> => {
+  try {
+    const psicologoId = await buscarIdPsicologoPorUsuario(usuarioPsicologoId);
+    if (!psicologoId) {
+      return { sucesso: false, erro: 'Perfil de psicólogo não encontrado.' };
+    }
+
+    const { data: sessao, error } = await supabase
+      .from('sessoes_psicologicas')
+      .select('id, paciente_id, data_sessao, duracao_minutos, status, modalidade, link_videochamada, valor, notas_paciente')
+      .eq('id', sessaoId)
+      .eq('psicologo_id', psicologoId)
+      .maybeSingle();
+
+    if (error || !sessao) {
+      return { sucesso: false, erro: 'Consulta não encontrada.' };
+    }
+
+    const s = sessao as {
+      id: string;
+      paciente_id: string;
+      data_sessao: string;
+      duracao_minutos: number | null;
+      status: string | null;
+      modalidade: string | null;
+      link_videochamada: string | null;
+      valor: number | null;
+      notas_paciente: string | null;
+    };
+
+    const { data: perfil } = await supabase
+      .from('perfis')
+      .select('*')
+      .eq('id', s.paciente_id)
+      .maybeSingle();
+
+    const p = perfil as Record<string, unknown> | null;
+
+    return {
+      sucesso: true,
+      dados: {
+        id: s.id,
+        paciente_nome: String(p?.nome_social || p?.nome || p?.nome_civil || 'Paciente'),
+        paciente_foto: (p?.foto_url as string | null) || null,
+        data_sessao: s.data_sessao,
+        duracao_minutos: s.duracao_minutos || 60,
+        status: (s.status || 'agendada').toLowerCase(),
+        modalidade: (s.modalidade || 'online').toLowerCase(),
+        link_videochamada: s.link_videochamada,
+        valor: s.valor,
+        notas_paciente: s.notas_paciente,
+      },
+    };
+  } catch {
+    return { sucesso: false, erro: 'Erro ao buscar detalhes da consulta.' };
+  }
+};
+
+export const atualizarLinkVideochamada = async (
+  sessaoId: string,
+  usuarioPsicologoId: string,
+  link: string
+): Promise<Resultado<void>> => {
+  try {
+    const psicologoId = await buscarIdPsicologoPorUsuario(usuarioPsicologoId);
+    if (!psicologoId) {
+      return { sucesso: false, erro: 'Perfil de psicólogo não encontrado.' };
+    }
+
+    const { error } = await supabase
+      .from('sessoes_psicologicas')
+      .update({ link_videochamada: link })
+      .eq('id', sessaoId)
+      .eq('psicologo_id', psicologoId);
+
+    if (error) {
+      return { sucesso: false, erro: 'Não foi possível atualizar o link da videochamada.' };
+    }
+
+    return { sucesso: true };
+  } catch {
+    return { sucesso: false, erro: 'Erro inesperado ao atualizar o link.' };
   }
 };
 
