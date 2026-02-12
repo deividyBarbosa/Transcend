@@ -14,6 +14,39 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+const isRefreshTokenInvalido = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const authError = error as { message?: string; code?: string };
+  const mensagem = authError.message || '';
+  const codigo = authError.code || '';
+
+  return /invalid refresh token|refresh token not found/i.test(mensagem)
+    || codigo === 'refresh_token_not_found';
+};
+
+const limparSessaoCorrompida = async (): Promise<void> => {
+  try {
+    const { error } = await supabase.auth.getSession();
+
+    if (isRefreshTokenInvalido(error)) {
+      console.warn('[supabase] sessao invalida detectada; limpando sessao local...');
+      await supabase.auth.signOut({ scope: 'local' });
+    }
+  } catch (e) {
+    if (isRefreshTokenInvalido(e)) {
+      await supabase.auth.signOut({ scope: 'local' });
+      return;
+    }
+
+    console.warn('[supabase] erro ao validar sessao inicial', e);
+  }
+};
+
+void limparSessaoCorrompida();
+
 // Debug: log auth state changes and inspect AsyncStorage keys containing auth info
 supabase.auth.onAuthStateChange(async (event, session) => {
   try {

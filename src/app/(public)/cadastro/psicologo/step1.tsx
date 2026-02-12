@@ -5,6 +5,7 @@ import DismissKeyboard from '@/components/DismissKeyboard';
 import Header from '@/components/Header';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import ErrorMessage from '@/components/ErrorMessage';
 import { cadastrarPsicologo } from '@/services/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,6 +17,7 @@ export default function CadastroPsicologoScreen() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const validarCRP = (crp: string) => {
     const crpRegex = /^\d{2}\/\d{5}$/;
@@ -31,6 +33,8 @@ export default function CadastroPsicologoScreen() {
   };
 
   const handleCadastrar = async () => {
+    setErro(null);
+
     if (!nomeCompleto || !numeroCRP || !email || !senha || !confirmarSenha) {
       Alert.alert('Atencao', 'Por favor, preencha todos os campos obrigatorios');
       return;
@@ -67,7 +71,12 @@ export default function CadastroPsicologoScreen() {
       });
 
       if (!resultadoCadastro.sucesso || !resultadoCadastro.dados) {
-        Alert.alert('Erro', resultadoCadastro.erro || 'Erro ao realizar cadastro');
+        if (resultadoCadastro.codigo === 'email_not_confirmed') {
+          router.replace('/');
+          return;
+        }
+
+        setErro(resultadoCadastro.erro || 'Erro ao realizar cadastro');
         setCarregando(false);
         return;
       }
@@ -75,7 +84,7 @@ export default function CadastroPsicologoScreen() {
       router.push('/cadastro/psicologo/step2');
     } catch (erro) {
       console.error('Erro no cadastro:', erro);
-      Alert.alert('Erro', 'Ocorreu um erro ao realizar o cadastro');
+      setErro('Ocorreu um erro ao realizar o cadastro');
     } finally {
       setCarregando(false);
     }
@@ -93,12 +102,16 @@ export default function CadastroPsicologoScreen() {
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.title}>Cadastro Psicologo</Text>
+            <ErrorMessage message={erro} />
 
             <Input
               label="Nome completo"
               placeholder="Digite seu nome"
               value={nomeCompleto}
-              onChangeText={setNomeCompleto}
+              onChangeText={(text: string) => {
+                setErro(null);
+                setNomeCompleto(text);
+              }}
               autoCapitalize="words"
             />
 
@@ -106,7 +119,10 @@ export default function CadastroPsicologoScreen() {
               label="Numero do CRP"
               placeholder="01/XXXXX"
               value={numeroCRP}
-              onChangeText={setNumeroCRP}
+              onChangeText={(text: string) => {
+                setErro(null);
+                setNumeroCRP(text);
+              }}
               keyboardType="numbers-and-punctuation"
             />
 
@@ -114,7 +130,10 @@ export default function CadastroPsicologoScreen() {
               label="E-mail"
               placeholder="Digite seu email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text: string) => {
+                setErro(null);
+                setEmail(text);
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -124,7 +143,10 @@ export default function CadastroPsicologoScreen() {
               label="Senha"
               placeholder="Senha de 8 a 16 digitos"
               value={senha}
-              onChangeText={setSenha}
+              onChangeText={(text: string) => {
+                setErro(null);
+                setSenha(text);
+              }}
               secureTextEntry
               autoCapitalize="none"
             />
@@ -133,7 +155,10 @@ export default function CadastroPsicologoScreen() {
               label="Confirmar senha"
               placeholder="Confirme sua senha"
               value={confirmarSenha}
-              onChangeText={setConfirmarSenha}
+              onChangeText={(text: string) => {
+                setErro(null);
+                setConfirmarSenha(text);
+              }}
               secureTextEntry
               autoCapitalize="none"
             />

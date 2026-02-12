@@ -29,6 +29,27 @@ const mapearErro = (codigo: string, mensagemOriginal: string): string => {
   return erros[codigo] || mensagemOriginal || 'Ocorreu um erro inesperado. Tente novamente em alguns instantes.';
 };
 
+const isRefreshTokenInvalido = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const authError = error as { message?: string; code?: string };
+  const mensagem = authError.message || '';
+  const codigo = authError.code || '';
+
+  return /invalid refresh token|refresh token not found/i.test(mensagem)
+    || codigo === 'refresh_token_not_found';
+};
+
+const limparSessaoLocal = async (): Promise<void> => {
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+
+  if (error) {
+    console.warn('Falha ao limpar sessão local:', error.message);
+  }
+};
+
 /**
  * Aguarda um tempo especificado (para dar tempo ao trigger)
  */
@@ -278,10 +299,14 @@ const buscarPerfil = async (userId: string): Promise<Usuario | null> => {
     .select('*')
     .eq('id', userId)
     .is('deleted_at', null)
-    .single();
+    .maybeSingle();
 
-  if (perfilError || !perfil) {
+  if (perfilError) {
     console.error('Erro ao buscar perfil:', perfilError);
+    return null;
+  }
+
+  if (!perfil) {
     return null;
   }
 
@@ -560,6 +585,11 @@ export const fazerLogout = async (): Promise<ResultadoAuth<void>> => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
+      if (isRefreshTokenInvalido(error)) {
+        await limparSessaoLocal();
+        return { sucesso: true };
+      }
+
       return {
         sucesso: false,
         erro: 'Não foi possível fazer logout. Tente novamente.',
@@ -637,7 +667,14 @@ export const obterSessao = async (): Promise<Sessao | null> => {
   try {
     const { data, error } = await supabase.auth.getSession();
 
-    if (error || !data.session) {
+    if (error) {
+      if (isRefreshTokenInvalido(error)) {
+        await limparSessaoLocal();
+      }
+      return null;
+    }
+
+    if (!data.session) {
       return null;
     }
 
@@ -654,6 +691,11 @@ export const obterSessao = async (): Promise<Sessao | null> => {
       expiresAt: data.session.expires_at || 0,
     };
   } catch (erro) {
+    if (isRefreshTokenInvalido(erro)) {
+      await limparSessaoLocal();
+      return null;
+    }
+
     console.error('Erro ao obter sessão:', erro);
     return null;
   }
@@ -666,12 +708,24 @@ export const obterUsuarioAtual = async (): Promise<Usuario | null> => {
   try {
     const { data, error } = await supabase.auth.getUser();
 
-    if (error || !data.user) {
+    if (error) {
+      if (isRefreshTokenInvalido(error)) {
+        await limparSessaoLocal();
+      }
+      return null;
+    }
+
+    if (!data.user) {
       return null;
     }
 
     return await buscarPerfil(data.user.id);
   } catch (erro) {
+    if (isRefreshTokenInvalido(erro)) {
+      await limparSessaoLocal();
+      return null;
+    }
+
     console.error('Erro ao obter usuário:', erro);
     return null;
   }
